@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'login_screen.dart';
+import 'package:logger/logger.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -8,11 +11,20 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final logger = Logger();
   String name = '', email = '', password = '', confirmPassword = '';
   bool isPasswordVisible = false, isConfirmPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
+    void showSnackbar(String msg, {bool isError = false}) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(msg),
+            backgroundColor: isError ? Colors.red : Colors.green),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100, // ✅ Nền dịu nhẹ
       body: Center(
@@ -90,22 +102,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                       // ✅ Nút Đăng ký
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            if (password == confirmPassword) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Đăng ký thành công!"),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
+                         
+                            if (password != confirmPassword) {
+                              if (!context.mounted) return;
+                              showSnackbar("Mật khẩu không khớp",
+                                  isError: true);
+                              return;
+                            }
+                            try{
+
+                            final error = await ApiService.registerUser(
+                                name, email, password,confirmPassword);
+                                
+                            if (!context.mounted) return;
+                            if (error == null) {
+                              showSnackbar("Đăng ký thành công");
+                              if (!context.mounted) return;
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => LoginScreen()));
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Mật khẩu không khớp"),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              showSnackbar(error, isError: true);
+                            }
+                            }catch(e){
+                              logger.e("Lỗi exception: $e");
+                              showSnackbar("Đã xảy ra lỗi hệ thống", isError: true);
                             }
                           }
                         },
