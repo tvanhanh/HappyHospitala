@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 import 'change_password_screen.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'screen_doctor/home.dart';
+import 'screen_staff/home.dart';
+import 'screens_admin/home.dart';
+import '../services/config.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -71,13 +78,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       // ✅ Nút Đăng nhập
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => HomeScreen()));
-                          }
+                            
+                             final result = await ApiService.loginUser(email, password);
+                            if (!context.mounted) return;
+                            
+
+                            if (result != null && result['error'] == null) {
+                               final role = result['role'];
+                              
+
+                           if (role == 'admin') {
+                           Navigator.pushReplacement(
+                           context,
+                           MaterialPageRoute(builder: (_) => AdminDashboard()),
+                            );
+                           } else if (role == 'patient') {
+                           Navigator.pushReplacement(
+                            context,
+                          MaterialPageRoute(builder: (_) => HomeScreen()),
+                            );
+                          } else {
+        // Role không xác định → về trang chủ hoặc báo lỗi
+                           Navigator.pushReplacement(
+                            context,
+                           MaterialPageRoute(builder: (_) => HomeScreen()),
+                           );
+                         }
+                      } else {
+      
+                         ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(content: Text(result?['error'] ?? 'Đăng nhập thất bại')),
+                          );
+                         }
+                        }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade700,
