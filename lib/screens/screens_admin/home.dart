@@ -1,11 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_datlichkham/screens/screens_admin/report_statistics.dart';
 import 'patient_list.dart';
-import 'security_ayth.dart';
+import 'security_screens/security_ayth.dart';
+import 'appoitment.dart';
+import 'overview.dart';
+import 'departmenr_screens/department_management.dart';
+import 'doctor_list.dart';
+import 'inventory_management.dart';
+import 'log_out.dart';
+import 'staff_list.dart';
 
-class AdminDashboard extends StatelessWidget {
+class AdminDashboard extends StatefulWidget {
+  @override
+  _AdminDashboardState createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  int selectedMenuIndex = 0;
+
+  final List<Widget> pages = [
+    DashboardOverview(),
+    PatientListScreen(),
+    AppointmentListScreen(),
+    DoctorListScreen(),
+    StaffManagement(),
+    MedicineInventory(),
+    MonthlyReportScreen(),
+    DepartmentManagement(),
+    UserManagementScreen(),
+
+    
+     // 8: Bảo mật & phân quyền
+  ];
+
+  void onSelectMenu(int index) {
+    setState(() {
+      selectedMenuIndex = index;
+      Navigator.pop(context); // Đóng Drawer sau khi chọn
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Admin Dashboard"),
+        backgroundColor: Colors.blue,
+      ),
       drawer: Drawer(
         child: ListView(
           children: [
@@ -22,158 +63,49 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.dashboard),
-              title: Text('Tổng quan'),
-              onTap: () {},
-            ),
+                leading: Icon(Icons.dashboard),
+                title: Text('Tổng quan'),
+                onTap: () => onSelectMenu(0)),
             ListTile(
-              leading: Icon(Icons.people),
-              title: Text('Bệnh nhân'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => PatientListScreen()),
-                );
-              },
-            ),
+                leading: Icon(Icons.people),
+                title: Text('Bệnh nhân'),
+                onTap: () => onSelectMenu(1)),
             ListTile(
-              leading: Icon(Icons.calendar_today),
-              title: Text('Lịch hẹn'),
-              onTap: () {},
-            ),
+                leading: Icon(Icons.calendar_today),
+                title: Text('Lịch hẹn'),
+                onTap: () => onSelectMenu(2)),
             ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Bác sĩ'),
-              onTap: () {},
-            ),
+                leading: Icon(Icons.person),
+                title: Text('Bác sĩ'),
+                onTap: () => onSelectMenu(3)),
             ListTile(
                 leading: Icon(Icons.medical_services),
                 title: Text('Nhân viên'),
-                onTap: () {}),
+                onTap: () => onSelectMenu(4)),
             ListTile(
                 leading: Icon(Icons.add_business_sharp),
                 title: Text('Quản lý thuốc và kho'),
-                onTap: () {}),
+                onTap: () => onSelectMenu(5)),
             ListTile(
                 leading: Icon(Icons.bar_chart_sharp),
                 title: Text('Báo cáo và Thống kê'),
-                onTap: () {}),
+                onTap: () => onSelectMenu(6)),
             ListTile(
                 leading: Icon(Icons.business),
                 title: Text('Quản lý phòng ban'),
-                onTap: () {}),
+                onTap: () => onSelectMenu(7)),
             ListTile(
                 leading: Icon(Icons.security_sharp),
                 title: Text('Bảo mật và Phân quyền'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => UserManagementScreen()),
-                  );
-                }),
+                onTap: () => onSelectMenu(8)),
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Đăng xuất'),
-              onTap: () {},
-            ),
+                leading: Icon(Icons.logout),
+                title: Text('Đăng xuất'),
+                onTap: () {}),
           ],
         ),
       ),
-      appBar: AppBar(
-        title: Text("Admin Dashboard"),
-        backgroundColor: Colors.blue,
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Thống kê
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatCard("Bệnh nhân", "120", Colors.blue),
-                _buildStatCard("Lịch hẹn", "20", Colors.green),
-                _buildStatCard("Bác sĩ", "6", Colors.orange),
-              ],
-            ),
-            SizedBox(height: 20),
-            // Form nhập bác sĩ
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text("Thêm bác sĩ mới",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-                    TextField(
-                      decoration: InputDecoration(labelText: "Họ tên"),
-                    ),
-                    TextField(
-                      decoration: InputDecoration(labelText: "Chuyên khoa"),
-                    ),
-                    TextField(
-                      decoration: InputDecoration(labelText: "Email"),
-                    ),
-                    SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: Text("Lưu"),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            // Chọn ngày
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Text("Chọn ngày thống kê",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 10),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        // mở date picker
-                      },
-                      icon: Icon(Icons.date_range),
-                      label: Text("Chọn ngày"),
-                    )
-                  ],
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, Color color) {
-    return Expanded(
-      child: Card(
-        elevation: 4,
-        child: Container(
-          padding: EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Icon(Icons.analytics, size: 32, color: color),
-              SizedBox(height: 8),
-              Text(value,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              Text(title, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      ),
+      body: pages[selectedMenuIndex],
     );
   }
 }

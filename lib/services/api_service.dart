@@ -13,7 +13,8 @@ class ApiService {
         'name': name,
         'email': email,
         'password': password,
-        'confirmPassword': confirmPassword
+        'confirmPassword': confirmPassword,
+       
       }),
     );
 
