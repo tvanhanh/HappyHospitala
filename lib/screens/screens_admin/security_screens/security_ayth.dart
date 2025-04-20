@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'create_account_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   @override
@@ -35,7 +36,10 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void _createUser() {
-    // Tạo tài khoản mới (hiển thị dialog hoặc chuyển sang màn hình khác)
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateUserScreenState()),
+    );
   }
 
   @override
@@ -58,7 +62,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 children: [
                   Text(user['email']),
                   Text("Vai trò: ${user['role']}"),
-                  Text("Trạng thái: ${user['active'] ? 'Hoạt động' : 'Bị khóa'}",
+                  Text(
+                      "Trạng thái: ${user['active'] ? 'Hoạt động' : 'Bị khóa'}",
                       style: TextStyle(
                           color: user['active'] ? Colors.green : Colors.red)),
                 ],
@@ -75,7 +80,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   ),
                   PopupMenuItem(
                     value: 'toggle',
-                    child: Text(user['active'] ? 'Vô hiệu hóa' : 'Kích hoạt lại'),
+                    child:
+                        Text(user['active'] ? 'Vô hiệu hóa' : 'Kích hoạt lại'),
                   ),
                 ],
               ),

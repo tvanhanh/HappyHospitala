@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'patient_detail.dart';
+import './patient_detail.dart';
 
 class PatientListScreen extends StatelessWidget {
   final List<Map<String, String>> patients = [
@@ -23,6 +23,7 @@ class PatientListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Danh sách bệnh nhân')),
+      
       body: ListView.builder(
         itemCount: patients.length,
         itemBuilder: (context, index) {
