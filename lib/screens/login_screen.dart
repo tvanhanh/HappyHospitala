@@ -80,39 +80,47 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            
-                             final result = await ApiService.loginUser(email, password);
+                            final result =
+                                await ApiService.loginUser(email, password);
                             if (!context.mounted) return;
-                            
 
                             if (result != null && result['error'] == null) {
-                               final role = result['role'];
-                              
+                              final role = result['role'];
 
-                           if (role == 'admin') {
-                           Navigator.pushReplacement(
-                           context,
-                           MaterialPageRoute(builder: (_) => AdminDashboard()),
-                            );
-                           } else if (role == 'patient') {
-                           Navigator.pushReplacement(
-                            context,
-                          MaterialPageRoute(builder: (_) => HomeScreen()),
-                            );
-                          } else {
-        // Role không xác định → về trang chủ hoặc báo lỗi
-                           Navigator.pushReplacement(
-                            context,
-                           MaterialPageRoute(builder: (_) => HomeScreen()),
-                           );
-                         }
-                      } else {
-      
-                         ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text(result?['error'] ?? 'Đăng nhập thất bại')),
-                          );
-                         }
-                        }
+                              if (role == 'admin') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => AdminDashboard()),
+                                );
+                              } else if (role == 'patient') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => HomeScreen()),
+                                );
+                              } else if (role == 'doctor') {
+                                // Role không xác định → về trang chủ hoặc báo lỗi
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => DoctorDashboard()),
+                                );
+                              } else if (role == 'staff') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => StaffDashboard()),
+                                );
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(result?['error'] ??
+                                        'Đăng nhập thất bại')),
+                              );
+                            }
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue.shade700,

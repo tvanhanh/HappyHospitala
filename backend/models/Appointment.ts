@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
 const AppointmentSchema = new mongoose.Schema({
-  name: String,
+  patientName: String,
   phone: String,
-  date: Date,
-  status: { type: String, default: 'pending' }, 
+  reason: String, 
+  date: String,
+  time: String,
+  status: { type: String, default: "pending" },
+  email: String,
 });
 
-module.exports = mongoose.model('Appointment', AppointmentSchema);
+const Appointment = mongoose.model("Appointment", AppointmentSchema);
+
+export default Appointment;
