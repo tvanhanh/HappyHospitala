@@ -6,6 +6,7 @@ import '../screens/faq_screen.dart';
 import '../screens/patients_screen.dart';
 import '../screens/medical_facilities_screen.dart';
 import '../screens/specialties_screen.dart';
+import '../screens/booking_screen.dart';
 
 class Header extends StatefulWidget implements PreferredSizeWidget {
   final bool isLoggedIn;
@@ -106,7 +107,7 @@ class _HeaderState extends State<Header> {
           // Điều hướng đổi mật khẩu
         } else if (value == 'forgot_password') {
           // Điều hướng quên mật khẩu
-        }
+        } 
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'change_password', child: Text('Đổi mật khẩu')),
@@ -117,6 +118,7 @@ class _HeaderState extends State<Header> {
         backgroundImage: AssetImage(widget.userAvatar),
         radius: 22,
       ),
+      
     );
   }
 
@@ -124,15 +126,15 @@ class _HeaderState extends State<Header> {
   Widget _buildLoginButtons(BuildContext context) {
     return Row(
       children: [
-        ElevatedButton(
-          onPressed: () => Navigator.push(
-              context, MaterialPageRoute(builder: (context) => LoginScreen())),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.blue.shade700,
-          ),
-          child: Text('Đăng nhập'),
-        ),
+        // ElevatedButton(
+        //   onPressed: () => Navigator.push(
+        //       context, MaterialPageRoute(builder: (context) => LoginScreen())),
+        //   style: ElevatedButton.styleFrom(
+        //     backgroundColor: Colors.white,
+        //     foregroundColor: Colors.blue.shade700,
+        //   ),
+        //   child: Text('Đăng nhập'),
+        // ),
         SizedBox(width: 10),
         ElevatedButton(
           onPressed: () => Navigator.push(context,
@@ -143,6 +145,17 @@ class _HeaderState extends State<Header> {
           ),
           child: Text('Đăng ký'),
         ),
+         SizedBox(width: 10),
+        ElevatedButton(
+          onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (context) => BookingScreen())),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+          ),
+          child: Text('Đặt lịch khám'),
+        ),
+
       ],
     );
   }

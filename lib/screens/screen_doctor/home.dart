@@ -5,9 +5,9 @@ class DoctorDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Admin Dashboard')),
-      drawer: RoleBasedNavDrawer(role: 'admin'),
-      body: Center(child: Text('Welcome Admin')),
+      appBar: AppBar(title: Text('Doctor ')),
+      drawer: RoleBasedNavDrawer(role: 'doctor'),
+      body: Center(child: Text('Welcome Doctor')),
     );
   }
 }

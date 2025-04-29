@@ -1,16 +1,17 @@
 import { Request, Response, NextFunction } from "express";
+import * as bcrypt from 'bcryptjs';
 import User from "../models/User";
-import bcrypt from "bcrypt";
+
 import jwt from "jsonwebtoken";
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, password, confirmPassword, role } = req.body;
+    const { name, email, password, confirmPassword, role, status } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
 
     if (password !== confirmPassword) {
-       res.status(400).json({ message: "Mật khẩu không khớpkhớp." });
+       res.status(400).json({ message: "Mật khẩu không khớp." });
        return;
     }
     // Kiểm tra email đã tồn tại chưa
@@ -26,7 +27,8 @@ export const register = async (req: Request, res: Response) => {
       name,
       email,
       password:hashedPassword,
-      role: role || "admin",
+      role: role || "patient",
+      status: status || "activity",
       personalData: {}
     });
 
@@ -88,7 +90,9 @@ export const login = async (req: Request, res: Response) => {
     }
     // 3. Tạo JWT token
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { _id: user._id.toString(),
+        role: user.role,
+        email: user.email },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
@@ -96,7 +100,7 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).json({
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,

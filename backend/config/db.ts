@@ -15,3 +15,6 @@ const connectDB = async () => {
 
 export default connectDB;
 // emulator -avd Pixel_7_API_31
+// Accout login 
+// admin@gmail.com , pass: 123456
+// doctor@gmail.com, pass: 123456123456

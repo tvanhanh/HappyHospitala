@@ -115,8 +115,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                             final error = await ApiService.registerUser(
                                 name, email, password,confirmPassword);
-                                
-                            if (!context.mounted) return;
+                              
                             if (error == null) {
                               showSnackbar("Đăng ký thành công");
                               if (!context.mounted) return;
