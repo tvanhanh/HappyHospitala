@@ -6,8 +6,9 @@ import axios from 'axios';
 export const addAppointments = async (req: Request, res: Response) => {
   
   try {
-    const { patientName, phone, reason, date, time } = req.body;
+    const { patientName, phone, reason, date, time,departmentName,doctorId, } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
+
     if (!req.user || !req.user.email){
          res.status(401).json({ message: 'User not authenticated' });
          return;
@@ -28,6 +29,8 @@ export const addAppointments = async (req: Request, res: Response) => {
       describe: reason,
       date: date,
       time: time,
+      departmentName,
+      doctorId,
       email,
     });
 
@@ -39,12 +42,12 @@ export const addAppointments = async (req: Request, res: Response) => {
       time,
     });
 
-    await axios.post('http://localhost:5678/webhook-test/api_n8n/appointments', {
-      patientName,
-      email,
-      date,
-      time,
-    });
+    // await axios.post('http://localhost:5678/webhook-test/api_n8n/appointments', {
+    //   patientName,
+    //   email,
+    //   date,
+    //   time,
+    // });
 
      res.status(201).json({ message: "Đặt lịch thành công", appointment: newAppointment });
     return;

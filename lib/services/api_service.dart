@@ -100,11 +100,11 @@ class ApiService {
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => {
-          'id': e['id'],
-          'userName': e['userName'],
+          '_id': e['_id'],
+          'name': e['name'],
           'email': e['email'],
           'role': e['role'],
-          'status': e['status']== true,
+          'status': e['status'],
         }).toList();
       } else {
         print("Lỗi khi lấy danh sách: ${response.body}");
@@ -116,9 +116,9 @@ class ApiService {
     }
   }
   // thay đổi role
-  static Future<bool> changeUserRole(String userId, String newRole) async {
+  static Future<bool> changeUserRole(String id, String newRole) async {
   try {
-    final url = Uri.parse('$baseUrl/auth/api_changeRole/$userId');
+    final url = Uri.parse('$baseUrl/auth/api_changeUserRole/$id');
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -145,9 +145,9 @@ class ApiService {
   }
 }
 // mở, khóa tài khoản
-static Future<bool> toggleUserStatus(String userId, String newStatus) async {
+static Future<bool> toggleUserStatus(String id, String newStatus) async {
   try {
-    final url = Uri.parse('$baseUrl/auth/api_updateStatus/$userId');
+    final url = Uri.parse('$baseUrl/auth/api_updateStatus/$id');
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
