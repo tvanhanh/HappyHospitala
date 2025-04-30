@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/screens/home_screen.dart';
 import '../services/api_appointment.dart';
+import '../services/api_department.dart';
+import '../services/api_doctors.dart';
 
 class BookingScreen extends StatefulWidget {
   @override
@@ -8,12 +10,54 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
+  List<Map<String, dynamic>> departments = [];
+  List<Map<String, dynamic>> doctors = [];
+  String? selectedDepartmentId;
+  String? selectedDoctorId;
   final _formKey = GlobalKey<FormState>();
   String patientName = '';
   String phone = '';
   String reason = '';
   DateTime? selectedDate;
   TimeOfDay? selectedTime;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDepartments();
+  }
+
+  Future<void> fetchDepartments() async {
+    try {
+      final data = await DepartmentService.getDepartments();
+      setState(() {
+        departments = data;
+      });
+    } catch (e) {
+      showSnackbar('Lỗi khi lấy danh sách phòng ban: $e');
+    }
+  }
+
+  Future<void> fetchDoctors(String departmentId) async {
+    try {
+    final data = await DoctorService.getDoctors();
+    print('Danh sách bác sĩ gốc: $data');
+    // Khai báo biến filteredDoctors
+    final filteredDoctors = data
+        .where((doctor) => doctor['departmentId'] == departmentId)
+        .toList();
+    print('Danh sách bác sĩ sau khi lọc cho departmentId $departmentId: $filteredDoctors');
+    setState(() {
+      doctors = filteredDoctors; // Sử dụng filteredDoctors đã khai báo
+      selectedDoctorId = null;
+      if (doctors.isEmpty) {
+        showSnackbar('Không có bác sĩ trong phòng ban này');
+      }
+    });
+  } catch (e) {
+    showSnackbar('Lỗi khi lấy danh sách bác sĩ: $e');
+  }
+  }
 
   void _selectDate() async {
     final picked = await showDatePicker(
@@ -32,51 +76,59 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   void _submitBooking() async {
-  if (_formKey.currentState!.validate() &&
-      selectedDate != null &&
-      selectedTime != null) {
-    final date =
-        '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
-    final time = selectedTime!.format(context);
+    if (_formKey.currentState!.validate() &&
+        selectedDate != null &&
+        selectedTime != null &&
+        selectedDepartmentId != null &&
+        selectedDoctorId != null) {
+          
+      final date =
+          '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
+      final time = selectedTime!.format(context);
 
-    try {
-      final result = await AddAppointments.addAppointment(
-        patientName,
-        phone,
-        reason,
-        date,
-        time,
-      );
-      if (!mounted) return;
-      if (result=="success") {
-        
-        showSnackbar("Đặt lịch thành công"); 
-        
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => HomeScreen()),
+      print('selectedDepartmentId: $selectedDepartmentId');
+      print('selectedDoctorId: $selectedDoctorId');
+      print('date: $date');
+      print('time: $time');
+
+      try {
+        final result = await AddAppointments.addAppointment(
+          patientName,
+          phone,
+          reason,
+          date,
+          time,
+          selectedDepartmentId!,
+          selectedDoctorId!,
         );
-      } else {
-        showSnackbar(result);
+        if (!mounted) return;
+        if (result == "success") {
+          showSnackbar("Đặt lịch thành công");
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => HomeScreen()),
+          );
+        } else {
+          showSnackbar(result);
+        }
+      } catch (e) {
+        showSnackbar("Lỗi hệ thống: $e");
       }
-    } catch (e) {
-      showSnackbar("Lỗi hệ thống: $e");
+    } else {
+      showSnackbar("Vui lòng nhập đầy đủ thông tin");
     }
-  } else {
-    showSnackbar("Vui lòng nhập đầy đủ thông tin");
   }
-}
 
-void showSnackbar(String message) {
-  if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: Colors.teal,
-    ),
-  );
-}
-
+  void showSnackbar(String message) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.teal,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +179,57 @@ void showSnackbar(String message) {
                 validator: (value) =>
                     value!.isEmpty ? 'Vui lòng nhập lý do' : null,
                 onChanged: (value) => reason = value,
+              ),
+              SizedBox(height: 16),
+              // Phòng ban
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Chọn phòng ban',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedDepartmentId,
+                items: departments.map((dept) {
+                  return DropdownMenuItem<String>(
+                    value: dept['id'],
+                    child: Text(
+                        dept['departmentName'] ?? 'Không rõ tên phòng ban'),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedDepartmentId = value;
+                    doctors = []; // Reset danh sách bác sĩ
+                    if (value != null) {
+                      fetchDoctors(
+                          value); // Lấy danh sách bác sĩ theo phòng ban
+                    }
+                  });
+                },
+                validator: (value) =>
+                    value == null ? 'Vui lòng chọn phòng ban' : null,
+              ),
+              SizedBox(height: 16),
+
+// Bác sĩ
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(
+                  labelText: 'Chọn bác sĩ',
+                  border: OutlineInputBorder(),
+                ),
+                value: selectedDoctorId,
+                items: doctors.map((doctor) {
+                  return DropdownMenuItem<String>(
+                    value: doctor['id'],
+                    child: Text(doctor['doctorName'] ?? 'Không rõ tên bác sĩ'),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedDoctorId = value;
+                  });
+                },
+                validator: (value) =>
+                    value == null ? 'Vui lòng chọn bác sĩ' : null,
               ),
               SizedBox(height: 16),
 

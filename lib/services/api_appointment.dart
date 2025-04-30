@@ -10,6 +10,8 @@ class AddAppointments {
     String reason,
     String date,
     String time,
+    String departmentName,
+    String doctorId,
   ) async {
     try {
       final url = Uri.parse('$baseUrl/appointments/addAppointment');
@@ -32,6 +34,8 @@ class AddAppointments {
           "reason": reason,
           "date": date,
           "time": time,
+          'departmentName': departmentName,
+          'doctorId': doctorId,
         }),
       );
 

@@ -23,12 +23,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     });
     try {
       final data = await ApiService.getUsers();
-      print('Dữ liệu người dùng: $data'); // Log dữ liệu để kiểm tra
+      //showSnackbar('Dữ liệu người dùng: $data'); // Log dữ liệu để kiểm tra
       setState(() {
+        users = data.where((user) => user['_id'] != null).toList();
         users = data;
       });
     } catch (e) {
-      print("Lỗi khi lấy người dùng: $e");
+      showSnackbar("Lỗi khi lấy người dùng: $e");
       showSnackbar("Lỗi khi tải dữ liệu: $e", isError: true);
     } finally {
       setState(() {
@@ -47,14 +48,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Future<void> _toggleUserActive(String userId, String currentStatus) async {
-    if (userId == null) {
+  Future<void> _toggleUserActive(String id, String currentStatus) async {
+    if (id == null) {
       showSnackbar("Không tìm thấy ID người dùng", isError: true);
       return;
     }
     final newStatus = currentStatus == "activity" ? "inactive" : "activity";
-    final result = await ApiService.toggleUserStatus(userId, newStatus);
-    if (result == "success") {
+    final result = await ApiService.toggleUserStatus(id, newStatus);
+    if (result) {
       showSnackbar("Cập nhật trạng thái thành công");
       fetchUsers();
     } else {
@@ -62,13 +63,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _changeUserRole(String userId, String newRole) async {
-    if (userId == null) {
+  Future<void> _changeUserRole(String id, String newRole) async {
+    if (id == null) {
       showSnackbar("Không tìm thấy ID người dùng", isError: true);
       return;
     }
-    final result = await ApiService.changeUserRole(userId, newRole);
-    if (result == "success") {
+    final result = await ApiService.changeUserRole(id, newRole);
+    if (result) {
       showSnackbar("Cập nhật vai trò thành công");
       fetchUsers();
     } else {
@@ -121,7 +122,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Widget _buildRoleOption(BuildContext sheetContext, String userId, String role) {
+  Widget _buildRoleOption(
+      BuildContext sheetContext, String userId, String role) {
     return ListTile(
       leading: Icon(Icons.person, color: Colors.blue),
       title: Text(
@@ -193,9 +195,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             Text(user['email'] ?? 'Không có email'),
                             Text("Role: ${user['role'] ?? 'Không xác định'}"),
                             Text(
-                              "Status: ${user['status'] == 'activity' ? 'Hoạt động' : 'Vô hiệu hóa'}",
+                              "Status: ${user['status'] ?? 'không có trạng thái'}",
                               style: TextStyle(
-                                color: user['status'] == 'activity' ? Colors.green : Colors.red,
+                                color: user['status'] == 'activity'
+                                    ? Colors.green
+                                    : Colors.red,
                               ),
                             ),
                           ],
@@ -204,9 +208,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           onSelected: (value) {
                             print('Lựa chọn: $value'); // Log lựa chọn
                             if (value == 'toggle') {
+                              if (user['_id'] == null) {
+                                showSnackbar("Không tìm thấy ID người dùng",
+                                    isError: true);
+                                return;
+                              }
+
                               _toggleUserActive(user['_id'], user['status']);
                             } else if (value == 'change_role') {
-                              _showRoleSelectionMenu(user['_id'], user['role'] ?? 'patient');
+                              if (user['_id'] == null) {
+                                showSnackbar("không tìm thấy id người dùng",
+                                    isError: true);
+                              }
+                              _showRoleSelectionMenu(
+                                  user['_id'], user['role'] ?? 'patient');
                             }
                           },
                           itemBuilder: (BuildContext context) => [
