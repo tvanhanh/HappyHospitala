@@ -9,7 +9,7 @@ class Doctor {
   final String email;
   final String address;
   final String workingHours;
-  final String bookingLink; // Link Google Form đặt lịch
+  final String bookingLink;
 
   Doctor({
     required this.name,
