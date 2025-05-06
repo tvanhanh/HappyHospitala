@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../services//config.dart';
+import '../../services/api_appointment.dart';
 
 class MonthlyReportScreen extends StatefulWidget {
   @override
@@ -7,10 +9,32 @@ class MonthlyReportScreen extends StatefulWidget {
 }
 
 class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
-  final int totalPatients = 120;
+  int get totalPatients => appointments.map((e) => e['_id'] ?? e['patientName']).toSet().length;
   final int totalAppointments = 95;
   final double totalRevenue = 35600000;
   final List<int> weeklyPatients = [30, 25, 35, 30]; // Tuần 1 -> 4
+
+  List<dynamic> appointments = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAppointmentData();
+  }
+
+  Future<void> fetchAppointmentData() async {
+    try {
+      final data = await AddAppointments.getMonthlyAppointments();
+      setState(() {
+        appointments = data;
+      });
+    } catch (e) {
+      print('Lỗi khi lấy dữ liệu: $e');
+    }
+  }
+
+  
+
 
   @override
   Widget build(BuildContext context) {
@@ -82,9 +106,9 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
 
   String _formatCurrency(double amount) {
     return '${amount.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => '.',
-    )} VNĐ';
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => '.',
+        )} VNĐ';
   }
 
   Widget _buildBarChart() {
@@ -99,8 +123,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
               showTitles: true,
               reservedSize: 28,
               interval: 10,
-              getTitlesWidget: (value, meta) =>
-                  Text(value.toInt().toString()),
+              getTitlesWidget: (value, meta) => Text(value.toInt().toString()),
             ),
           ),
           bottomTitles: AxisTitles(
