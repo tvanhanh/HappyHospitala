@@ -7,6 +7,7 @@ import { addDepartments,
     deleteDepartment, } from '../controllers/departments_cotroller';
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
+import {predictDiabetes} from '../controllers/predictController';
 
 
 const router = Router();
@@ -33,4 +34,7 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
  router.put("/api_updateDoctor/:id", verifyToken,updateDoctor );
  router.delete("/api_deleteDoctor/:id", verifyToken, deleteDoctor);
 
+ //AI router python
+ router.post("/api_predict",verifyToken, predictDiabetes);
+  
 export default router;
