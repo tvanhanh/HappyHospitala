@@ -84,28 +84,30 @@ class ApiService {
       final url = Uri.parse('$baseUrl/auth/api_accountList');
 
       final prefs = await SharedPreferences.getInstance();
-       final token = prefs.getString('token');
-       if (token == null) {
+      final token = prefs.getString('token');
+      if (token == null) {
         print("Chưa đăng nhập. Không có token.");
         return [];
       }
       final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', 
-      },
-    );
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        return data.map((e) => {
-          '_id': e['_id'],
-          'name': e['name'],
-          'email': e['email'],
-          'role': e['role'],
-          'status': e['status'],
-        }).toList();
+        return data
+            .map((e) => {
+                  '_id': e['_id'],
+                  'name': e['name'],
+                  'email': e['email'],
+                  'role': e['role'],
+                  'status': e['status'],
+                })
+            .toList();
       } else {
         print("Lỗi khi lấy danh sách: ${response.body}");
         return [];
@@ -115,66 +117,67 @@ class ApiService {
       return [];
     }
   }
+
   // thay đổi role
   static Future<bool> changeUserRole(String id, String newRole) async {
-  try {
-    final url = Uri.parse('$baseUrl/auth/api_changeUserRole/$id');
+    try {
+      final url = Uri.parse('$baseUrl/auth/api_changeUserRole/$id');
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    if (token == null) return false;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return false;
 
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'role': newRole}), // Gửi role mới lên
-    );
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'role': newRole}), // Gửi role mới lên
+      );
 
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      print("Lỗi khi đổi vai trò: ${response.body}");
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print("Lỗi khi đổi vai trò: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi mạng: $e");
       return false;
     }
-  } catch (e) {
-    print("Lỗi mạng: $e");
-    return false;
   }
-}
+
 // mở, khóa tài khoản
-static Future<bool> toggleUserStatus(String id, String newStatus) async {
-  try {
-    final url = Uri.parse('$baseUrl/auth/api_updateStatus/$id');
+  static Future<bool> toggleUserStatus(String id, String newStatus) async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/api_updateStatus/$id');
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-    if (token == null) return false;
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return false;
 
-    final response = await http.put(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'status': newStatus}), // Gửi status mới: "true" hoặc "false"
-    );
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(
+            {'status': newStatus}), // Gửi status mới: "true" hoặc "false"
+      );
 
-    if (response.statusCode == 200) {
-      return true;
-    } else {
-      print("Lỗi khi đổi trạng thái: ${response.body}");
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print("Lỗi khi đổi trạng thái: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi mạng: $e");
       return false;
     }
-  } catch (e) {
-    print("Lỗi mạng: $e");
-    return false;
   }
-}
-
-
 
   // Lấy token từ SharedPreferences
   static Future<String?> getToken() async {
@@ -205,7 +208,7 @@ static Future<bool> toggleUserStatus(String id, String newStatus) async {
     try {
       // Lấy token
       final token = await getToken();
-      
+
       if (token == null) {
         return {
           'error': 'Chưa đăng nhập. Không có token.',
