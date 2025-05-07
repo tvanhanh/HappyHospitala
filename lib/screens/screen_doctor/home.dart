@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../widgets/role_based_nav_drawer.dart';
-import './chatAI_screen.dart'; // Đường dẫn đến ChatScreen
-
+import './chatAI_screen.dart';
+import 'appointment_page.dart';
+import 'prescription_page.dart';
+import 'patient_management_page.dart';
+import 'classification_results_page.dart';
+import 'consultation_page.dart';
+import 'progress_tracking_page.dart';
+import 'patient_discussion_page.dart';
 
 void main() => runApp(DoctorApp());
 
@@ -10,8 +16,10 @@ class DoctorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Ứng Dụng Bác Sĩ',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.grey[100],
       ),
       home: DoctorDashboard(),
       routes: {
@@ -22,254 +30,177 @@ class DoctorApp extends StatelessWidget {
         '/consultation': (context) => ConsultationPage(),
         '/progress-tracking': (context) => ProgressTrackingPage(),
         '/patient-discussion': (context) => PatientDiscussionPage(),
-        '/statistics': (context) => StatisticsPage(), // Thêm trang thống kê
+        '/statistics': (context) => StatisticsPage(),
       },
     );
   }
 }
 
 class DoctorDashboard extends StatelessWidget {
+  final List<Map<String, dynamic>> features = [
+    {
+      'title': 'Lịch hẹn khám',
+      'icon': Icons.calendar_today,
+      'route': '/appointments',
+    },
+    {
+      'title': 'Đơn thuốc / Xét nghiệm',
+      'icon': Icons.medical_services,
+      'route': '/prescription',
+    },
+    {
+      'title': 'Quản lý bệnh nhân',
+      'icon': Icons.person,
+      'route': '/patient-management',
+    },
+    {
+      'title': 'Kết quả phân loại',
+      'icon': Icons.analytics,
+      'route': '/classification-results',
+    },
+    {
+      'title': 'Gửi tư vấn',
+      'icon': Icons.send,
+      'route': '/consultation',
+    },
+    {
+      'title': 'Theo dõi tiến trình',
+      'icon': Icons.track_changes,
+      'route': '/progress-tracking',
+    },
+    {
+      'title': 'Thảo luận với bệnh nhân',
+      'icon': Icons.chat,
+      'route': '/patient-discussion',
+    },
+    {
+      'title': 'Thống kê bệnh án',
+      'icon': Icons.bar_chart,
+      'route': '/statistics',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-     
-      appBar: AppBar(title: Text('Trang Bác Sĩ')),
-      body: Column(
-        children: [
-          // Thống kê bệnh án (có thể thay bằng API thực tế sau)
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Card(
+      appBar: AppBar(title: Text('Bảng Điều Khiển Bác Sĩ')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Thống kê tổng quan
+            Card(
               color: Colors.blueAccent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  children: const [
                     Text('Thống Kê Bệnh Án',
                         style: TextStyle(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold)),
                     SizedBox(height: 10),
-                    Text('Tổng số bệnh nhân: 120',
+                    Text('• Tổng số bệnh nhân: 120',
                         style: TextStyle(color: Colors.white)),
-                    Text('Số bệnh nhân cần theo dõi: 30',
+                    Text('• Cần theo dõi: 30',
                         style: TextStyle(color: Colors.white)),
-                    Text('Số bệnh nhân cần thăm khám: 10',
+                    Text('• Cần thăm khám: 10',
                         style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
             ),
-          ),
-          // Các chức năng
-          Expanded(
-            child: ListView(
-              children: [
-                ListTile(
-                  title: Text('Xem lịch hẹn khám của bệnh nhân'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/appointments');
-                  },
+            const SizedBox(height: 20),
+
+            // Danh sách chức năng
+            Expanded(
+              child: GridView.builder(
+                itemCount: features.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // hiển thị 2 cột
+                  childAspectRatio: 1.2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                 ),
-                ListTile(
-                  title: Text('Gửi đơn thuốc / Chỉ định xét nghiệm'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/prescription');
-                  },
-                ),
-                ListTile(
-                  title: Text('Tạo báo cáo tổng quan tình hình bệnh nhân'),
-                  onTap: () {
-                    // Handle báo cáo logic
-                  },
-                ),
-                ListTile(
-                  title: Text('Quản lý nhóm bệnh nhân'),
-                  onTap: () {
-                    // Handle group management logic
-                  },
-                ),
-                ListTile(
-                  title: Text('Quản lý bệnh nhân'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/patient-management');
-                  },
-                ),
-                ListTile(
-                  title: Text('Xem kết quả phân loại'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/classification-results');
-                  },
-                ),
-                ListTile(
-                  title: Text('Gửi tư vấn'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/consultation');
-                  },
-                ),
-                ListTile(
-                  title: Text('Theo dõi tiến trình bệnh nhân'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/progress-tracking');
-                  },
-                ),
-                ListTile(
-                  title: Text('Thảo luận với bệnh nhân'),
-                  onTap: () {
-                    Navigator.pushNamed(context, '/patient-discussion');
-                  },
-                ),
-              ],
+                itemBuilder: (context, index) {
+                  final feature = features[index];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pushNamed(context, feature['route']);
+                    },
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      elevation: 3,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(feature['icon'], size: 40, color: Colors.blue),
+                            const SizedBox(height: 10),
+                            Text(
+                              feature['title'],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-// Các màn hình chức năng khác
-class AppointmentPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Lịch Hẹn Khám')),
-      body: Center(
-        child: Text('Danh sách lịch hẹn khám của bệnh nhân'),
-      ),
-    );
-  }
-}
-
-class PrescriptionPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Gửi Đơn Thuốc / Chỉ Định Xét Nghiệm')),
-      body: Center(
-        child: Text('Gửi đơn thuốc và chỉ định xét nghiệm'),
-      ),
-    );
-  }
-}
-
-class PatientManagementPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Quản Lý Bệnh Nhân')),
-      body: ListView(
-        children: [
-          ListTile(
-            title: Text('Thêm hồ sơ bệnh nhân'),
-            onTap: () {
-              // Handle add patient logic
-            },
-          ),
-          ListTile(
-            title: Text('Xóa bệnh nhân'),
-            onTap: () {
-              // Handle delete patient logic
-            },
-          ),
-          ListTile(
-            title: Text('Sửa bệnh nhân'),
-            onTap: () {
-              // Handle edit patient logic
-            },
-          ),
-          ListTile(
-            title: Text('Tìm kiếm bệnh nhân'),
-            onTap: () {
-              // Handle search patient logic
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ClassificationResultsPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Kết Quả Phân Loại')),
-      body: Center(
-        child: Text('Hiển thị kết quả phân loại bệnh nhân'),
-      ),
-    );
-  }
-}
-
-class ConsultationPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Gửi Tư Vấn')),
-      body: Center(
-        child: Text('Gửi tư vấn cho bệnh nhân'),
-      ),
-    );
-  }
-}
-
-class ProgressTrackingPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Theo Dõi Tiến Trình Bệnh Nhân')),
-      body: Center(
-        child: Text('Theo dõi tiến trình điều trị của bệnh nhân'),
-      ),
-    );
-  }
-}
-
-class PatientDiscussionPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Thảo Luận Với Bệnh Nhân')),
-      body: Center(
-        child: Text('Giao diện nhắn tin với bệnh nhân'),
-      ),
-    );
-  }
-}
-
-// Trang thống kê bệnh án
+// Trang thống kê có nút chat AI
 class StatisticsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Thống Kê Bệnh Án')),
-
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Welcome Doctor'),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.chat),
-              label: const Text("Trò chuyện với AI"),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChatScreen()),
-                );
-              },
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 5,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text(
+                  'Thống Kê Hiện Tại',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                const Text('Tổng số bệnh nhân: 120'),
+                const Text('Bệnh nhân cần theo dõi: 30'),
+                const Text('Bệnh nhân cần thăm khám: 10'),
+                const SizedBox(height: 30),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.chat),
+                  label: const Text("Trò chuyện với AI"),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ChatScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
-
-            Text('Tổng số bệnh nhân: 120'),
-            Text('Số bệnh nhân cần theo dõi: 30'),
-            Text('Số bệnh nhân cần thăm khám: 10'),
-
-          ],
+          ),
         ),
       ),
     );
