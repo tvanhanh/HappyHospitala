@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import '../screens/login_screen.dart';
-import '../screens/register_screen.dart';
-import '../screens/doctors_screen.dart';
-import '../screens/faq_screen.dart';
-import '../screens/patients_screen.dart';
-import '../screens/medical_facilities_screen.dart';
-import '../screens/specialties_screen.dart';
-import '../screens/booking_screen.dart';
+import '../screens/screen_authencication/login_screen.dart';
+import '../screens/screen_authencication/register_screen.dart';
+import '../screens/screen_patient/doctors_screen.dart';
+import '../screens/screen_patient/faq_screen.dart';
+import '../screens/screen_patient/medical_facilities_screen.dart';
+import '../screens/screen_patient/specialties_screen.dart';
+import '../screens/screen_patient/booking_screen.dart';
 
 class Header extends StatefulWidget implements PreferredSizeWidget {
   final bool isLoggedIn;
@@ -107,7 +106,7 @@ class _HeaderState extends State<Header> {
           // Điều hướng đổi mật khẩu
         } else if (value == 'forgot_password') {
           // Điều hướng quên mật khẩu
-        } 
+        }
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'change_password', child: Text('Đổi mật khẩu')),
@@ -118,7 +117,6 @@ class _HeaderState extends State<Header> {
         backgroundImage: AssetImage(widget.userAvatar),
         radius: 22,
       ),
-      
     );
   }
 
@@ -145,7 +143,7 @@ class _HeaderState extends State<Header> {
           ),
           child: Text('Đăng ký'),
         ),
-         SizedBox(width: 10),
+        SizedBox(width: 10),
         ElevatedButton(
           onPressed: () => Navigator.push(context,
               MaterialPageRoute(builder: (context) => BookingScreen())),
@@ -155,7 +153,6 @@ class _HeaderState extends State<Header> {
           ),
           child: Text('Đặt lịch khám'),
         ),
-
       ],
     );
   }

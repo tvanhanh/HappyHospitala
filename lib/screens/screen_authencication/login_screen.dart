@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import 'home_screen.dart';
+import '../screen_patient/home_screen.dart';
 import 'change_password_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'screen_doctor/home.dart';
-import 'screen_staff/home.dart';
-import 'screens_admin/home.dart';
-import '../services/config.dart';
+import '../screen_doctor/doctor_home_screen.dart';
+import '../screen_staff/home.dart';
+import '../screens_admin/home.dart';
+
 
 class LoginScreen extends StatefulWidget {
   @override

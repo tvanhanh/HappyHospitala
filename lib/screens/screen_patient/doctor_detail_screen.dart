@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/doctor.dart';
+import '../../models/doctor.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DoctorDetailScreen extends StatelessWidget {
