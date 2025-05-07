@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/doctor_card.dart';
-import '../models/doctor.dart';
+import '../../widgets/doctor_card.dart';
+import '../../models/doctor.dart';
 import 'doctor_detail_screen.dart';
 
 class DoctorsScreen extends StatelessWidget {

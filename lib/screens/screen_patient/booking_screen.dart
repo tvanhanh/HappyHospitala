@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_datlichkham/screens/home_screen.dart';
-import '../services/api_appointment.dart';
-import '../services/api_department.dart';
-import '../services/api_doctors.dart';
+import 'home_screen.dart';
+import '../../services/api_appointment.dart';
+import '../../services/api_department.dart';
+import '../../services/api_doctors.dart';
 
 class BookingScreen extends StatefulWidget {
   @override
@@ -40,23 +40,24 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> fetchDoctors(String departmentId) async {
     try {
-    final data = await DoctorService.getDoctors();
-    print('Danh sách bác sĩ gốc: $data');
-    // Khai báo biến filteredDoctors
-    final filteredDoctors = data
-        .where((doctor) => doctor['departmentId'] == departmentId)
-        .toList();
-    print('Danh sách bác sĩ sau khi lọc cho departmentId $departmentId: $filteredDoctors');
-    setState(() {
-      doctors = filteredDoctors; // Sử dụng filteredDoctors đã khai báo
-      selectedDoctorId = null;
-      if (doctors.isEmpty) {
-        showSnackbar('Không có bác sĩ trong phòng ban này');
-      }
-    });
-  } catch (e) {
-    showSnackbar('Lỗi khi lấy danh sách bác sĩ: $e');
-  }
+      final data = await DoctorService.getDoctors();
+      print('Danh sách bác sĩ gốc: $data');
+      // Khai báo biến filteredDoctors
+      final filteredDoctors = data
+          .where((doctor) => doctor['departmentId'] == departmentId)
+          .toList();
+      print(
+          'Danh sách bác sĩ sau khi lọc cho departmentId $departmentId: $filteredDoctors');
+      setState(() {
+        doctors = filteredDoctors; // Sử dụng filteredDoctors đã khai báo
+        selectedDoctorId = null;
+        if (doctors.isEmpty) {
+          showSnackbar('Không có bác sĩ trong phòng ban này');
+        }
+      });
+    } catch (e) {
+      showSnackbar('Lỗi khi lấy danh sách bác sĩ: $e');
+    }
   }
 
   void _selectDate() async {
@@ -81,7 +82,6 @@ class _BookingScreenState extends State<BookingScreen> {
         selectedTime != null &&
         selectedDepartmentId != null &&
         selectedDoctorId != null) {
-          
       final date =
           '${selectedDate!.year}-${selectedDate!.month.toString().padLeft(2, '0')}-${selectedDate!.day.toString().padLeft(2, '0')}';
       final time = selectedTime!.format(context);
@@ -101,13 +101,17 @@ class _BookingScreenState extends State<BookingScreen> {
           selectedDepartmentId!,
           selectedDoctorId!,
         );
-        if (!mounted) return;
+
         if (result == "success") {
+          if (!mounted) return;
           showSnackbar("Đặt lịch thành công");
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => HomeScreen()),
-          );
+          Future.delayed(Duration(seconds: 1), () {
+            if (!mounted) return;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => HomeScreen()),
+            );
+          });
         } else {
           showSnackbar(result);
         }
