@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
+import 'appointment_page.dart';
+import 'prescription_page.dart';
+import 'patient_management_page.dart';
 
 class DoctorHomePage extends StatefulWidget {
   @override

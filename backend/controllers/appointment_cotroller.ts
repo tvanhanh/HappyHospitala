@@ -26,7 +26,7 @@ export const addAppointments = async (req: Request, res: Response) => {
     const newAppointment = new Appointment({
       patientName,
       phone,
-      describe: reason,
+      reason,
       date: date,
       time: time,
       departmentName,
@@ -62,7 +62,7 @@ export const getAppointment = async (req: Request, res: Response) => {
     const appointment = await Appointment.find();
     res.status(200).json(appointment);
   } catch (error) {
-    console.error("Lỗi khi lấy phòng ban", error);
+    console.error("Lỗi khi lấy ", error);
     res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };

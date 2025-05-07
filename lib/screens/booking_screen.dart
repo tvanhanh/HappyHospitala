@@ -104,7 +104,6 @@ class _BookingScreenState extends State<BookingScreen> {
         if (!mounted) return;
         if (result == "success") {
           showSnackbar("Đặt lịch thành công");
-
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => HomeScreen()),

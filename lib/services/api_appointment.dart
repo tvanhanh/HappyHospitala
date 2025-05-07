@@ -79,4 +79,45 @@ class AddAppointments {
       throw Exception('Lỗi kết nối: $e');
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getAppoitment() async {
+    try {
+      final url = Uri.parse('$baseUrl/appointments/getAppoitment');
+
+      final prefs = await SharedPreferences.getInstance();
+       final token = prefs.getString('token');
+       if (token == null) {
+        print("Chưa đăng nhập. Không có token.");
+        return [];
+      }
+      final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', 
+      },
+    );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.map((e) => {
+          'id': e['_id'],
+          'patientName': e['patientName'],
+          'reason':e['reason'],
+          'date': e['date'],
+          'time': e['time'],
+          'departmentName': e['departmentName'],
+          'doctorId': e['doctorId'],
+          'status': e['status'],
+        }).toList();
+      } else {
+        print("Lỗi khi lấy danh sách: ${response.body}");
+        return [];
+      }
+    } catch (e) {
+      print("Lỗi mạng: $e");
+      return [];
+    }
+  }
 }
+
