@@ -23,9 +23,9 @@ class MyApp extends StatelessWidget {
         // Thêm màn hình chính vào '/'
         '/home': (context) => HomeScreen(),
         '/thankyou': (context) => ThankYouScreen(),
-        '/loginlogin': (context) => LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/admin': (context) => AdminDashboard(),
-        '/': (context) => DoctorHomePage(),
+        '/': (context) => LoginScreen(),
         '/staff': (context) => StaffDashboard(),
         '/appointments': (context) => AppointmentPage(),
         '/prescription': (context) => PrescriptionPage(),
