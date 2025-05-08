@@ -9,6 +9,7 @@ import 'doctor_list.dart';
 import 'inventory_management.dart';
 import 'log_out.dart';
 import 'staff_list.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminDashboard extends StatefulWidget {
   @override
@@ -29,8 +30,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     DepartmentManagement(),
     UserManagementScreen(),
 
-    
-     // 8: Bảo mật & phân quyền
+    // 8: Bảo mật & phân quyền
   ];
 
   void onSelectMenu(int index) {
@@ -98,10 +98,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 leading: Icon(Icons.security_sharp),
                 title: Text('Bảo mật và Phân quyền'),
                 onTap: () => onSelectMenu(8)),
-            ListTile(
-                leading: Icon(Icons.logout),
-                title: Text('Đăng xuất'),
-                onTap: () {}),
+            ListTile(onTap: () async {
+              // Xoá token hoặc thông tin đăng nhập đã lưu
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.remove('token');
+
+              // Điều hướng về màn hình đăng nhập và xoá ngăn xếp điều hướng cũ
+              Navigator.pushNamedAndRemoveUntil(
+                  context, '/login', (route) => false);
+              // Điều hướng về trang đăng nhập (hoặc splash)
+              Navigator.pushNamedAndRemoveUntil(
+                  context, '/login', (route) => false);
+            }),
           ],
         ),
       ),
