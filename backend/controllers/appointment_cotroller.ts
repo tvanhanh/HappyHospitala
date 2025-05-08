@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
-import Appointment from "../models/Appointment";
+import Appointment,{IAppointment} from "../models/Appointment";
+import Department,{IDepartment} from"../models/Departments";
+import Doctor,{IDoctor} from "../models/Doctor";
 import axios from 'axios';
 
 
 export const addAppointments = async (req: Request, res: Response) => {
   
   try {
-    const { patientName, phone, reason, date, time,departmentName,doctorId, } = req.body;
+    const { patientName, phone, reason, date, time,departmentId,doctorId,  } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
     if (!req.user || !req.user.email){
@@ -29,7 +31,7 @@ export const addAppointments = async (req: Request, res: Response) => {
       reason,
       date: date,
       time: time,
-      departmentName,
+      departmentId,
       doctorId,
       email,
     });
@@ -59,8 +61,31 @@ export const addAppointments = async (req: Request, res: Response) => {
 };
 export const getAppointment = async (req: Request, res: Response) => {
   try {
-    const appointment = await Appointment.find();
-    res.status(200).json(appointment);
+    const appointment = await Appointment.find()
+    const formattedAppointment = await Promise.all(
+      appointment.map(async (item: IAppointment) => {
+        const department: IDepartment | null = await Department.findById(item.departmentId);
+        const doctor: IDoctor | null = await Doctor.findById(item.doctorId);
+    
+        return {
+          _id: item._id.toString(),
+          patientName: item.patientName || 'Không rõ tên',
+          phone: item.phone || 'không có',
+          reason: item.reason || 'không có',
+          date: item.date || 'không có',
+          time: item.time || 'không có',
+          doctorId: item.doctorId?.toString() ?? 'không rõ',
+          doctorName: doctor?.doctorName || 'không rõ',
+          departmentId: item.departmentId?.toString() ?? 'không rõ',
+          departmentName: department?.departmentName || 'Không rõ',
+          status: item.status || 'không có',
+          email: item.email || 'không có', // 👈 đây là nơi email bị mất nếu bị đè
+          createdAt: item.createdAt || 'không có',
+        };
+      })
+    );
+    
+    res.status(200).json(formattedAppointment);
   } catch (error) {
     console.error("Lỗi khi lấy ", error);
     res.status(500).json({ message: "Lỗi máy chủ" });
@@ -103,6 +128,28 @@ export const getMonthlyAppointments = async (req: Request, res: Response) => {
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Lỗi khi lấy thống kê lịch hẹn theo tháng:", error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+export const updateStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Kiểm tra xem lịch hẹn có tồn tại không
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+       res.status(404).json({ message: 'Không tìm thấy lịch hẹn' });
+       return;
+    }
+
+    // Cập nhật trạng thái
+    appointment.status = status;
+    await appointment.save();
+
+    res.status(200).json({ message: 'Cập nhật trạng thái thành công', appointment });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái:", error);
     res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };

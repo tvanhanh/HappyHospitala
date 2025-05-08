@@ -172,12 +172,12 @@ class _PatientManagementPageState extends State<PatientManagementPage> {
                             PopupMenuButton<String>(
                               icon: Icon(Icons.more_vert, color: Colors.teal),
                               onSelected: (String value) {
-                                if (value == 'Quản lý bệnh án') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => MedicalRecordPage(patient: p)),
-                                  );
-                                }
+                                // if (value == 'Quản lý bệnh án') {
+                                //   Navigator.push(
+                                //     context,
+                                //     MaterialPageRoute(builder: (_) => MedicalRecordPage(patient: p)),
+                                //   );
+                                // }
                               },
                               itemBuilder: (BuildContext context) {
                                 return [
