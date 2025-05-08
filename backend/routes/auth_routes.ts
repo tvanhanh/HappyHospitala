@@ -1,18 +1,21 @@
 import { RequestHandler, Router } from 'express';
-import { register, createUserByAdmin,login } from '../controllers/auth.controller';
-import { verifyToken, isAdmin,  } from '../middleware/auth';
+import { register, createUserByAdmin,login,logout, changePassword, } from '../controllers/auth.controller';
+import { verifyToken, isAdmin,  } from '../Middleware/auth';
 import { addDepartments, 
     getDepartments,
     updateDepartment,
     deleteDepartment, } from '../controllers/departments_cotroller';
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
+import {predictDiabetes} from '../controllers/predictController';
 
 
 const router = Router();
 
 router.post('/register',register);
 router.post('/login',login);
+router.post("/logout", logout);
+router.post("/change-password", changePassword);
 router.post('/admin/create-user', verifyToken, isAdmin, createUserByAdmin );
 
 // Routes of get Users
@@ -33,4 +36,7 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
  router.put("/api_updateDoctor/:id", verifyToken,updateDoctor );
  router.delete("/api_deleteDoctor/:id", verifyToken, deleteDoctor);
 
+ //AI router python
+ router.post("/api_predict",verifyToken, predictDiabetes);
+  
 export default router;
