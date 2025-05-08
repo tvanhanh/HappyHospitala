@@ -4,7 +4,7 @@ import 'config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AIService {
-  static Future<String> getRequest(String userInput) async {
+  static Future<String> predictDisease(Map<String, dynamic> patientData) async {
     try {
       final url = Uri.parse('$baseUrl/auth/api_predict');
       final prefs = await SharedPreferences.getInstance();
@@ -19,12 +19,12 @@ class AIService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({"request": userInput}),
+        body: jsonEncode(patientData),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final result = jsonDecode(response.body);
-        return result['reply'] ?? "Không có phản hồi từ AI";
+        return result['result'].toString(); 
       }
 
       final body = jsonDecode(response.body);
