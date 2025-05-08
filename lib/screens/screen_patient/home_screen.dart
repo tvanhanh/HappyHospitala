@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_application_datlichkham/screens/screen_authencication/login_screen.dart';
+import 'package:flutter_application_datlichkham/screens/screen_authencication/register_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +18,7 @@ import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
 
 class HomeScreen extends StatefulWidget {
-  
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -120,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (_) => _buildLoginDialog(),
+                          builder: (_) => LoginScreen(),
                         );
                       },
                       child: Text(
@@ -132,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {
                         showDialog(
                           context: context,
-                          builder: (_) => _buildRegisterDialog(),
+                          builder: (_) => RegisterScreen(),
                         );
                       },
                       child: Text(

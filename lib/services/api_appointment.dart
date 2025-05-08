@@ -10,7 +10,7 @@ class AddAppointments {
     String reason,
     String date,
     String time,
-    String departmentName,
+    String departmentId,
     String doctorId,
   ) async {
     try {
@@ -34,7 +34,7 @@ class AddAppointments {
           "reason": reason,
           "date": date,
           "time": time,
-          'departmentName': departmentName,
+          'departmentId': departmentId,
           'doctorId': doctorId,
         }),
       );
@@ -97,17 +97,21 @@ class AddAppointments {
         'Authorization': 'Bearer $token', 
       },
     );
-
+    print("Status: ${response.statusCode}");
+    print("Body: ${response.body}");
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         return data.map((e) => {
           'id': e['_id'],
           'patientName': e['patientName'],
+          'email':e['email'],
           'reason':e['reason'],
           'date': e['date'],
           'time': e['time'],
+          'departmentId': e['departmentId']?.toString() ?? '',
           'departmentName': e['departmentName'],
-          'doctorId': e['doctorId'],
+          'doctorId': e['doctorId']?.toString() ?? '',
+          'doctorName': e['doctorName'],
           'status': e['status'],
         }).toList();
       } else {
@@ -117,6 +121,32 @@ class AddAppointments {
     } catch (e) {
       print("Lỗi mạng: $e");
       return [];
+    }
+  }
+
+  static Future<void> updateStatus(String id, String newStatus) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        throw Exception("Chưa đăng nhập. Không có token.");
+      }
+
+      final url = Uri.parse('$baseUrl/appointments/status/$id');
+      final response = await http.put(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({'status': newStatus}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Lỗi khi cập nhật trạng thái: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
     }
   }
 }

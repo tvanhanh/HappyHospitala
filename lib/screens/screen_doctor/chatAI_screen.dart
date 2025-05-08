@@ -1,86 +1,140 @@
 import 'package:flutter/material.dart';
-import '../../services/api_aiService.dart'; // Đường dẫn tùy dự án bạn
+import '../../services/api_aiService.dart'; // Đường dẫn đúng với dự án của bạn
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class DiagnosisFormScreen extends StatefulWidget {
+  const DiagnosisFormScreen({super.key});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<DiagnosisFormScreen> createState() => _DiagnosisFormScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _controller = TextEditingController();
-  List<Map<String, String>> messages = [];
+class _DiagnosisFormScreenState extends State<DiagnosisFormScreen> {
+  final _formKey = GlobalKey<FormState>();
 
-  Future<void> sendMessage() async {
-    final userInput = _controller.text.trim();
-    if (userInput.isEmpty) return;
+  // Controllers cho các trường nhập
+  String gender = 'F';
+  final ageController = TextEditingController();
+  final ureaController = TextEditingController();
+  final crController = TextEditingController();
+  final hba1cController = TextEditingController();
+  final cholController = TextEditingController();
+  final tgController = TextEditingController();
+  final hdlController = TextEditingController();
+  final ldlController = TextEditingController();
+  final vldlController = TextEditingController();
+  final bmiController = TextEditingController();
 
-    setState(() {
-      messages.add({"role": "user", "text": userInput});
-      _controller.clear();
-    });
+  String? diagnosisResult;
+
+  Future<void> submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final patientData = {
+      "Gender": gender,
+      "AGE": int.tryParse(ageController.text) ?? 0,
+      "Urea": double.tryParse(ureaController.text) ?? 0,
+      "Cr": double.tryParse(crController.text) ?? 0,
+      "HbA1c": double.tryParse(hba1cController.text) ?? 0,
+      "Chol": double.tryParse(cholController.text) ?? 0,
+      "TG": double.tryParse(tgController.text) ?? 0,
+      "HDL": double.tryParse(hdlController.text) ?? 0,
+      "LDL": double.tryParse(ldlController.text) ?? 0,
+      "VLDL": double.tryParse(vldlController.text) ?? 0,
+      "BMI": double.tryParse(bmiController.text) ?? 0,
+    };
 
     try {
-      final reply = await AIService.getRequest(userInput);
-
+      final response = await AIService.predictDisease(patientData);
       setState(() {
-        messages.add({"role": "ai", "text": reply});
+        diagnosisResult = response;
       });
     } catch (e) {
       setState(() {
-        messages.add({"role": "ai", "text": "⚠️ Lỗi kết nối server"});
+        diagnosisResult = "⚠️ Lỗi kết nối server";
       });
     }
+  }
+
+  Widget buildTextField(String label, TextEditingController controller, {String? suffix}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: suffix,
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Không được bỏ trống';
+        return null;
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("💬 Chat với AI")),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: messages.length,
-              itemBuilder: (_, index) {
-                final msg = messages[index];
-                final isUser = msg['role'] == 'user';
-                return Align(
-                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isUser ? Colors.blue[100] : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(msg['text'] ?? ''),
+      appBar: AppBar(title: const Text(" Chẩn Đoán Bệnh")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Gender Dropdown
+              DropdownButtonFormField<String>(
+                value: gender,
+                items: ['M', 'F'].map((g) {
+                return DropdownMenuItem(value: g, child: Text(g));
+                }).toList(),
+                onChanged: (value) => setState(() => gender = value!),
+                decoration: InputDecoration(labelText: 'Gender (M/F)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+
+              buildTextField("Tuổi", ageController),
+              const SizedBox(height: 12),
+              buildTextField("Urea", ureaController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("Creatinine", crController, suffix: "µmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("HbA1c", hba1cController, suffix: "%"),
+              const SizedBox(height: 12),
+              buildTextField("Cholesterol", cholController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("TG", tgController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("HDL", hdlController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("LDL", ldlController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("VLDL", vldlController, suffix: "mmol/L"),
+              const SizedBox(height: 12),
+              buildTextField("BMI", bmiController),
+              const SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed: submitForm,
+                child: const Text(" Chẩn đoán"),
+              ),
+              const SizedBox(height: 20),
+
+              if (diagnosisResult != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green),
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: "Nhập câu hỏi...",
-                    ),
+                  child: Text(
+                    "Kết quả: $diagnosisResult",
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: sendMessage,
-                )
-              ],
-            ),
-          )
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import Appointment, { IAppointment } from "../models/Appointment";
 
 // Khai báo type cho Request (nếu dùng Cách 1)
 declare global {
@@ -12,6 +13,7 @@ declare global {
         role?: string;
         status?: string;
       };
+      // appoitment?: IAppointment;
     }
   }
 }
@@ -48,6 +50,16 @@ export const verifyToken = async (
       status: user.status,
     };
 
+    // const appointmentId = req.params.id || req.body.appointmentId; // Lấy ID từ params hoặc body
+    // if (appointmentId) {
+    //   const appoitment = await Appointment.findById(appointmentId);
+    //   if (!appoitment) {
+    //     res.status(404).json({ message: "Lịch hẹn không tồn tại" });
+    //     return;
+    //   }
+    //   req.appoitment = appoitment;
+    // }
+   
     next();
   } catch (error) {
     res.status(401).json({ message: "Token không hợp lệ" });

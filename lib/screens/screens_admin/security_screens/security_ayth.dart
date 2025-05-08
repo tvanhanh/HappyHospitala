@@ -39,7 +39,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void showSnackbar(String message, {bool isError = false}) {
-    if (!mounted) return; // Sử dụng mounted thay vì context.mounted
+    if (!mounted) return; 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
