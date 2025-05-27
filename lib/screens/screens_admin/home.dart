@@ -11,6 +11,7 @@ import 'log_out.dart';
 import 'staff_list.dart';
 
 class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
 }
@@ -29,8 +30,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     DepartmentManagement(),
     UserManagementScreen(),
 
-    
-     // 8: Bảo mật & phân quyền
+    // 8: Bảo mật & phân quyền
   ];
 
   void onSelectMenu(int index) {

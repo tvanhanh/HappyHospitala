@@ -92,14 +92,24 @@ class _BookingScreenState extends State<BookingScreen> {
       print('time: $time');
 
       try {
+        final selectedDepartment = departments.firstWhere(
+       (dept) => dept['id'] == selectedDepartmentId,
+       orElse: () => {},
+       );
+        final selectedDoctor = doctors.firstWhere(
+        (doc) => doc['id'] == selectedDoctorId,
+        orElse: () => {},
+        );
+        final departmentName = selectedDepartment['departmentName'] ?? '';
+        final doctorName = selectedDoctor['doctorName'] ?? '';
         final result = await AddAppointments.addAppointment(
           patientName,
           phone,
           reason,
           date,
           time,
-          selectedDepartmentId!,
-          selectedDoctorId!,
+          departmentName,
+          doctorName,
         );
 
         if (result == "success") {

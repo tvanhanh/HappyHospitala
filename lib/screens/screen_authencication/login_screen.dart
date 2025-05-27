@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-import '../screen_patient/home_screen.dart';
+//import '../screen_patient/home_screen.dart';
 import 'change_password_screen.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../screen_doctor/doctor_home_screen.dart';
-import '../screen_staff/home.dart';
-import '../screens_admin/home.dart';
-
+// import '../screen_doctor/doctor_home_screen.dart';
+// import '../screen_staff/home.dart';
+// import '../screens_admin/home.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -88,30 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               final role = result['role'];
 
                               if (role == 'admin') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => AdminDashboard()),
-                                );
+                               context.go('/admin');
                               } else if (role == 'patient') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => HomeScreen()),
-                                );
+                               context.go('/home');
                               } else if (role == 'doctor') {
-                                // Role không xác định → về trang chủ hoặc báo lỗi
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => DoctorDashboard()),
-                                );
+                               context.go('/doctor');
                               } else if (role == 'staff') {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => StaffDashboard()),
-                                );
+                               context.go('/staff');
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(

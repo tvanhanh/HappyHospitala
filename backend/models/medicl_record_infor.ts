@@ -5,7 +5,8 @@ export interface IDiabetesRecord extends Document {
   email:string;
   doctorName: string;
   departmentName:string;
-  examinationDate: Date;
+  examinationDate: String;
+  examinationTime: String;
   diagnosis: string;
 
  
@@ -28,7 +29,8 @@ export interface IDiabetesRecord extends Document {
 const DiabetesRecordSchema: Schema = new Schema({
   patientName: { type: String, required: true },
   email: { type: String, required: true },
-  examinationDate: { type: Date, required: true },
+  examinationDate: { type: String, required: true },
+  examinationTime:{type: String, require:true},
   doctorName: { type: String },
   departmentName:{type:String},
   gender: { type: String },

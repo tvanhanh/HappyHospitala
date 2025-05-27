@@ -16,9 +16,10 @@ import 'discussion_screen.dart';
 import 'diagnosis_result_screen.dart';
 import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
+import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatefulWidget {
-
+  const HomeScreen({Key? key}) : super(key: key);
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -26,42 +27,77 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   Map<String, dynamic>? _user;
-  bool _isLoading = true;
-
+  List<Map<String, dynamic>> diagnosisHistory = [];
+  bool isLoading = true;
+  String? userId;
+  String? errorMessage;
   @override
   void initState() {
     super.initState();
-    _checkUser();
+    _loadUserData();
   }
 
-  Future<void> _checkUser() async {
+  Future<void> _loadUserData() async {
+    print("_loadUserData: Bắt đầu...");
     setState(() {
-      _isLoading = true;
+      isLoading = true;
+      errorMessage = null;
     });
-    final prefs = await SharedPreferences.getInstance();
-    final userData = prefs.getString('user');
-    if (userData != null) {
-      setState(() {
-        _user = jsonDecode(userData);
-      });
-    }
-    setState(() {
-      _isLoading = false;
-    });
-    
-    if (_user != null && _user!['role'] != 'patient') {
-      if (!mounted) return;
-      if (_user!['role'] == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => AdminDashboard()),
-        );
-      } else if (_user!['role'] == 'doctor') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => DoctorDashboard()),
-        );
+
+    try {
+      final userData = await ApiService.getCurrentUser();
+      print("_loadUserData: userData = $userData");
+      if (userData != null) {
+        setState(() {
+          _user = userData;
+          userId = userData['_id']?.toString();
+          print("_loadUserData: userId = $userId");
+        });
+        await fetchUserInfor();
+      } else {
+        setState(() {
+          _user = null;
+          userId = null;
+          isLoading = false;
+          errorMessage = "Không tìm thấy người dùng đã đăng nhập.";
+          print("_loadUserData: Không có user, isLoading = $isLoading");
+        });
       }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = e.toString();
+      });
+      print("_loadUserData: Lỗi: $e");
+    }
+  }
+
+  Future<void> fetchUserInfor() async {
+    print("fetchUserInfor: Bắt đầu với userId = $userId");
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+        diagnosisHistory = [];
+        errorMessage = "Không tìm thấy ID người dùng.";
+      });
+      print("fetchUserInfor: userId null, isLoading = $isLoading");
+      return;
+    }
+    try {
+      final records = await ApiService.getUserInfor(userId!);
+      print("fetchUserInfor: Đã nhận dữ liệu: $records");
+      setState(() {
+        diagnosisHistory = records;
+        isLoading = false;
+        errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        diagnosisHistory = [];
+        errorMessage = e.toString();
+      });
+      print("fetchUserInfor: Lỗi: $e");
     }
   }
 
@@ -70,6 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.remove('user');
     setState(() {
       _user = null;
+      userId = null;
+      diagnosisHistory = [];
     });
   }
 
@@ -84,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _buildHomeContent();
       case 1:
-        return ProfileScreen();
+        return ProfileScreen(user: _user ?? {});
       case 2:
         return DiscussionScreen();
       case 3:
@@ -98,12 +136,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text('HappyH', style: TextStyle(color: Colors.white)),
@@ -120,10 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => LoginScreen(),
-                        );
+                        context.go('/login');
                       },
                       child: Text(
                         'Đăng nhập',
@@ -132,10 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => RegisterScreen(),
-                        );
+                        context.go('/register');
                       },
                       child: Text(
                         'Đăng ký',
@@ -159,7 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: buildDrawerMenu(context),
-      body: _buildScreen(_selectedIndex),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _buildScreen(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -276,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   radius: 30,
                   backgroundColor: Colors.teal,
                   child: Text(
-                    _user?['name']?[0] ?? 'U',
+                    _user?['name']?.substring(0, 1) ?? 'U',
                     style: TextStyle(color: Colors.white, fontSize: 24),
                   ),
                 ),
@@ -285,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _user?['name'] ?? 'Người dùng',
+                      _user?['name'] ?? '',
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -299,11 +327,47 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ProfileScreen()),
-                );
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final userJson = prefs.getString('user');
+
+                if (userJson == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content:
+                            Text("Không tìm thấy người dùng đã đăng nhập")),
+                  );
+                  return;
+                }
+
+                final userMap = jsonDecode(userJson);
+                final String id = userMap['_id'] ?? '';
+
+                try {
+                  final userList = await ApiService.getUserInfor(id);
+                  final userData = userList.isNotEmpty
+                      ? userList.first
+                      : {
+                          'name': '',
+                          'email': '',
+                          'phone': '',
+                          'gender': '',
+                          'age': '',
+                          'address': '',
+                        };
+
+                  if (!mounted) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(user: userData),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Lỗi khi tải thông tin: $e")),
+                  );
+                }
               },
               child:
                   Text('Xem chi tiết', style: TextStyle(color: Colors.white)),
