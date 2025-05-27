@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../services/api_medicalRecord.dart';
 
 class AddPatientForm extends StatefulWidget {
@@ -35,33 +36,54 @@ class _AddPatientFormState extends State<AddPatientForm> {
   Future<void> saveMedicalRecord() async {
     final success = await MedicalRecordService.addMedicalRecord(
       patientName: patientData['patientName'] ?? '',
-      email:patientData['email']??'',
-      examinationDate: DateTime.now(),
+      email: patientData['email'] ?? '',
+      examinationDate: patientData['examinationDate'] ?? '',
+      examinationTime: patientData['examinationTime'] ?? '',
       doctorName: patientData['doctorName'] ?? '',
       departmentName: patientData['departmentName'] ?? '',
       gender: patientData['gender'] ?? '',
-      age: patientData['age'] ?? '',
-      urea: patientData['urea'] ?? '',
-      creatinine: patientData['creatinine'] ?? '',
-      hba1c: patientData['hba1c'] ?? '',
-      cholesterol: patientData['cholesterol'] ?? '',
-      triglycerides: patientData['triglycerides'] ?? '',
-      hdl: patientData['hdl'] ?? '',
-      ldl: patientData['ldl'] ?? '',
-      vldl: patientData['vldl'] ?? '',
-      bmi: patientData['bmi'] ?? '',
+      age: patientData['age'] is String && (patientData['age'] as String).isNotEmpty
+          ? int.tryParse(patientData['age'])
+          : patientData['age'] as int?,
+      urea: patientData['urea'] is String && (patientData['urea'] as String).isNotEmpty
+          ? double.tryParse(patientData['urea'])
+          : patientData['urea'] as double?,
+      creatinine: patientData['creatinine'] is String && (patientData['creatinine'] as String).isNotEmpty
+          ? double.tryParse(patientData['creatinine'])
+          : patientData['creatinine'] as double?,
+      hba1c: patientData['hba1c'] is String && (patientData['hba1c'] as String).isNotEmpty
+          ? double.tryParse(patientData['hba1c'])
+          : patientData['hba1c'] as double?,
+      cholesterol: patientData['cholesterol'] is String && (patientData['cholesterol'] as String).isNotEmpty
+          ? double.tryParse(patientData['cholesterol'])
+          : patientData['cholesterol'] as double?,
+      triglycerides: patientData['triglycerides'] is String && (patientData['triglycerides'] as String).isNotEmpty
+          ? double.tryParse(patientData['triglycerides'])
+          : patientData['triglycerides'] as double?,
+      hdl: patientData['hdl'] is String && (patientData['hdl'] as String).isNotEmpty
+          ? double.tryParse(patientData['hdl'])
+          : patientData['hdl'] as double?,
+      ldl: patientData['ldl'] is String && (patientData['ldl'] as String).isNotEmpty
+          ? double.tryParse(patientData['ldl'])
+          : patientData['ldl'] as double?,
+      vldl: patientData['vldl'] is String && (patientData['vldl'] as String).isNotEmpty
+          ? double.tryParse(patientData['vldl'])
+          : patientData['vldl'] as double?,
+      bmi: patientData['bmi'] is String && (patientData['bmi'] as String).isNotEmpty
+          ? double.tryParse(patientData['bmi'])
+          : patientData['bmi'] as double?,
       status: patientData['status'] ?? '',
     );
     if (!mounted) return;
-    if (success == 'true') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thêm thất bại.')),
-      );
-    } else {
+    if (success == 'success') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thêm thành công.')),
       );
       Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(success)),
+      );
     }
   }
 
@@ -105,6 +127,8 @@ class _AddPatientFormState extends State<AddPatientForm> {
                     _buildTextField('Tên khoa', 'departmentName',
                         enabled: false),
                     _buildTextField('Tên bác sĩ', 'doctorName', enabled: false),
+                    _buildDateTimeField('Ngày khám', 'examinationDate'),
+                    _buildTimeField('Giờ khám', 'examinationTime'),
                   ],
                 ),
               ),
@@ -113,6 +137,7 @@ class _AddPatientFormState extends State<AddPatientForm> {
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
+                    print('patientData: $patientData');
                     saveMedicalRecord();
                   }
                 },
@@ -149,21 +174,33 @@ class _AddPatientFormState extends State<AddPatientForm> {
 
   Widget _buildNumberField(String label, String key) {
     return TextFormField(
-        initialValue: patientData[key]?.toString() ?? '',
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
-        ),
-        keyboardType: TextInputType.number,
-        onSaved: (value) {
-          if (key == 'age') {
-            patientData[key] = int.tryParse(value ?? '0');
-          } else {
-            patientData[key] = double.tryParse(value ?? '0');
-          }
-        });
+      initialValue: patientData[key]?.toString() ?? '',
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+      ),
+      keyboardType: TextInputType.number,
+      onSaved: (value) {
+        if (key == 'age') {
+          patientData[key] = value != null && value.isNotEmpty ? int.tryParse(value) : null;
+        } else {
+          patientData[key] = value != null && value.isNotEmpty ? double.tryParse(value) : null;
+        }
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Không được để trống';
+        }
+        if (key == 'age' && int.tryParse(value) == null) {
+          return 'Vui lòng nhập số nguyên hợp lệ';
+        } else if (key != 'age' && double.tryParse(value) == null) {
+          return 'Vui lòng nhập số hợp lệ';
+        }
+        return null;
+      },
+    );
   }
 
   Widget _buildDropdown(String label, String key, List<String> options) {
@@ -180,6 +217,80 @@ class _AddPatientFormState extends State<AddPatientForm> {
       }).toList(),
       onChanged: (value) => setState(() => patientData[key] = value),
       validator: (value) => value == null ? 'Vui lòng chọn $label' : null,
+    );
+  }
+
+  Widget _buildDateTimeField(String label, String key) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+        suffixIcon: const Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      controller: TextEditingController(
+        text: patientData[key]?.toString() ?? '',
+      ),
+      onTap: () async {
+        final DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(1900),
+          lastDate: DateTime(2100),
+        );
+        if (pickedDate != null) {
+          setState(() {
+            patientData[key] = dateFormat.format(pickedDate);
+          });
+        }
+      },
+      validator: (value) => (value == null || value.isEmpty)
+          ? 'Không được để trống'
+          : null,
+      onSaved: (value) => patientData[key] = value,
+    );
+  }
+
+  Widget _buildTimeField(String label, String key) {
+    final timeFormat = DateFormat('HH:mm');
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+        suffixIcon: const Icon(Icons.access_time),
+      ),
+      readOnly: true,
+      controller: TextEditingController(
+        text: patientData[key]?.toString() ?? '',
+      ),
+      onTap: () async {
+        final TimeOfDay? pickedTime = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.now(),
+        );
+        if (pickedTime != null) {
+          final now = DateTime.now();
+          final selectedTime = DateTime(
+            now.year,
+            now.month,
+            now.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          setState(() {
+            patientData[key] = timeFormat.format(selectedTime);
+          });
+        }
+      },
+      validator: (value) => (value == null || value.isEmpty)
+          ? 'Không được để trống'
+          : null,
+      onSaved: (value) => patientData[key] = value,
     );
   }
 }

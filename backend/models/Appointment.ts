@@ -8,8 +8,8 @@ export interface IAppointment extends mongoose.Document {
   reason: string;
   date: string;
   time: string;
-  departmentId: mongoose.Types.ObjectId; // Sử dụng Types.ObjectId để tham chiếu đến ObjectId của MongoDB
-  doctorId: mongoose.Types.ObjectId;
+  departmentName: string; // Sử dụng Types.ObjectId để tham chiếu đến ObjectId của MongoDB
+  doctorName: string;
   status: string;
   email: string;
   createdAt: Date;
@@ -22,8 +22,8 @@ const AppointmentSchema = new mongoose.Schema<IAppointment>({
   reason: String,
   date: String,
   time: String,
-  departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department'},
-  doctorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' },
+  departmentName: String,
+  doctorName: String,
   status: { type: String, default: "pending" },
   email: String,
   createdAt: { type: Date, default: Date.now },

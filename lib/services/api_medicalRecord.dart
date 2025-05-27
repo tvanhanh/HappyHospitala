@@ -2,12 +2,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config.dart'; // baseUrl: const String baseUrl = "http://localhost:3000";
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class MedicalRecordService {
   static Future<String> addMedicalRecord({
     required String patientName,
     required String email,
-    required DateTime examinationDate,
+    required String examinationDate,
+    required String examinationTime,
     String? doctorName,
     String? departmentName,
     String? gender,
@@ -22,12 +24,31 @@ class MedicalRecordService {
     double? vldl,
     double? bmi,
     required String status,
+
   }) async {
     try {
       // Kiểm tra các trường bắt buộc
       if (patientName.isEmpty || status.isEmpty) {
         return "Vui lòng điền đầy đủ các trường bắt buộc (Tên bệnh nhân, Chẩn đoán, Trạng thái).";
       }
+      String? isoDateTime;
+      try {
+        final dateFormat = DateFormat('dd/MM/yyyy');
+        final timeFormat = DateFormat('HH:mm');
+        final date = dateFormat.parse(examinationDate);
+        final time = timeFormat.parse(examinationTime);
+        final combinedDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+        isoDateTime = combinedDateTime.toIso8601String(); // Chuyển thành ISO 8601
+      } catch (e) {
+        return "Lỗi định dạng ngày hoặc giờ: $e";
+      }
+     
 
       final url = Uri.parse('$baseUrl/auth/api_addMedicalRecord');
       final prefs = await SharedPreferences.getInstance();
@@ -38,7 +59,8 @@ class MedicalRecordService {
       final body = {
         'patientName': patientName,
         'email': email,
-        'examinationDate': examinationDate.toIso8601String(),
+        'examinationDate': isoDateTime,
+        'examinationTime': examinationTime,
         'doctorName': doctorName ?? '', 
         'departmentName': departmentName ?? '', 
         'gender': gender ?? '', 

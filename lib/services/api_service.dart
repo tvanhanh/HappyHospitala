@@ -39,6 +39,7 @@ class ApiService {
   static Future<Map<String, dynamic>> loginUser(
     String email,
     String password,
+
   ) async {
     try {
       final url = Uri.parse('$baseUrl/auth/login');
@@ -58,6 +59,7 @@ class ApiService {
         // Lưu token vào SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
+        await prefs.setString('email', email);
 
         // Trả về thông tin token và role
         return {
@@ -101,11 +103,11 @@ class ApiService {
         final List<dynamic> data = jsonDecode(response.body);
         return data
             .map((e) => {
-                  '_id': e['_id'],
-                  'name': e['name'],
-                  'email': e['email'],
-                  'role': e['role'],
-                  'status': e['status'],
+                  '_id': e['_id'] ??'',
+                  'name': e['name'] ??'',
+                  'email': e['email'] ??'',
+                  'role': e['role'] ??'',
+                  'status': e['status'] ??'',
                 })
             .toList();
       } else {
@@ -147,6 +149,126 @@ class ApiService {
       return false;
     }
   }
+   static Future<bool> changePassWord(String id, String newPassword) async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/api-changePassWord/$id');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return false;
+
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'role': newPassword}), // Gửi role mới lên
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print("Lỗi khi đổi vai trò: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Lỗi mạng: $e");
+      return false;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getUserInfor(String id) async {
+  try {
+    final url = Uri.parse('$baseUrl/auth/api_getUserInfor/$id');
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) {
+      print("Chưa đăng nhập. Không có token.");
+      return [];
+    }
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        return userData; // Trả về thông tin người dùng
+      } else {
+        final body = jsonDecode(response.body);
+        throw Exception("Lỗi: ${body['message'] ?? 'Không xác định'}");
+      }
+  } catch (e) {
+    print("Lỗi mạng: $e");
+    return [];
+  }
+}
+
+  // update User infiormation
+  static Future<String> updateUserInfor(String id, String name, String phone, String address, String gender, String healthInsurance, String avatar ) async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/api_updateUserInfor/$id');
+       final prefs = await SharedPreferences.getInstance();
+       final token = prefs.getString('token');
+       if (token == null) {
+        return "Chưa đăng nhập. Không có token.";
+      }
+      final response = await http.put(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+           "Authorization": "Bearer $token",
+          },
+        body: jsonEncode({
+          "name": name,
+          "phone": phone,
+          "address": address,
+          "gender": gender,
+          "healthInsurance": healthInsurance,
+          "avatar": avatar,
+        }),
+      );
+
+      if (response.statusCode == 200) return "success";
+      final body = jsonDecode(response.body);
+      return "Lỗi: ${body['message'] ?? 'Không xác định'}";
+    } catch (e) {
+      return "Lỗi kết nối: $e";
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user');
+      if (userJson == null) {
+        print("Không tìm thấy dữ liệu người dùng trong SharedPreferences.");
+        return null;
+      }
+      final userMap = jsonDecode(userJson);
+      final id = userMap['_id']?.toString();
+      if (id == null) {
+        print("Không tìm thấy ID người dùng trong dữ liệu.");
+        return null;
+      }
+
+      final userData = await getUserInfor(id);
+      if (userData.isNotEmpty) {
+        return userData.first;
+      }
+      return null;
+    } catch (e) {
+      print("Lỗi khi lấy thông tin người dùng hiện tại: $e");
+      return null;
+    }
+  }
+
 
 // mở, khóa tài khoản
   static Future<bool> toggleUserStatus(String id, String newStatus) async {
