@@ -149,13 +149,41 @@ class ApiService {
       return false;
     }
   }
-   static Future<bool> changePassWord(String id, String newPassword) async {
+  static Future<bool> verifyOtp(String email, String otp) async {
+  try {
+    final url = Uri.parse('$baseUrl/auth/verify-otp');
+    final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return false;
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',},
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      print('Lỗi xác minh OTP: ${response.body}');
+      return false;
+    }
+  } catch (e) {
+    print('Lỗi mạng khi xác minh OTP: $e');
+    return false;
+  }
+}
+
+   static Future<bool> changePassWord(String email, String newPassword) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api-changePassWord/$id');
+      
+      final url = Uri.parse('$baseUrl/auth/api-changePassWord');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) return false;
+      print('Gửi email: $email');
+      print('Gửi mật khẩu mới: $newPassword');
 
       final response = await http.put(
         url,
@@ -163,7 +191,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'role': newPassword}), // Gửi role mới lên
+        body: jsonEncode({'email': email,'newPassword': newPassword}), // Gửi role mới lên
       );
 
       if (response.statusCode == 200) {

@@ -1,5 +1,5 @@
 import { RequestHandler, Router } from 'express';
-import { register, createUserByAdmin,login,updateUserInfor,getUserInfor, changePassWord } from '../controllers/auth.controller';
+import { register, createUserByAdmin,login,updateUserInfor,getUserInfor,verifyOtp, changePassWord } from '../controllers/auth.controller';
 import { verifyToken, isAdmin,  } from '../middleware/auth';
 import { addDepartments, 
     getDepartments,
@@ -17,6 +17,8 @@ router.post('/register',register);
 router.post('/login',login);
 router.post('/admin/create-user', verifyToken, isAdmin, createUserByAdmin );
 router.put("/api-changePassWord", verifyToken,changePassWord);
+router.post("/verify-otp", verifyOtp);
+
 
 // Routes of get Users
 router.get("/api_accountList",verifyToken,getUser);

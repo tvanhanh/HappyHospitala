@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
+import '../screen_patient/home_screen.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final String email;
@@ -32,8 +33,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     try {
       // Gọi API đổi mật khẩu, truyền vào email + mật khẩu mới
-      final response =
+      final success =
           await ApiService.changePassWord(widget.email, newPassword);
+          if (success) {
+             showSnackbar("Đổi mật khẩu thành công");
+           Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+            ); 
+          } else {
+            showSnackbar("Thất bại: ", isError: true);
+            }
 
       setState(() {
         isLoading = false;

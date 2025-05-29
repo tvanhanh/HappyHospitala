@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import User from "../models/User";
 import mongoose from 'mongoose';
 import jwt from "jsonwebtoken";
+import Otp from "../models/Otp";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -111,9 +112,36 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+export const verifyOtp = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  try {
+    const record = await Otp.findOne({ email, otp });
+
+    if (!record) {
+       res.status(400).json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
+       return;
+    }
+
+    // Nếu đúng, xóa OTP để không dùng lại
+    await Otp.deleteOne({ _id: record._id });
+
+    // Có thể gửi token hoặc redirect qua FE để đổi mật khẩu
+    res.status(200).json({ message: "OTP hợp lệ. Cho phép đổi mật khẩu." });
+  } catch (err) {
+    console.error("Lỗi xác minh OTP:", err);
+    res.status(500).json({ message: "Lỗi server khi xác minh OTP." });
+  }
+};
 export const changePassWord = async(req: Request, res: Response)=>{
   try {
     const { email, newPassword } = req.body;
+    console.log("Dữ liệu nhận từ frontend:", req.body);
+    
+    if (!email || !newPassword) {
+       res.status(400).json({ message: 'Thiếu email hoặc mật khẩu mới' });
+       return;
+    }
     const user = await User.findOne({ email });
     if (!user) {
        res.status(404).json({ message: 'Người dùng không tồn tại' });
