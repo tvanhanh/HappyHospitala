@@ -2,20 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "./dist",
     "typeRoots": ["node_modules/@types", "./types"],
-    "baseUrl": ".",
-    "paths": {
-      "*": ["types/*"],
-    "types": ["node", "mongoose"]
-    }
-   
-
-  
+    "types": ["node", "mongoose"],
+    "ignoreDeprecations": "6.0"
   },
   "include": ["./**/*.ts", "./types/**/*"],
   "exclude": ["node_modules", "dist"]
