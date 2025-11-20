@@ -7,8 +7,7 @@ predict_bp = Blueprint('predict', __name__)
 @predict_bp.route('/predict', methods=['POST'])
 def predict_api():
     try:
-        from app.config.dataset import patient_collection  # nếu bạn dùng MongoDB để log lại
-        import os
+        from app.config.dataset import patient_collection  # nếu bạn dùng MongoDB để log lạ
 
         # Kiểm tra model & scaler
         model_path = "app/models/knn_model.pkl"
@@ -44,7 +43,7 @@ def predict_api():
                     return jsonify({"error": f"Trường {field} phải là số."}), 400
 
         # Dự đoán với mô hình
-        from app.models.predict_knn import predict_knn
+       
         prediction = predict_knn(input_data)
 
         return jsonify({"result": prediction}), 200
