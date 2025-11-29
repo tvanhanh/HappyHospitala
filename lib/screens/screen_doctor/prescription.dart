@@ -7,6 +7,7 @@ class PrescriptionPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Gửi Đơn Thuốc'),
         centerTitle: true,
+        
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

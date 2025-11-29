@@ -9,7 +9,7 @@ import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
 import {predictDiabetes} from '../controllers/predictController';
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import { addMedicalRecord } from "../controllers/medicalRecordController";
+import {addMedicalRecord,getMedicalRecordById } from "../controllers/medicalRecordController";
 
 
 const router = Router();
@@ -49,6 +49,7 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.put("/api_updateMedicalRecord/:id", verifyToken,updateMedicalRecord);
   router.get("/api_getMedicalRecord",verifyToken, getMedicalRecord);
   // medical record with block chain 
-  router.post("/api_medicalrecord-blockchain", addMedicalRecord); // POST /api/medical-record/
+  router.post("/api/medicalrecord-blockchain", addMedicalRecord);
+  router.get("/medical-records/:Id",verifyToken,getMedicalRecordById);
   
 export default router;

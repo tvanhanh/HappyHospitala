@@ -82,15 +82,23 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                             // Các chỉ số
                             _buildMedicalField('ID', record['id']),
                             _buildMedicalField('Giới tính', record['gender']),
-                            _buildMedicalField('Tuổi', record['age'].toString()),
-                            _buildMedicalField('Urea', '${record['urea']} mmol/L'),
-                            _buildMedicalField('creatinine', '${record['creatinine']} µmol/L'),
+                            _buildMedicalField(
+                                'Tuổi', record['age'].toString()),
+                            _buildMedicalField(
+                                'Urea', '${record['urea']} mmol/L'),
+                            _buildMedicalField(
+                                'creatinine', '${record['creatinine']} µmol/L'),
                             _buildMedicalField('HbA1c', '${record['hba1c']} %'),
-                            _buildMedicalField('Cholesterol', '${record['cholesterol']} mmol/L'),
-                            _buildMedicalField('Triglycerides (TG)', '${record['triglycerides']} mmol/L'),
-                            _buildMedicalField('HDL', '${record['hdl']} mmol/L'),
-                            _buildMedicalField('LDL', '${record['ldl']} mmol/L'),
-                            _buildMedicalField('VLDL', '${record['vldl']} mmol/L'),
+                            _buildMedicalField('Cholesterol',
+                                '${record['cholesterol']} mmol/L'),
+                            _buildMedicalField('Triglycerides (TG)',
+                                '${record['triglycerides']} mmol/L'),
+                            _buildMedicalField(
+                                'HDL', '${record['hdl']} mmol/L'),
+                            _buildMedicalField(
+                                'LDL', '${record['ldl']} mmol/L'),
+                            _buildMedicalField(
+                                'VLDL', '${record['vldl']} mmol/L'),
                             _buildMedicalField('BMI', '${record['bmi']}'),
                             SizedBox(height: 10),
                             Row(
