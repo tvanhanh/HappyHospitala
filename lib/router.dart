@@ -14,6 +14,7 @@ import 'screens/screen_doctor/consultation.dart';
 import 'screens/screen_doctor/progress_tracking.dart';
 import 'screens/screen_authencication/register_screen.dart';
 import 'screens/screen_patient/booking_screen.dart';
+import 'screens/screen_doctor/medical_record_formblockchain.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/home',
@@ -73,6 +74,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/home/booking',
       builder: (context, state) => BookingScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/medical-record',
+      builder: (context, state) => MedicalRecordForm(),
     ),
   ],
 );

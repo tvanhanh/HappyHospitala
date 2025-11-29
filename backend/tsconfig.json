@@ -8,7 +8,9 @@
     "skipLibCheck": true,
     "typeRoots": ["node_modules/@types", "./types"],
     "types": ["node", "mongoose"],
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+     "resolveJsonModule": true,
+   
   },
   "include": ["./**/*.ts", "./types/**/*"],
   "exclude": ["node_modules", "dist"]
