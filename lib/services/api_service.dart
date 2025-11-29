@@ -35,6 +35,46 @@ class ApiService {
     }
   }
 
+  static Future<String?> changePassword(
+    String email,
+    String oldPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        return 'Chưa đăng nhập. Vui lòng đăng nhập lại.';
+      }
+
+      // Gửi yêu cầu đổi mật khẩu
+      final url = Uri.parse('$baseUrl/auth/changePassword');
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'email': email, // xác minh người dùng đúng
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+          'confirmPassword': confirmPassword,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return null; // ✅ Đổi mật khẩu thành công
+      } else {
+        final data = jsonDecode(response.body);
+        return data['message'] ?? 'Đổi mật khẩu thất bại';
+      }
+    } catch (e) {
+      return 'Lỗi kết nối: $e';
+    }
+  }
+
   // Đăng nhập người dùng
   static Future<Map<String, dynamic>> loginUser(
     String email,

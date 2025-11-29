@@ -18,7 +18,7 @@ class ProgressTrackingPage extends StatelessWidget {
             ),
             SizedBox(height: 20),
             ListTile(
-              leading: Icon(Icons.track_changes, color: Colors.teal),
+              leading: Icon(Icons.track_changes, color: Colors.blue),
               title: Text('Bệnh Nhân A'),
               subtitle: Text('Tiến trình: 70%'),
               trailing: Icon(Icons.arrow_forward),
@@ -28,7 +28,7 @@ class ProgressTrackingPage extends StatelessWidget {
             ),
             SizedBox(height: 10),
             ListTile(
-              leading: Icon(Icons.track_changes, color: Colors.teal),
+              leading: Icon(Icons.track_changes, color: Colors.blue),
               title: Text('Bệnh Nhân B'),
               subtitle: Text('Tiến trình: 45%'),
               trailing: Icon(Icons.arrow_forward),

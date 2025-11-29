@@ -111,3 +111,44 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+export const logout = (req: Request, res: Response) => {
+  // Xóa token phía client (nếu lưu ở cookie)
+  res.clearCookie('token'); // nếu có lưu token ở cookie
+  res.status(200).json({ message: "Đăng xuất thành công" });
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const { email, oldPassword, newPassword, confirmNewPassword } = req.body;
+
+    // Kiểm tra mật khẩu mới
+    if (newPassword !== confirmNewPassword) {
+      res.status(400).json({ message: "Mật khẩu mới không khớp." });
+      return;
+    }
+
+    // Tìm người dùng
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404).json({ message: "Không tìm thấy người dùng." });
+      return;
+    }
+
+    // Kiểm tra mật khẩu cũ
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ message: "Mật khẩu cũ không đúng." });
+      return;
+    }
+
+    // Hash mật khẩu mới và cập nhật
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Đổi mật khẩu thành công." });
+  } catch (error) {
+    console.error("Lỗi đổi mật khẩu:", error);
+    res.status(500).json({ message: "Lỗi server." });
+  }
+};

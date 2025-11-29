@@ -1,6 +1,6 @@
 import { RequestHandler, Router } from 'express';
 import { register, createUserByAdmin,login,logout, changePassword, } from '../controllers/auth.controller';
-import { verifyToken, isAdmin,  } from '../Middleware/auth';
+import { verifyToken, isAdmin,  } from '../middleware/auth';
 import { addDepartments, 
     getDepartments,
     updateDepartment,
@@ -8,7 +8,6 @@ import { addDepartments,
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
 import {predictDiabetes} from '../controllers/predictController';
-import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
 
 
 const router = Router();
@@ -16,7 +15,7 @@ const router = Router();
 router.post('/register',register);
 router.post('/login',login);
 router.post("/logout", logout);
-router.post("/change-password", changePassword);
+router.put("/change-password", changePassword);
 router.post('/admin/create-user', verifyToken, isAdmin, createUserByAdmin );
 
 // Routes of get Users
@@ -39,10 +38,5 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
 
  //AI router python
  router.post("/api_predict",verifyToken, predictDiabetes);
-
- // medical record infor
-  router.post("/api_addMedicalRecord", verifyToken,createMedicalRecord);
-  router.put("/api_updateMedicalRecord/:id", verifyToken,updateMedicalRecord);
-  router.get("/api_getMedicalRecord",verifyToken, getMedicalRecord);
   
 export default router;
