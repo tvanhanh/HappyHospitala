@@ -18,7 +18,6 @@ import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
 
 class HomeScreen extends StatefulWidget {
-
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -48,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isLoading = false;
     });
-    
+
     if (_user != null && _user!['role'] != 'patient') {
       if (!mounted) return;
       if (_user!['role'] == 'admin') {
@@ -106,8 +105,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('HappyH', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.teal,
+        title: Row(
+          children: [
+            // ✅ LOGO ĐÃ CHUYỂN THÀNH HÌNH TRÒN VÀ CÓ VIỀN
+            Container(
+              padding: const EdgeInsets.all(4), // Viền ngoài
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Colors.blue.shade200, width: 2), // Màu viền
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 5,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/logo.png',
+                  height: 30, // Tăng nhẹ kích thước
+                  width: 30,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Happy Clinic',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Roboto',
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.lightBlue.shade700,
         leading: Builder(
           builder: (context) => IconButton(
             icon: Icon(Icons.menu),
@@ -125,21 +161,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           builder: (_) => LoginScreen(),
                         );
                       },
-                      child: Text(
-                        'Đăng nhập',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => RegisterScreen(),
-                        );
-                      },
-                      child: Text(
-                        'Đăng ký',
-                        style: TextStyle(color: Colors.white),
+                      child: GestureDetector(
+                        onTap: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.remove('token');
+
+                          // Điều hướng về màn hình đăng nhập và xoá toàn bộ ngăn xếp
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/', (route) => false);
+                        },
+                        child: Text(
+                          'Đăng xuất',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -184,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
+        selectedItemColor: Colors.lightBlue.shade700,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
@@ -266,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal[800],
+                color: Colors.lightBlue.shade800,
               ),
             ),
             SizedBox(height: 10),
@@ -274,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: Colors.teal,
+                  backgroundColor: Colors.lightBlue,
                   child: Text(
                     _user?['name']?[0] ?? 'U',
                     style: TextStyle(color: Colors.white, fontSize: 24),
@@ -308,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child:
                   Text('Xem chi tiết', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: Colors.lightBlue.shade700,
               ),
             ),
           ],
@@ -333,7 +367,8 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.calendar_today, color: Colors.teal, size: 30),
+              Icon(Icons.calendar_today,
+                  color: Colors.lightBlue.shade700, size: 30),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -344,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     SizedBox(height: 5),
@@ -355,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: Colors.teal),
+              Icon(Icons.arrow_forward_ios, color: Colors.blueAccent),
             ],
           ),
         ),
@@ -379,7 +414,8 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.description, color: Colors.teal, size: 30),
+              Icon(Icons.description,
+                  color: Colors.lightBlue.shade700, size: 30),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -390,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     SizedBox(height: 5),
@@ -401,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: Colors.teal),
+              Icon(Icons.arrow_forward_ios, color: Colors.blue),
             ],
           ),
         ),
@@ -446,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (_) => DoctorsScreen()),
                   );
                 },
-                child: Text('Xem tất cả', style: TextStyle(color: Colors.teal)),
+                child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
             ],
           ),
@@ -489,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 4),
                         Text(
                           doctor['specialty']!,
-                          style: TextStyle(color: Colors.teal),
+                          style: TextStyle(color: Colors.blue),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -510,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(color: Colors.teal),
+            decoration: BoxDecoration(color: Colors.blue),
             child: Center(
               child: Text(
                 "Menu",
@@ -567,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton(
                 onPressed: () {},
-                child: Text('Xem tất cả', style: TextStyle(color: Colors.teal)),
+                child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
             ],
           ),
@@ -758,8 +794,29 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset('assets/logo.png', height: 80),
-                  SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(4), // Viền ngoài
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.blue.shade200, width: 2), // Màu viền
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 5,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/logo.png',
+                        height: 90, // Tăng nhẹ kích thước
+                        width: 90,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
                   Text(
                     "Chăm sóc sức khỏe toàn diện - Vì bạn xứng đáng!",
                     style: TextStyle(

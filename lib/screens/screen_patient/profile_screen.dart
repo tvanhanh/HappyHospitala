@@ -80,7 +80,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _changePassword() async {
     try {
       final response = await http.put(
-        Uri.parse('http://your-backend-url/api/users/${_user!['id']}/change-password'),
+        Uri.parse(
+            'http://your-backend-url/api/users/${_user!['id']}/change-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'password': _passwordController.text,
@@ -111,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Thông Tin Cá Nhân'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -120,12 +121,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               'Thông Tin Cơ Bản',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal[800]),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800]),
             ),
             SizedBox(height: 10),
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -162,8 +167,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: _updateProfile,
                       child: Text('Cập nhật thông tin'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        backgroundColor: Colors.blue,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       ),
                     ),
                   ],
@@ -173,12 +179,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(height: 20),
             Text(
               'Đổi Mật Khẩu',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal[800]),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800]),
             ),
             SizedBox(height: 10),
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -197,8 +207,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: _changePassword,
                       child: Text('Đổi mật khẩu'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        backgroundColor: Colors.blue,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       ),
                     ),
                   ],
