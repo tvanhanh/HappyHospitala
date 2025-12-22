@@ -60,6 +60,8 @@ class ApiService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
         await prefs.setString('email', email);
+        await prefs.setString('doctorId', data['user']['_id']);
+      
 
         // Trả về thông tin token và role
         return {
