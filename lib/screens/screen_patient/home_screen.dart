@@ -16,10 +16,8 @@ import 'discussion_screen.dart';
 import 'diagnosis_result_screen.dart';
 import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
-import 'package:go_router/go_router.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -27,77 +25,42 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   Map<String, dynamic>? _user;
-  List<Map<String, dynamic>> diagnosisHistory = [];
-  bool isLoading = true;
-  String? userId;
-  String? errorMessage;
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _checkUser();
   }
 
-  Future<void> _loadUserData() async {
-    print("_loadUserData: Bắt đầu...");
+  Future<void> _checkUser() async {
     setState(() {
-      isLoading = true;
-      errorMessage = null;
+      _isLoading = true;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final userData = prefs.getString('user');
+    if (userData != null) {
+      setState(() {
+        _user = jsonDecode(userData);
+      });
+    }
+    setState(() {
+      _isLoading = false;
     });
 
-    try {
-      final userData = await ApiService.getCurrentUser();
-      print("_loadUserData: userData = $userData");
-      if (userData != null) {
-        setState(() {
-          _user = userData;
-          userId = userData['_id']?.toString();
-          print("_loadUserData: userId = $userId");
-        });
-        await fetchUserInfor();
-      } else {
-        setState(() {
-          _user = null;
-          userId = null;
-          isLoading = false;
-          errorMessage = "Không tìm thấy người dùng đã đăng nhập.";
-          print("_loadUserData: Không có user, isLoading = $isLoading");
-        });
+    if (_user != null && _user!['role'] != 'patient') {
+      if (!mounted) return;
+      if (_user!['role'] == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => AdminDashboard()),
+        );
+      } else if (_user!['role'] == 'doctor') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => DoctorDashboard()),
+        );
       }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        errorMessage = e.toString();
-      });
-      print("_loadUserData: Lỗi: $e");
-    }
-  }
-
-  Future<void> fetchUserInfor() async {
-    print("fetchUserInfor: Bắt đầu với userId = $userId");
-    if (userId == null) {
-      setState(() {
-        isLoading = false;
-        diagnosisHistory = [];
-        errorMessage = "Không tìm thấy ID người dùng.";
-      });
-      print("fetchUserInfor: userId null, isLoading = $isLoading");
-      return;
-    }
-    try {
-      final records = await ApiService.getUserInfor(userId!);
-      print("fetchUserInfor: Đã nhận dữ liệu: $records");
-      setState(() {
-        diagnosisHistory = records;
-        isLoading = false;
-        errorMessage = null;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        diagnosisHistory = [];
-        errorMessage = e.toString();
-      });
-      print("fetchUserInfor: Lỗi: $e");
     }
   }
 
@@ -106,8 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await prefs.remove('user');
     setState(() {
       _user = null;
-      userId = null;
-      diagnosisHistory = [];
     });
   }
 
@@ -122,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _buildHomeContent();
       case 1:
-        return ProfileScreen(user: _user ?? {});
+        return ProfileScreen();
       case 2:
         return DiscussionScreen();
       case 3:
@@ -136,35 +97,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: Text('HappyH', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.teal,
+        // Sử dụng Row để kết hợp Logo và Text
+        title: Row(
+          children: [
+            // Bọc Image.asset bằng ClipOval
+            ClipOval(
+              child: Image.asset(
+                'assets/logo.png',
+                height: 40, // ✅ Giảm kích thước logo
+                width: 40,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text('Happy Clinic', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+
+        backgroundColor: Colors.blue,
         leading: Builder(
           builder: (context) => IconButton(
-            icon: Icon(Icons.menu),
+            icon: const Icon(Icons.menu),
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
+
         actions: [
           _user == null
               ? Row(
                   children: [
                     TextButton(
                       onPressed: () {
-                        context.go('/login');
+                        showDialog(
+                          context: context,
+                          builder: (_) => LoginScreen(),
+                        );
                       },
-                      child: Text(
-                        'Đăng nhập',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        context.go('/register');
-                      },
-                      child: Text(
-                        'Đăng ký',
+                      child: const Text(
+                        'Đăng xuất',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),
@@ -174,10 +151,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       'Xin chào, ${_user!['name'] ?? 'Người dùng'}',
-                      style: TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Colors.white),
                     ),
                     IconButton(
-                      icon: Icon(Icons.logout),
+                      icon: const Icon(Icons.logout),
                       onPressed: _logout,
                     ),
                   ],
@@ -185,9 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       drawer: buildDrawerMenu(context),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _buildScreen(_selectedIndex),
+      body: _buildScreen(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -210,9 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.description),
             label: 'Kết quả',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.description),
+            label: 'Bệnh án',
+          ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
+        selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
@@ -294,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal[800],
+                color: Colors.blue[800],
               ),
             ),
             SizedBox(height: 10),
@@ -302,9 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: Colors.teal,
+                  backgroundColor: Colors.blue,
                   child: Text(
-                    _user?['name']?.substring(0, 1) ?? 'U',
+                    _user?['name']?[0] ?? 'U',
                     style: TextStyle(color: Colors.white, fontSize: 24),
                   ),
                 ),
@@ -313,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _user?['name'] ?? '',
+                      _user?['name'] ?? 'Người dùng',
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -327,52 +306,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                final userJson = prefs.getString('user');
-
-                if (userJson == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content:
-                            Text("Không tìm thấy người dùng đã đăng nhập")),
-                  );
-                  return;
-                }
-
-                final userMap = jsonDecode(userJson);
-                final String id = userMap['_id'] ?? '';
-
-                try {
-                  final userList = await ApiService.getUserInfor(id);
-                  final userData = userList.isNotEmpty
-                      ? userList.first
-                      : {
-                          'name': '',
-                          'email': '',
-                          'phone': '',
-                          'gender': '',
-                          'age': '',
-                          'address': '',
-                        };
-
-                  if (!mounted) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProfileScreen(user: userData),
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Lỗi khi tải thông tin: $e")),
-                  );
-                }
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => ProfileScreen()),
+                );
               },
               child:
                   Text('Xem chi tiết', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal,
+                backgroundColor: Colors.blue,
               ),
             ),
           ],
@@ -397,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.calendar_today, color: Colors.teal, size: 30),
+              Icon(Icons.calendar_today, color: Colors.blue, size: 30),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -408,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     SizedBox(height: 5),
@@ -419,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: Colors.teal),
+              Icon(Icons.arrow_forward_ios, color: Colors.blue),
             ],
           ),
         ),
@@ -443,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: EdgeInsets.all(16),
           child: Row(
             children: [
-              Icon(Icons.description, color: Colors.teal, size: 30),
+              Icon(Icons.description, color: Colors.blue, size: 30),
               SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -454,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.teal[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     SizedBox(height: 5),
@@ -465,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: Colors.teal),
+              Icon(Icons.arrow_forward_ios, color: Colors.blue),
             ],
           ),
         ),
@@ -510,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (_) => DoctorsScreen()),
                   );
                 },
-                child: Text('Xem tất cả', style: TextStyle(color: Colors.teal)),
+                child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
             ],
           ),
@@ -553,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 4),
                         Text(
                           doctor['specialty']!,
-                          style: TextStyle(color: Colors.teal),
+                          style: TextStyle(color: Colors.blue),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -574,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(color: Colors.teal),
+            decoration: BoxDecoration(color: Colors.blue),
             child: Center(
               child: Text(
                 "Menu",
@@ -631,7 +574,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton(
                 onPressed: () {},
-                child: Text('Xem tất cả', style: TextStyle(color: Colors.teal)),
+                child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
             ],
           ),
@@ -942,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding:
                           EdgeInsets.symmetric(vertical: 12, horizontal: 50),
                     ),
-                    child: Text("Đăng ký", style: TextStyle(fontSize: 16)),
+                    child: Text("Đăng xuất", style: TextStyle(fontSize: 16)),
                   ),
                 ],
               ),

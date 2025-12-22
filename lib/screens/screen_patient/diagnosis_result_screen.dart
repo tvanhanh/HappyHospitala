@@ -30,7 +30,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Kết Quả Chẩn Đoán'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
@@ -63,7 +63,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.teal[800],
+                                color: Colors.blue[800],
                               ),
                             ),
                             SizedBox(height: 5),
@@ -108,7 +108,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.teal[800],
+                                    color: Colors.blue[800],
                                   ),
                                 ),
                                 Text(

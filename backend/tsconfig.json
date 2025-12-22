@@ -7,7 +7,7 @@
     "strict": true,
     "skipLibCheck": true,
     "typeRoots": ["node_modules/@types", "./types"],
-    "types": ["node"],
+    "types": ["node", "mongoose"],
     "resolveJsonModule": true,
    
   },

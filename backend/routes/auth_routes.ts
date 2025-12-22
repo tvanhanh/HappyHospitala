@@ -1,6 +1,7 @@
 import { RequestHandler, Router } from 'express';
+
 import multer from 'multer';
-import { register, createUserByAdmin,login,updateUserInfor,getUserInfor,verifyOtp, changePassWord } from '../controllers/auth.controller';
+import { register, createUserByAdmin,login,updateUserInfor,getUserInfor,verifyOtp, changePassWord, logout, changePassword } from '../controllers/auth.controller';
 import { verifyToken, isAdmin,  } from '../middleware/auth';
 import { addDepartments, 
     getDepartments,
@@ -9,6 +10,7 @@ import { addDepartments,
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
 import {predictDiabetes} from '../controllers/predictController';
+
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
 import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
@@ -18,6 +20,8 @@ const router = Router();
 
 router.post('/register',register);
 router.post('/login',login);
+router.post("/logout", logout);
+router.put("/change-password", changePassword);
 router.post('/admin/create-user', verifyToken, isAdmin, createUserByAdmin );
 router.put("/api-changePassWord", verifyToken,changePassWord);
 router.post("/verify-otp", verifyOtp);

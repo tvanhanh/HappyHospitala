@@ -472,8 +472,8 @@ int color highlighted_text_material_light 0x7f050037
 int color material_blue_grey_800 0x7f050038
 int color material_blue_grey_900 0x7f050039
 int color material_blue_grey_950 0x7f05003a
-int color material_deep_teal_200 0x7f05003b
-int color material_deep_teal_500 0x7f05003c
+int color material_deep_blue_200 0x7f05003b
+int color material_deep_blue_500 0x7f05003c
 int color material_grey_100 0x7f05003d
 int color material_grey_300 0x7f05003e
 int color material_grey_50 0x7f05003f

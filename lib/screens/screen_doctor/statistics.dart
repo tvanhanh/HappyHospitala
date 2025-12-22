@@ -19,9 +19,10 @@ class StatisticsPage extends StatelessWidget {
             SizedBox(height: 20),
             Card(
               elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(Icons.analytics, color: Colors.teal),
+                leading: Icon(Icons.analytics, color: Colors.blue),
                 title: Text('Số lượng bệnh nhân'),
                 subtitle: Text('Total: 1500'),
                 trailing: Icon(Icons.arrow_forward),
@@ -33,9 +34,10 @@ class StatisticsPage extends StatelessWidget {
             SizedBox(height: 10),
             Card(
               elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(Icons.analytics, color: Colors.teal),
+                leading: Icon(Icons.analytics, color: Colors.blue),
                 title: Text('Bệnh nhân đang điều trị'),
                 subtitle: Text('Total: 200'),
                 trailing: Icon(Icons.arrow_forward),

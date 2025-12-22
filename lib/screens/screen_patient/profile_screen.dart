@@ -1,60 +1,64 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/api_service.dart'; // Sửa lại đường dẫn nếu cần
 
 class ProfileScreen extends StatefulWidget {
-  final Map<String, dynamic> user;
-
-  const ProfileScreen({Key? key, required this.user}) : super(key: key);
-
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _user;
+  bool _isLoading = true;
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _genderController = TextEditingController();
   final _insuranceController = TextEditingController();
-  final _avatarController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _user = widget.user;
-    _nameController.text = _user?['name'] ?? '';
-    _phoneController.text = _user?['phone'] ?? '';
-    _addressController.text = _user?['address'] ?? '';
-    _genderController.text = _user?['gender'] ?? '';
-    _insuranceController.text = _user?['healthInsurance'] ?? '';
-    _avatarController.text = _user?['avatar'] ?? '';
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final userData = prefs.getString('user');
+    if (userData != null) {
+      setState(() {
+        _user = jsonDecode(userData);
+      });
+      _nameController.text = _user!['name'] ?? '';
+      _phoneController.text = _user!['phone'] ?? '';
+      _insuranceController.text = '123456789'; // Giả lập số BHYT
+    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _updateProfile() async {
     try {
-      final response = await ApiService.updateUserInfor(
-        _user!['id'],
-        _nameController.text,
-        _phoneController.text,
-        _addressController.text,
-        _genderController.text,
-        _insuranceController.text,
-        _avatarController.text,
+      final response = await http.put(
+        Uri.parse('http://your-backend-url/api/users/${_user!['id']}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': _nameController.text,
+          'phone': _phoneController.text,
+          'insuranceNumber': _insuranceController.text,
+        }),
       );
-
-      if (response == 'success') {
+      if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         final updatedUser = {
           ..._user!,
           'name': _nameController.text,
           'phone': _phoneController.text,
-          'address': _addressController.text,
-          'gender': _genderController.text,
-          'healthInsurance': _insuranceController.text,
-          'avatar': _avatarController.text,
         };
         await prefs.setString('user', jsonEncode(updatedUser));
         setState(() {
@@ -64,23 +68,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SnackBar(content: Text('Cập nhật thông tin thành công')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response)),
-        );
+        throw Exception('Cập nhật thất bại: ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: $e')),
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _changePassword() async {
+    try {
+      final response = await http.put(
+        Uri.parse(
+            'http://your-backend-url/api/users/${_user!['id']}/change-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'password': _passwordController.text,
+        }),
+      );
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đổi mật khẩu thành công')),
+        );
+      } else {
+        throw Exception('Đổi mật khẩu thất bại: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Thông Tin Cá Nhân'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -89,34 +121,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               'Thông Tin Cơ Bản',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal[800]),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800]),
             ),
             SizedBox(height: 10),
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildTextField(_nameController, 'Họ và tên', Icons.person),
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Họ và tên',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
                     SizedBox(height: 10),
-                    _buildTextField(_phoneController, 'Số điện thoại', Icons.phone, TextInputType.phone),
+                    TextField(
+                      controller: _phoneController,
+                      decoration: InputDecoration(
+                        labelText: 'Số điện thoại',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
                     SizedBox(height: 10),
-                    _buildTextField(_addressController, 'Địa chỉ', Icons.home),
-                    SizedBox(height: 10),
-                    _buildTextField(_genderController, 'Giới tính', Icons.wc),
-                    SizedBox(height: 10),
-                    _buildTextField(_insuranceController, 'Số BHYT', Icons.credit_card),
-                    SizedBox(height: 10),
-                    _buildTextField(_avatarController, 'Avatar URL', Icons.image),
+                    TextField(
+                      controller: _insuranceController,
+                      decoration: InputDecoration(
+                        labelText: 'Số bảo hiểm y tế',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.card_membership),
+                      ),
+                    ),
                     SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _updateProfile,
                       child: Text('Cập nhật thông tin'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        backgroundColor: Colors.blue,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Đổi Mật Khẩu',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800]),
+            ),
+            SizedBox(height: 10),
+            Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Mật khẩu mới',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.lock),
+                      ),
+                      obscureText: true,
+                    ),
+                    SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _changePassword,
+                      child: Text('Đổi mật khẩu'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       ),
                     ),
                   ],
@@ -126,19 +219,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon,
-      [TextInputType keyboardType = TextInputType.text]) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(),
-        prefixIcon: Icon(icon),
-      ),
-      keyboardType: keyboardType,
     );
   }
 }

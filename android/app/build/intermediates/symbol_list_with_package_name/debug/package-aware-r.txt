@@ -473,8 +473,8 @@ color highlighted_text_material_light
 color material_blue_grey_800
 color material_blue_grey_900
 color material_blue_grey_950
-color material_deep_teal_200
-color material_deep_teal_500
+color material_deep_blue_200
+color material_deep_blue_500
 color material_grey_100
 color material_grey_300
 color material_grey_50

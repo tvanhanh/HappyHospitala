@@ -19,9 +19,10 @@ class ClassificationResultsPage extends StatelessWidget {
             SizedBox(height: 20),
             Card(
               elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(Icons.bar_chart, color: Colors.teal),
+                leading: Icon(Icons.bar_chart, color: Colors.blue),
                 title: Text('Bệnh Nhân 1'),
                 subtitle: Text('Loại: Nguy hiểm'),
                 trailing: Icon(Icons.arrow_forward),
@@ -33,9 +34,10 @@ class ClassificationResultsPage extends StatelessWidget {
             SizedBox(height: 10),
             Card(
               elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(Icons.bar_chart, color: Colors.teal),
+                leading: Icon(Icons.bar_chart, color: Colors.blue),
                 title: Text('Bệnh Nhân 2'),
                 subtitle: Text('Loại: Bình thường'),
                 trailing: Icon(Icons.arrow_forward),

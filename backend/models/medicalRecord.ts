@@ -20,20 +20,20 @@ const MedicalRecordSchema = new mongoose.Schema({
     required: true,
   },
 
-  // symptoms: {
-  //   type: String,
-  //   required: true,
-  // },
+  symptoms: {
+    type: String,
+    required: true,
+  },
 
-  // diagnosis: {
-  //   type: String,
-  //   required: true,
-  // },
+  diagnosis: {
+    type: String,
+    required: true,
+  },
 
-  // treatment: {
-  //   type: String,
-  //   required: true,
-  // },
+  treatment: {
+    type: String,
+    required: true,
+  },
 
   attachments: [
     {

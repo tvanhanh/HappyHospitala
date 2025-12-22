@@ -1,0 +1,210 @@
+@startuml
+!define Table(name,desc) class name as "desc" << (T,#FFAAAA) >>
+!define PrimaryKey(field) <u>field</u>
+!define ForeignKey(field) <i>field</i>
+
+'===================
+'=== USERS & ROLES
+'===================
+Table(User, "Người dùng") {
+  PrimaryKey(id): UUID
+  full_name: String
+  email: String
+  password: String
+  phone: String
+  role: Enum(Patient, Doctor, Admin)
+  avatar_url: String
+  is_active: Boolean
+  created_at: DateTime
+}
+
+Table(PatientProfile, "Hồ sơ bệnh nhân") {
+  PrimaryKey(id): UUID
+  ForeignKey(user_id): UUID
+  gender: String
+  date_of_birth: Date
+  address: String
+  medical_history: Text
+}
+
+Table(DoctorProfile, "Hồ sơ bác sĩ") {
+  PrimaryKey(id): UUID
+  ForeignKey(user_id): UUID
+  license_no: String
+  specialty_id: UUID
+  department: String
+  description: Text
+}
+
+Table(Specialty, "Chuyên khoa") {
+  PrimaryKey(id): UUID
+  name: String
+  description: Text
+}
+
+'===================
+'=== HEALTHCARE
+'===================
+Table(MedicalRecord, "Bệnh án") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(doctor_id): UUID
+  disease_name: String
+  symptoms: Text
+  diagnosis: Text
+  test_results: Text
+  treatment: Text
+  created_at: DateTime
+  updated_at: DateTime
+  is_deleted: Boolean
+}
+
+Table(DiagnosisResult, "Kết quả phân loại") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(medical_record_id): UUID
+  model_name: String
+  label: String
+  confidence: Float
+  input_data: JSON
+  created_at: DateTime
+  note: Text
+}
+
+Table(HealthAdvice, "Tư vấn sức khỏe") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(doctor_id): UUID
+  content: Text
+  attachments: JSON
+  created_at: DateTime
+}
+
+Table(ProgressTrack, "Tiến trình bệnh nhân") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  date: Date
+  bmi: Float
+  glucose: Float
+  blood_pressure: Float
+  note: Text
+}
+
+'===================
+'=== APPOINTMENTS & NOTIFICATIONS
+'===================
+Table(Appointment, "Lịch hẹn khám") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(doctor_id): UUID
+  date: DateTime
+  location: String
+  reason: String
+  status: Enum(Pending, Confirmed, Cancelled, Completed)
+  created_at: DateTime
+}
+
+Table(Prescription, "Đơn thuốc") {
+  PrimaryKey(id): UUID
+  ForeignKey(medical_record_id): UUID
+  medications: JSON
+  notes: Text
+  created_at: DateTime
+}
+
+Table(Reminder, "Nhắc nhở") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  type: Enum(Medicine, Reexam)
+  content: String
+  schedule_time: DateTime
+  status: Enum(Sent, Skipped, Snoozed)
+}
+
+Table(Notification, "Thông báo") {
+  PrimaryKey(id): UUID
+  ForeignKey(user_id): UUID
+  message: String
+  type: Enum(Personal, System)
+  read: Boolean
+  created_at: DateTime
+}
+
+'===================
+'=== COMMUNICATION
+'===================
+Table(Discussion, "Thảo luận") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(doctor_id): UUID
+  sender_role: Enum(Patient, Doctor)
+  content: Text
+  file_url: String
+  timestamp: DateTime
+}
+
+Table(Feedback, "Phản hồi đánh giá") {
+  PrimaryKey(id): UUID
+  ForeignKey(patient_id): UUID
+  ForeignKey(doctor_id): UUID
+  rating: Int
+  comment: Text
+  anonymous: Boolean
+  created_at: DateTime
+}
+
+'===================
+'=== SYSTEM & ADMIN
+'===================
+Table(SystemLog, "Log hệ thống") {
+  PrimaryKey(id): UUID
+  user_id: UUID
+  action: String
+  ip: String
+  device: String
+  created_at: DateTime
+}
+
+Table(Session, "Phiên đăng nhập") {
+  PrimaryKey(id): UUID
+  user_id: UUID
+  token: String
+  device: String
+  location: String
+  login_time: DateTime
+  logout_time: DateTime
+}
+
+Table(RealTimeStat, "Thống kê thời gian thực") {
+  PrimaryKey(id): UUID
+  metric: String
+  value: Float
+  timestamp: DateTime
+}
+
+'===================
+'=== RELATIONS
+'===================
+User -- PatientProfile
+User -- DoctorProfile
+DoctorProfile -- Specialty
+User -- Notification
+User -- Session
+User -- SystemLog
+PatientProfile -- MedicalRecord
+DoctorProfile -- MedicalRecord
+PatientProfile -- Appointment
+DoctorProfile -- Appointment
+MedicalRecord -- Prescription
+MedicalRecord -- DiagnosisResult
+PatientProfile -- DiagnosisResult
+DoctorProfile -- HealthAdvice
+PatientProfile -- HealthAdvice
+PatientProfile -- Reminder
+PatientProfile -- Feedback
+DoctorProfile -- Feedback
+PatientProfile -- Discussion
+DoctorProfile -- Discussion
+PatientProfile -- ProgressTrack
+
+@enduml

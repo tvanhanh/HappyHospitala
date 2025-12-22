@@ -6,7 +6,7 @@ class DiscussionScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Thảo Luận'),
-        backgroundColor: Colors.teal,
+        backgroundColor: Colors.blue,
       ),
       body: Center(
         child: Text('Chức năng thảo luận đang phát triển'),

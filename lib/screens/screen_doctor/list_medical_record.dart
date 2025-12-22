@@ -21,7 +21,7 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
   @override
   void initState() {
     super.initState();
-     print('🔥 MedicalRecordListPage INIT');
+    print('🔥 MedicalRecordListPage INIT');
     _loadRecords();
   }
 
@@ -135,17 +135,19 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
               decoration: const InputDecoration(
                 prefixIcon: Icon(Icons.search),
                 hintText: 'Tìm theo tên bệnh nhân / mã hồ sơ',
+                hintStyle: const TextStyle(fontSize: 14),
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 15),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
                 decoration: const InputDecoration(
                   labelText: 'Ngày khám',
+                  labelStyle: const TextStyle(fontSize: 14),
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
@@ -156,8 +158,9 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
                       _selectedDate == null
                           ? 'Tất cả'
                           : fmt.format(_selectedDate!),
+                      style: const TextStyle(fontSize: 14),
                     ),
-                    const Icon(Icons.calendar_today, size: 18),
+                    const Icon(Icons.calendar_today, size: 14),
                   ],
                 ),
               ),
@@ -223,21 +226,22 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
         onTap: () {
           final recordId = r['_id'];
           if (recordId == null || recordId.toString().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Hồ sơ không hợp lệ (thiếu ID)'),
-        backgroundColor: Colors.red,
-      ),
-    );
-    return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Hồ sơ không hợp lệ (thiếu ID)'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
           }
           Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => MedicalRecordDetailPage( recordId: recordId.toString(),),
-    ),
-  );
-          
+            context,
+            MaterialPageRoute(
+              builder: (_) => MedicalRecordDetailPage(
+                recordId: recordId.toString(),
+              ),
+            ),
+          );
         },
       ),
     );
