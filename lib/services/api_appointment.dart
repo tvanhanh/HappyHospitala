@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'config.dart'; // file chứa BASE_URL
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class AddAppointments {
   static Future<String> addAppointment(
     String patientName,
@@ -34,8 +35,8 @@ class AddAppointments {
           "reason": reason,
           "date": date,
           "time": time,
-          'departmentId': departmentId,
-          'doctorId': doctorId,
+          'departmentName': departmentId,
+          'doctorName': doctorId,
         }),
       );
 
@@ -108,9 +109,7 @@ class AddAppointments {
           'reason':e['reason'],
           'date': e['date'],
           'time': e['time'],
-          'departmentId': e['departmentId']?.toString() ?? '',
           'departmentName': e['departmentName'],
-          'doctorId': e['doctorId']?.toString() ?? '',
           'doctorName': e['doctorName'],
           'status': e['status'],
         }).toList();

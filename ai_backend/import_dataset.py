@@ -2,8 +2,8 @@ import pandas as pd
 from pymongo import MongoClient 
 
 # 🔗 Kết nối đến MongoDB Atlas
-client = MongoClient("mongodb+srv://medicalrecord:123@cluster0.hqwl0gl.mongodb.net/medical_records?retryWrites=true&w=majority&appName=Cluster0")
-db = client["datasets"] 
+client = MongoClient("mongodb://localhost:27017")
+db = client["test"] 
 collection = db["dataset"] 
 
 # Kiểm tra kết nối

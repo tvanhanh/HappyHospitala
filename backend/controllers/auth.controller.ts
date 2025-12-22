@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import * as bcrypt from 'bcryptjs';
 import User from "../models/User";
-
+import mongoose from 'mongoose';
 import jwt from "jsonwebtoken";
+import Otp from "../models/Otp";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -71,6 +72,7 @@ export const createUserByAdmin = async (req: Request, res: Response, next: NextF
      return;
   }
 };
+
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -111,6 +113,99 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 };
+
+export const verifyOtp = async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+
+  try {
+    const record = await Otp.findOne({ email, otp });
+
+    if (!record) {
+       res.status(400).json({ message: "OTP không hợp lệ hoặc đã hết hạn." });
+       return;
+    }
+
+    // Nếu đúng, xóa OTP để không dùng lại
+    await Otp.deleteOne({ _id: record._id });
+
+    // Có thể gửi token hoặc redirect qua FE để đổi mật khẩu
+    res.status(200).json({ message: "OTP hợp lệ. Cho phép đổi mật khẩu." });
+  } catch (err) {
+    console.error("Lỗi xác minh OTP:", err);
+    res.status(500).json({ message: "Lỗi server khi xác minh OTP." });
+  }
+};
+export const changePassWord = async(req: Request, res: Response)=>{
+  try {
+    const { email, newPassword } = req.body;
+    console.log("Dữ liệu nhận từ frontend:", req.body);
+    
+    if (!email || !newPassword) {
+       res.status(400).json({ message: 'Thiếu email hoặc mật khẩu mới' });
+       return;
+    }
+    const user = await User.findOne({ email });
+    if (!user) {
+       res.status(404).json({ message: 'Người dùng không tồn tại' });
+       return;
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).json({ message: 'Đổi mật khẩu thành công' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error });
+  }
+}
+export const getUserInfor = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.email) {
+       res.status(401).json({ message: 'Người dùng chưa đăng nhập' });
+       return;
+    }
+
+    const email = req.user.email;
+
+    const medicalRecords = await User.find({ email }); // 👈 lọc theo email người dùng
+    res.status(200).json(medicalRecords);
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu ", error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+export const updateUserInfor = async (req: Request, res: Response) => {
+  try {
+    if (!req.user || !req.user.id) {
+      res.status(401).json({ message: 'Người dùng chưa đăng nhập' });
+      return;
+    }
+    const { id } = req.params;
+    const { name, phone, address, gender, healthInsurance, avatar  } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+
+       res.status(400).json({ message: 'ID không hợp lệ' });
+       return;
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { name, phone,address,gender,healthInsurance,avatar },
+      { new: true }
+    );
+
+    if (!updated) {
+       res.status(404).json({ message: "Không tìm thấy user" });
+       return;
+    }
+
+    res.status(200).json({ message: "Cập nhật thành công", User: updated });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật phòng ban", error);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+
 export const logout = (req: Request, res: Response) => {
   // Xóa token phía client (nếu lưu ở cookie)
   res.clearCookie('token'); // nếu có lưu token ở cookie
@@ -150,5 +245,4 @@ export const changePassword = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Lỗi đổi mật khẩu:", error);
     res.status(500).json({ message: "Lỗi server." });
-  }
-};
+  }}

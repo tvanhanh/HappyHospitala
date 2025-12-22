@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Thông Tin Cá Nhân'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.teal,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -124,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[800]),
+                  color: Colors.teal[800]),
             ),
             SizedBox(height: 10),
             Card(
@@ -167,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: _updateProfile,
                       child: Text('Cập nhật thông tin'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.teal,
                         padding:
                             EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       ),
@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[800]),
+                  color: Colors.teal[800]),
             ),
             SizedBox(height: 10),
             Card(
@@ -207,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: _changePassword,
                       child: Text('Đổi mật khẩu'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Colors.teal,
                         padding:
                             EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                       ),

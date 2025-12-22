@@ -13,7 +13,7 @@ train_knn_bp = Blueprint('train_knn', __name__)
 @train_knn_bp.route('/train', methods=['POST'])
 def train_knn_model():
     try:
-        # 1. Đọc dữ liệu từ MongoDB
+       
         data = list(patient_collection.find())
         if not data:
             return {"error": "Không tìm thấy dữ liệu trong MongoDB."}, 400
