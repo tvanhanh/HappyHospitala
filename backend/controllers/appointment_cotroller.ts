@@ -8,9 +8,15 @@ import axios from 'axios';
 export const addAppointments = async (req: Request, res: Response) => {
   
   try {
-    const { patientName, phone, reason, date, time,departmentId,doctorId,  } = req.body;
+    const { patientName, phone, reason, date, time,departmentName,doctorName,  } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
+    // const department = await Department.findById(departmentId);
+    // const doctor = await Doctor.findById(doctorId);
+//     if (!department || !doctor) {
+//    res.status(404).json({ message: "Không tìm thấy thông tin khoa hoặc bác sĩ" });
+//    return;
+// }
     if (!req.user || !req.user.email){
          res.status(401).json({ message: 'User not authenticated' });
          return;
@@ -31,8 +37,8 @@ export const addAppointments = async (req: Request, res: Response) => {
       reason,
       date: date,
       time: time,
-      departmentId,
-      doctorId,
+      departmentName: departmentName,
+      doctorName: doctorName,
       email,
     });
 
@@ -40,12 +46,16 @@ export const addAppointments = async (req: Request, res: Response) => {
     console.log('Dữ liệu gửi tới webhook:', {
       patientName,
       email,
+      departmentName,
+      doctorName,
       date,
       time,
     });
 
     // await axios.post('http://localhost:5678/webhook-test/api_n8n/appointments', {
     //   patientName,
+    //   departmentName,
+    //   doctorName,
     //   email,
     //   date,
     //   time,
@@ -64,8 +74,6 @@ export const getAppointment = async (req: Request, res: Response) => {
     const appointment = await Appointment.find()
     const formattedAppointment = await Promise.all(
       appointment.map(async (item: IAppointment) => {
-        const department: IDepartment | null = await Department.findById(item.departmentId);
-        const doctor: IDoctor | null = await Doctor.findById(item.doctorId);
     
         return {
           _id: item._id.toString(),
@@ -74,10 +82,8 @@ export const getAppointment = async (req: Request, res: Response) => {
           reason: item.reason || 'không có',
           date: item.date || 'không có',
           time: item.time || 'không có',
-          doctorId: item.doctorId?.toString() ?? 'không rõ',
-          doctorName: doctor?.doctorName || 'không rõ',
-          departmentId: item.departmentId?.toString() ?? 'không rõ',
-          departmentName: department?.departmentName || 'Không rõ',
+          doctorName: item.doctorName || 'không rõ',
+          departmentName: item.departmentName || 'Không rõ',
           status: item.status || 'không có',
           email: item.email || 'không có', // 👈 đây là nơi email bị mất nếu bị đè
           createdAt: item.createdAt || 'không có',

@@ -20,6 +20,7 @@ const Color surfaceColor = Colors.white;
 const Color backgroundColor = Color(0xFFF5F7FA);
 
 class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
 }

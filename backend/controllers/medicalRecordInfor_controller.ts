@@ -4,13 +4,14 @@ import DiabetesRecord, { IDiabetesRecord } from '../models/medicl_record_infor';
 // Thêm mới bệnh án
 export const createMedicalRecord = async (req: Request, res: Response) => {
   try {
-    const { patientName,email, examinationDate,doctorName,departmentName, gender, age, urea, creatinine, hba1c, cholesterol,triglycerides, hdl, ldl, vldl, bmi, status } = req.body;
+    const { patientName,email, examinationDate, examinationTime,doctorName,departmentName, gender, age, urea, creatinine, hba1c, cholesterol,triglycerides, hdl, ldl, vldl, bmi, status } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
     const newRecord = new DiabetesRecord ({
         patientName,
         email,
         examinationDate,
+        examinationTime,
         doctorName,
         departmentName,
         gender,
