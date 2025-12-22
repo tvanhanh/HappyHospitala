@@ -17,6 +17,7 @@ import 'diagnosis_result_screen.dart';
 import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
 import 'package:go_router/go_router.dart';
+import 'medical_records.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -36,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadUserData();
   }
+  
 
   Future<void> _loadUserData() async {
     print("_loadUserData: Bắt đầu...");
@@ -472,6 +474,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  
 
   Widget _buildDoctorSection() {
     final List<Map<String, String>> doctors = [
@@ -583,6 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           _buildDrawerItem(context, 'Chuyên khoa', SpecialtiesScreen()),
+          _buildDrawerItem(context, 'Hồ sơ bệnh án', MedicalRecordsPage() ),
           _buildDrawerItem(context, 'Cơ sở y tế', MedicalFacilitiesScreen()),
           _buildDrawerItem(context, 'Bác sĩ', DoctorsScreen()),
           _buildDrawerItem(context, 'Hỏi đáp', FAQScreen()),

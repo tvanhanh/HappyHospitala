@@ -3,7 +3,7 @@ import MedicalRecordsABI from "../../blockchain/artifacts/contracts/MedicalRecor
 
 const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL!);
 const signer = new ethers.Wallet(process.env.SEPOLIA_PRIVATE_KEY!, provider);
-const CONTRACT_ADDRESS = "0x5Db627E8956c7b9d62515B04Fb4EA2363F4cFba1"; // thay bằng contract của bạn
+const CONTRACT_ADDRESS = "0x7e398Ab8cb7457e655E3A49Abe3D6608fB924535"; 
 
 const medicalRecordsContract = new ethers.Contract(
   CONTRACT_ADDRESS,
