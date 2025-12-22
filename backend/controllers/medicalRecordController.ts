@@ -1,42 +1,80 @@
-// controllers/medicalRecord.controller.ts
 
 import { Request, Response } from "express";
 import MedicalRecord from "../models/medicalRecord";
-import { uploadToStorage } from "../services/storage.service";
 import { generateMedicalPDF } from "../services/pdf.service";
 import { calculateHash } from "../services/hash.service";
 import { uploadHashToBlockchain } from "../services/blockchain.service";
 import fs from "fs";
-import 'multer';
+import pinataSDK from "@pinata/sdk";
+import { getGridFSBucket } from "../config/db";
+
+const pinata = new pinataSDK({ pinataJWTKey: process.env.PINATA_JWT! });
+
+export const uploadPDFToIPFS = async (pdfPath: string) => {
+  const fileStream = fs.createReadStream(pdfPath);
+
+  const options = {
+    pinataMetadata: {
+      name: "medical-record.pdf",
+    },
+  };
+
+  const result = await pinata.pinFileToIPFS(fileStream, options);
+  console.log("Uploaded to IPFS:", result);
+  return result.IpfsHash;
+};
 
 export const addMedicalRecord = async (req: Request, res: Response) => {
   try {
+    const gridFSBucket = getGridFSBucket();
+    const files = req.files as Express.Multer.File[];
+    console.log("req.files:", req.files);
+
     const {
       patientId,
       doctorId,
+      patientName,
       visitDate,
       symptoms,
       diagnosis,
       treatment,
-      patientName,
-      doctorName,
-    } = req.body;
+    
+    } = req.body ?? {};
+
+    console.log("Dữ liệu nhận từ frontend:", req.body);
+    console.log("Số file:", files?.length);
 
     if (!patientId || !doctorId) {
-       res.status(400).json({ error: "Missing patientId or doctorId" });
+      res.status(400).json({ error: "Missing patientId or doctorId" });
+      return;
     }
 
     // ------------------------------
-    // 1. UPLOAD ATTACHMENTS
+    // 1. UPLOAD FILES TO GRIDFS
     // ------------------------------
-    let attachmentUrls: string[] = [];
+    const attachmentsId: string[] = [];
 
-    if (req.files && Array.isArray(req.files)) {
-      const fileArray = req.files as Express.Multer.File[];
-
-      attachmentUrls = await Promise.all(
-        fileArray.map(async (file) => await uploadToStorage(file))
+    for (const file of files || []) {
+      const uploadStream = gridFSBucket.openUploadStream(
+        file.originalname,
+        {
+          contentType: file.mimetype,
+          metadata: {
+            patientId,
+            doctorId,
+          },
+        }
       );
+
+      uploadStream.end(file.buffer);
+
+      await new Promise((resolve, reject) => {
+        uploadStream.on("finish", () => {
+          attachmentsId.push(uploadStream.id.toString());
+          resolve(true);
+        });
+        uploadStream.on("error", reject);
+      });
     }
 
     // ------------------------------
@@ -45,112 +83,98 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     const record = await MedicalRecord.create({
       patientId,
       doctorId,
+      patientName,
       visitDate: visitDate ? new Date(visitDate) : new Date(),
       symptoms,
       diagnosis,
       treatment,
-      attachments: attachmentUrls,
+      attachments: attachmentsId, 
     });
 
     // ------------------------------
-    // 3. PREPARE DATA FOR PDF
+    // 3. GENERATE PDF
     // ------------------------------
-    const recordForPdf = {
-      ...record.toObject(),
-      attachments: attachmentUrls,
-      patientName: patientName || undefined,
-      doctorName: doctorName || undefined,
-    };
+    const pdfPath = await generateMedicalPDF(record.toObject());
 
     // ------------------------------
-    // 4. GENERATE PDF
+    // 4. UPLOAD PDF TO IPFS
     // ------------------------------
-    const pdfPath = await generateMedicalPDF(recordForPdf);
+    const ipfsHash = await uploadPDFToIPFS(pdfPath);
+    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
 
     // ------------------------------
-    // 5. UPLOAD PDF TO STORAGE
-    // ------------------------------
-    const pdfUrl = await uploadToStorage({
-      path: pdfPath,
-      originalname: `record-${record._id}.pdf`,
-      mimetype: "application/pdf",
-    });
-
-    // ------------------------------
-    // 6. HASH PDF + UPLOAD TO BLOCKCHAIN
+    // 5. HASH + BLOCKCHAIN
     // ------------------------------
     const pdfHash = await calculateHash(pdfPath);
-    const txHash = await uploadHashToBlockchain(record._id.toString(), pdfHash);
+    const { txHash, network, blockNumber } = await uploadHashToBlockchain(
+      record._id.toString(),
+      patientName,
+      pdfHash
+    );
+console.log("🔥 Blockchain result:", {
+  txHash,
+  network,
+  blockNumber,
+});
 
     // ------------------------------
-    // 7. SAVE UPDATE TO DATABASE
+    // 6. UPDATE RECORD
     // ------------------------------
-    record.pdfUrl = pdfUrl;
+    record.pdfUrl = ipfsUrl;
     record.pdfHash = pdfHash;
+    record.ipfsHash = ipfsHash;
+
     record.blockchainTx = txHash;
+    record.blockchainNetwork = network;
+    record.blockNumber = blockNumber;
     await record.save();
 
-    // Clean up
-    try {
-      fs.unlinkSync(pdfPath);
-    } catch {}
+    try { fs.unlinkSync(pdfPath); } catch {}
 
-     res.status(201).json({
+    res.status(201).json({
       ok: true,
       message: "Medical record created successfully",
       record,
     });
+
   } catch (err: any) {
     console.error("Error creating medical record:", err);
-     res.status(500).json({
+    res.status(500).json({
       error: err.message || "Internal server error",
     });
   }
 };
-
-// ------------------------------------------------------------
-// GET RECORD BY ID
-// ------------------------------------------------------------
-export const getMedicalRecordById = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const user = (req as any).user;
-
-    const record = await MedicalRecord.findById(id)
-      .populate("patientId")
-      .populate("doctorId");
-
-    if (!record) {
-     res.status(404).json({ error: "Record not found" });
-     return;
-    }
-
-    // Authorization: patients can only view their own records
-    if (
-      user.role === "patient" &&
-      String(record.patientId._id) !== String(user.userId)
-    ) {
-       res.status(403).json({ error: "Not allowed" });
-    }
-
-     res.json({ record });
-     return;
-  } catch (err) {
-     res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// ------------------------------------------------------------
-// LIST RECORDS (ADMIN / DOCTOR)
-// ------------------------------------------------------------
 export const listMedicalRecords = async (req: Request, res: Response) => {
   try {
     const records = await MedicalRecord.find()
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }) 
       .limit(100);
 
-    return res.json({ records });
-  } catch (err) {
-    return res.status(500).json({ error: "Internal server error" });
+    res.json({ records });
+  } catch (err: any) {
+    console.error("Error fetching medical records:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+export const getMedicalRecordDetail = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const record = await MedicalRecord.findById(id);
+
+    if (!record) {
+       res.status(404).json({
+        message: "Không tìm thấy bệnh án",
+      });
+    }
+
+    res.json({
+      record,
+    });
+  } catch (err: any) {
+    console.error("Error fetching medical record detail:", err);
+    res.status(500).json({
+      error: err.message || "Internal server error",
+    });
   }
 };

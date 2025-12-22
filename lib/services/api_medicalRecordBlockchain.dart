@@ -10,6 +10,7 @@ class MedicalRecordBlockchainService {
   static Future<Map<String, dynamic>> addMedicalRecord({
     required String patientId,
     required String doctorId,
+    required String patientName, 
     required String symptoms,
     required DateTime visitDate,
     required String diagnosis,
@@ -26,6 +27,7 @@ class MedicalRecordBlockchainService {
     // Body text fields
     request.fields["patientId"] = patientId;
     request.fields["doctorId"] = doctorId;
+    request.fields["patientName"] = patientName;
     request.fields["symptoms"] = symptoms;
     request.fields["diagnosis"] = diagnosis;
     request.fields["treatment"] = treatment;
@@ -69,4 +71,72 @@ class MedicalRecordBlockchainService {
       throw Exception("Lỗi tạo hồ sơ: ${response.statusCode} - $responseBody");
     }
   }
+
+   static Future<List<Map<String, dynamic>>> listMedicalRecal() async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/api/list-medical-records');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) return [];
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      print("Status: ${response.statusCode}");
+      print("Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final List data = body is Map<String, dynamic> ? body['records'] : body;
+
+        return data.map<Map<String, dynamic>>((e) {
+          return {
+            
+            '_id': e['_id'],
+            'patientId': e['patientId'],
+            'patientName': e['patientName'],
+            'visitDate': e['visitDate'],
+            'createdAt': e['createdAt'],
+          };
+        }).toList();
+      } else {
+        print("Lỗi khi lấy danh sách: ${response.body}");
+        return [];
+      }
+    } catch (e) {
+      print("Lỗi mạng: $e");
+      return [];
+    }
+  }
+  static Future<Map<String, dynamic>?> getMedicalRecordDetail(String id) async {
+  try {
+    final url = Uri.parse('$baseUrl/auth/api/medical-records/$id');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) return null;
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      return Map<String, dynamic>.from(body['record']);
+    }
+  } catch (e) {
+    print('Lỗi lấy chi tiết bệnh án: $e');
+  }
+  return null;
 }
+}
+
+

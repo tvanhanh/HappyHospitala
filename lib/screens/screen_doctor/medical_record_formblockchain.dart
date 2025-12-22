@@ -17,6 +17,7 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
 
   final TextEditingController patientIdController = TextEditingController();
   final TextEditingController doctorIdController = TextEditingController();
+  final TextEditingController patientNameController = TextEditingController();
   final TextEditingController symptomsController = TextEditingController();
   final TextEditingController diagnosisController = TextEditingController();
   final TextEditingController treatmentController = TextEditingController();
@@ -68,6 +69,16 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
+              ),
+              const SizedBox(height: 14),
+              
+               TextFormField(
+                controller: patientNameController,
+                decoration: const InputDecoration(
+                  labelText: "Patient Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value!.isEmpty ? "Nhập PatientName" : null,
               ),
               const SizedBox(height: 14),
 
@@ -165,6 +176,7 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                         await MedicalRecordBlockchainService.addMedicalRecord(
                           patientId: patientIdController.text.trim(),
                           doctorId: doctorIdController.text.trim(),
+                          patientName: patientNameController.text.trim(),
                           symptoms: symptomsController.text.trim(),
                           diagnosis: diagnosisController.text.trim(),
                           treatment: treatmentController.text.trim(),
@@ -203,4 +215,4 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
       ),
     );
   }
-}
+}  
