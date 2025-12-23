@@ -178,3 +178,18 @@ export const getMedicalRecordDetail = async (req: Request, res: Response) => {
     });
   }
 };
+export const searchMedicalRecords = async (req: Request, res: Response) => {
+  const { patientId } = req.query;
+
+  console.log("📥 patientId nhận được:", patientId);
+
+  if (!patientId) {
+     res.status(400).json({ message: "patientId is required" });
+  }
+
+  const records = await MedicalRecord.find({ patientId }).sort({
+    createdAt: -1,
+  });
+
+  res.json({ records });
+};

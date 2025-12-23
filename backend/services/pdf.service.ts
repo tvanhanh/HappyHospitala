@@ -1,4 +1,4 @@
-import PDFDocument from "pdfkit";
+import PDFDocument from "pdfkit";generateMedicalPDF
 import fs from "fs";
 import path from "path";
 import { getImageBufferFromGridFS } from "./gridfs.service";

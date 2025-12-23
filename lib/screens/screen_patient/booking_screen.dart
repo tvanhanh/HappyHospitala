@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/screens/screen_doctor/patient_management.dart';
+import 'package:go_router/go_router.dart';
 import 'home_screen.dart';
 import '../../services/api_appointment.dart';
 import '../../services/api_department.dart';
@@ -92,12 +93,12 @@ class _BookingScreenState extends State<BookingScreen> {
 
       try {
         final selectedDepartment = departments.firstWhere(
-       (dept) => dept['id'] == selectedDepartmentId,
-       orElse: () => {},
-       );
+          (dept) => dept['id'] == selectedDepartmentId,
+          orElse: () => {},
+        );
         final selectedDoctor = doctors.firstWhere(
-        (doc) => doc['id'] == selectedDoctorId,
-        orElse: () => {},
+          (doc) => doc['id'] == selectedDoctorId,
+          orElse: () => {},
         );
         final departmentName = selectedDepartment['departmentName'] ?? '';
         final doctorName = selectedDoctor['doctorName'] ?? '';
@@ -116,10 +117,7 @@ class _BookingScreenState extends State<BookingScreen> {
           showSnackbar("Đặt lịch thành công");
           Future.delayed(Duration(seconds: 1), () {
             if (!mounted) return;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => HomeScreen()),
-            );
+            context.go('/home');
           });
         } else {
           showSnackbar(result, isError: true);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ThankYouScreen extends StatelessWidget {
   @override
@@ -16,7 +17,7 @@ class ThankYouScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/home'); // Quay lại trang chủ
+                context.go('/home'); // Quay lại trang chủ
               },
               child: const Text("Về Trang Chủ"),
             ),

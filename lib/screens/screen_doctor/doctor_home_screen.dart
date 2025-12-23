@@ -107,7 +107,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
                       child: CircleAvatar(
                         radius: 24,
                         backgroundImage: AssetImage(
-                            'assets/doctor_avatar.png'), // Thay bằng ảnh thật
+                            'assets/doctor1.jpg'), // Thay bằng ảnh thật
                         child:
                             Icon(Icons.person, color: Colors.white), // Fallback
                       ),
@@ -175,8 +175,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   void _handleLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
-    if (mounted)
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+    if (mounted) context.go('/login');
   }
 
   // --- WIDGET CON: DRAWER ---

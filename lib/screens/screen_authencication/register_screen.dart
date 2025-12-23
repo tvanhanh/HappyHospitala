@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 import 'login_screen.dart';
 import 'package:logger/logger.dart';
 
@@ -146,10 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         "Đăng ký thành công! Hãy đăng nhập.",
                                         isError: false);
                                     if (!context.mounted) return;
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => LoginScreen()));
+                                    context.go('/login');
                                   } else {
                                     showSnackbar(error, isError: true);
                                   }
@@ -183,10 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey.shade700, fontSize: 15)),
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => LoginScreen()));
+                                context.go('/login');
                               },
                               child: Text("Đăng nhập ngay",
                                   style: TextStyle(

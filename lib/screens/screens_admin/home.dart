@@ -10,6 +10,7 @@ import 'departmenr_screens/department_management.dart';
 import 'doctor_list.dart';
 import 'inventory_management.dart';
 import 'staff_list.dart';
+import 'package:go_router/go_router.dart';
 
 // --- PALETTE MÀU SẮC HIỆN ĐẠI (AI & TECH THEME) ---
 const Color primaryColor = Color(0xFF1565C0); // Xanh đậm chuyên nghiệp
@@ -360,9 +361,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _handleLogout() async {
+    // 1. Xóa token trong bộ nhớ
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
-    if (mounted)
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+
+    // 2. Điều hướng về trang Login hoặc Home
+    if (mounted) {
+      // GoRouter.go() tự động xóa sạch Stack lịch sử cho bạn
+      // Người dùng sẽ không thể bấm Back để quay lại trang trước đó
+      context.go('/login');
+    }
   }
 }

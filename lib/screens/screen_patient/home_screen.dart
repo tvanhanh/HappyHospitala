@@ -3,6 +3,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/login_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/register_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -16,6 +17,7 @@ import 'discussion_screen.dart';
 import 'diagnosis_result_screen.dart';
 import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/home.dart';
+import 'medical_records.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -51,15 +53,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_user != null && _user!['role'] != 'patient') {
       if (!mounted) return;
       if (_user!['role'] == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => AdminDashboard()),
-        );
+        context.go('/admin');
       } else if (_user!['role'] == 'doctor') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => DoctorDashboard()),
-        );
+        context.go('/doctor');
       }
     }
   }
@@ -89,6 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
       case 3:
         return BookingScreen();
       case 4:
+        return DiagnosisResultScreen();
+      case 5:
         return DiagnosisResultScreen();
       default:
         return _buildHomeContent();
@@ -307,10 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ProfileScreen()),
-                );
+                context.go('/patient/profile-screen');
               },
               child:
                   Text('Xem chi tiết', style: TextStyle(color: Colors.white)),
@@ -331,10 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => BookingScreen()),
-          );
+          context.go('/home/booking');
         },
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -377,10 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => DiagnosisResultScreen()),
-          );
+          context.go('/patient/diagnosis_result_screen');
         },
         child: Padding(
           padding: EdgeInsets.all(16),
@@ -448,10 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => DoctorsScreen()),
-                  );
+                  context.go('/patient/doctor_screen');
                 },
                 child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
@@ -525,24 +511,29 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          _buildDrawerItem(context, 'Chuyên khoa', SpecialtiesScreen()),
-          _buildDrawerItem(context, 'Cơ sở y tế', MedicalFacilitiesScreen()),
-          _buildDrawerItem(context, 'Bác sĩ', DoctorsScreen()),
-          _buildDrawerItem(context, 'Hỏi đáp', FAQScreen()),
+          _buildDrawerItem(
+              context, 'Chuyên khoa', '/patient/specialties_screen'),
+          _buildDrawerItem(
+              context, 'Cơ sở y tế', '/patient/medical_facilities_screen'),
+          _buildDrawerItem(context, 'Bác sĩ', '/patient/doctor_screen'),
+          _buildDrawerItem(
+              context, 'Hồ Sơ Bệnh án', '/patient/medical-records'),
+          _buildDrawerItem(context, 'Hỏi đáp', '/patient/faq'),
         ],
       ),
     );
   }
 
-  Widget _buildDrawerItem(BuildContext context, String title, Widget screen) {
+  Widget _buildDrawerItem(
+      BuildContext context, String title, String routePath) {
     return ListTile(
-      title: Text(title, style: TextStyle(fontSize: 18)),
+      title: Text(title, style: const TextStyle(fontSize: 18)),
       onTap: () {
+        // 1. Đóng Drawer trước
         Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => screen),
-        );
+
+        // 2. Chuyển trang bằng GoRouter (Dùng path)
+        context.go(routePath);
       },
     );
   }
@@ -708,17 +699,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.pop(context);
 
                           if (role == 'admin') {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => AdminDashboard()),
-                            );
+                            context.go('/admin');
                           } else if (role == 'doctor') {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => DoctorDashboard()),
-                            );
+                            context.go('/doctor');
                           }
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(

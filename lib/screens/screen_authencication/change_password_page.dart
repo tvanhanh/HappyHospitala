@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
 import '../screen_patient/home_screen.dart';
@@ -35,21 +36,16 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       // Gọi API đổi mật khẩu, truyền vào email + mật khẩu mới
       final success =
           await ApiService.changePassWord(widget.email, newPassword);
-          if (success) {
-             showSnackbar("Đổi mật khẩu thành công");
-           Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeScreen()),
-            ); 
-          } else {
-            showSnackbar("Thất bại: ", isError: true);
-            }
+      if (success) {
+        showSnackbar("Đổi mật khẩu thành công");
+        context.go('/home');
+      } else {
+        showSnackbar("Thất bại: ", isError: true);
+      }
 
       setState(() {
         isLoading = false;
       });
-
-      
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -81,8 +77,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
           padding: const EdgeInsets.all(24),
           child: Card(
             elevation: 10,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: SizedBox(

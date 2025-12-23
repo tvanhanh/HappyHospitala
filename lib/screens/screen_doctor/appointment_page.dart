@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/api_appointment.dart';
 import 'update_medical.dart';
 import 'chatAI_screen.dart';
@@ -134,12 +135,8 @@ class _AppointmentPageState extends State<AppointmentPage> {
             );
             return;
           }
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AppointmentDetailPage(appointment: appt),
-            ),
-          );
+          final result =
+              await context.push('/doctor/appointment-detail', extra: appt);
           if (result == true) {
             loadAppointments(); // Làm mới danh sách sau khi cập nhật
           }
@@ -458,12 +455,7 @@ class AppointmentDetailPage extends StatelessWidget {
               onTap: () {
                 final appointmentId = appointment['id']?.toString() ?? '';
                 print('appointmentId: $appointmentId');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddPatientForm(appointment: appointment),
-                  ),
-                );
+                context.go('/doctor/addPatient', extra: appointment);
               },
             ),
 
@@ -474,11 +466,8 @@ class AppointmentDetailPage extends StatelessWidget {
               label: "Dự đoán bệnh (AI)",
               color: Colors.purple,
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DiagnosisFormScreen(),
-                  ),
+                context.go(
+                  '/diagnosis',
                 );
               },
             ),

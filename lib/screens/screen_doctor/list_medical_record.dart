@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_medicalRecordBlockchain.dart';
 import 'medical_record_formblockchain.dart';
@@ -91,12 +92,7 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
   }
 
   void _goToCreateRecord() async {
-    final created = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MedicalRecordForm(),
-      ),
-    );
+    final created = await context.push<bool>('/doctor/create-medical-record');
 
     if (created == true) {
       _loadRecords(); // reload list sau khi tạo hồ sơ mới
@@ -234,14 +230,8 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
             );
             return;
           }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MedicalRecordDetailPage(
-                recordId: recordId.toString(),
-              ),
-            ),
-          );
+          // Bạn chỉ cần truyền string path, GoRouter sẽ tự khớp với cấu hình ở trên
+          context.go('/medical-record-detail/${recordId}');
         },
       ),
     );

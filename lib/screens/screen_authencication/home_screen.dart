@@ -126,7 +126,7 @@
 //       title: Text(title, style: TextStyle(fontSize: 18)),
 //       onTap: () {
 //         Navigator.pop(context); // Đóng Drawer trước khi chuyển trang
-//         Navigator.push(
+//         context.go(
 //           context,
 //           MaterialPageRoute(builder: (context) => screen), // ✅ Chuyển trang
 //         );

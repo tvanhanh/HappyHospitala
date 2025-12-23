@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/home_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 //import '../screen_patient/home_screen.dart';
@@ -111,25 +112,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 if (result != null && result['error'] == null) {
                                   final role = result['role'];
                                   if (role == 'admin') {
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => AdminDashboard()));
+                                    context.go('/admin');
                                   } else if (role == 'patient') {
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => HomeScreen()));
+                                    context.go('/home');
                                   } else if (role == 'doctor') {
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => DoctorDashboard()));
+                                    context.go('/doctor');
                                   } else if (role == 'staff') {
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => StaffDashboard()));
+                                    context.go('/staff');
                                   }
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -160,11 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           children: [
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            ForgotPasswordScreen()));
+                                context.go('/change-password-page');
                               },
                               child: Text("Quên mật khẩu?",
                                   style: TextStyle(
@@ -173,11 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            ChangePasswordScreen()));
+                                context.go('/change-password-reset');
                               },
                               child: Text("Đổi mật khẩu",
                                   style: TextStyle(
@@ -225,11 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.grey.shade700, fontSize: 14)),
                             TextButton(
                               onPressed: () {
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            RegisterScreen()));
+                                context.go('/register');
                               },
                               child: Text("Đăng ký ngay",
                                   style: TextStyle(

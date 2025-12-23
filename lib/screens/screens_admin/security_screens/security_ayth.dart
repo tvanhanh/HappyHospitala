@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
+import 'package:go_router/go_router.dart';
 import 'create_account_screen.dart';
 
 // --- PALETTE MÀU (AI & Blockchain Theme) ---
@@ -90,9 +91,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void _createUser() {
-    Navigator.push(context,
-            MaterialPageRoute(builder: (context) => CreateUserScreenState()))
-        .then((_) => fetchUsers());
+    context.go('/admin/create_account');
   }
 
   // --- UI CHÍNH ---

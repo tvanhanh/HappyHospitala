@@ -137,6 +137,63 @@ class MedicalRecordBlockchainService {
   }
   return null;
 }
+static Future<List<Map<String, dynamic>>> searchMedicalRecordsByPatientId(
+  String patientId,
+) async {
+  try {
+    final url = Uri.parse(
+      "$baseUrl/auth/api/medical-records-search?patientId=$patientId",
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    if (token == null) {
+      print("❌ Không có token");
+      return [];
+    }
+
+    print("🔍 CALL API: $url");
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print("📡 Status: ${response.statusCode}");
+    print("📦 Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+
+      // 👇 controller trả { records: [...] }
+      final List data = body['records'];
+
+      return data.map<Map<String, dynamic>>((e) {
+        return {
+          '_id': e['_id'],
+          'patientId': e['patientId'],
+          'patientName': e['patientName'],
+          'doctorId': e['doctorId'],
+          'visitDate': e['visitDate'],
+          'pdfUrl': e['pdfUrl'],
+          'blockchainTx': e['blockchainTx'],
+          'blockchainNetwork': e['blockchainNetwork'],
+          'blockNumber': e['blockNumber'],
+        };
+      }).toList();
+    } else {
+      print("❌ Backend trả lỗi: ${response.statusCode}");
+    }
+  } catch (e) {
+    print("❌ Lỗi tra cứu bệnh án: $e");
+  }
+  return [];
+}
+
+
 }
 
 

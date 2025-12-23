@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/api_doctors.dart';
 import 'AddDoctorScreen.dart';
 import 'dart:math'; // Để random màu avatar
@@ -142,10 +143,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => AddDoctorScreen()),
-          );
+          final result = await context.push('/admin/add-doctor');
           if (result == true) fetchDoctors();
         },
         backgroundColor: kPrimaryColor,

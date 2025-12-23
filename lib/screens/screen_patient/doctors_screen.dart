@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../widgets/doctor_card.dart';
 import '../../models/doctor.dart';
 import 'doctor_detail_screen.dart';
@@ -59,13 +60,8 @@ class DoctorsScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           return GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      DoctorDetailScreen(doctor: doctors[index]),
-                ),
-              );
+              // Ngắn gọn và sạch sẽ hơn rất nhiều
+              context.go('/doctor-detail', extra: doctors[index]);
             },
             child: DoctorCard(doctor: doctors[index]),
           );

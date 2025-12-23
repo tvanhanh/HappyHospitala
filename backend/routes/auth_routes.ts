@@ -12,7 +12,7 @@ import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers
 import {predictDiabetes} from '../controllers/predictController';
 
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail} from "../controllers/medicalRecordController";
+import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
 
 
@@ -41,7 +41,7 @@ router.get("/api_departmentList",verifyToken, getDepartments);
 router.put("/api_updatDepartment/:id",verifyToken, updateDepartment);           
 router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
 
-// routers of doctor
+// routers of doctorz
  router.get("/api_tocdorList", verifyToken, getDoctors);
  router.post("/api_addDoctor",verifyToken,addDoctors);
  router.put("/api_updateDoctor/:id", verifyToken,updateDoctor );
@@ -58,5 +58,6 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.post("/api/medicalrecord-blockchain", upload.array("attachments", 10),addMedicalRecord);
   router.get("/api/medical-records/:id",verifyToken, getMedicalRecordDetail);
   router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
+  router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
   
 export default router;

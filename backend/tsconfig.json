@@ -11,6 +11,6 @@
     "resolveJsonModule": true,
    
   },
-  "include": ["./**/*.ts", "./types/**/*"],
+  "include": ["./**/*.ts", "./types/**/*", "../blockchain/scripts/medicalRecordsService.ts"],
   "exclude": ["node_modules", "dist"]
 }

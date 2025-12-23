@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import './patient_detail.dart';
 
 // --- PALETTE MÀU SẮC HIỆN ĐẠI ---
@@ -83,12 +84,7 @@ class PatientListScreen extends StatelessWidget {
         // Thêm hiệu ứng gợn sóng khi nhấn
         borderRadius: BorderRadius.circular(16),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PatientDetailScreen(patient: patient),
-            ),
-          );
+          context.go('/patient-detail', extra: patient);
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),

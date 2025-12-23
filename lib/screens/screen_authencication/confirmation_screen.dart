@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ConfirmationScreen extends StatelessWidget {
   final String message; // Thông báo hiển thị
@@ -32,7 +33,7 @@ class ConfirmationScreen extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/'); // Điều hướng về trang chủ
+                  context.go('/'); // Điều hướng về trang chủ
                 },
                 child: const Text('Về Trang Chủ'),
               ),

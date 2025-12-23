@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/patient.dart';
 import 'medical_record_page.dart';
 
@@ -158,10 +159,8 @@ class _PatientManagementPageState extends State<PatientManagementPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => MedicalRecordPage(patient: p)),
-            );
+            // Lưu ý: Không truyền 'context' vào làm tham số đầu tiên của hàm .push()
+            context.go('/medical-record', extra: p);
           },
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -226,11 +225,7 @@ class _PatientManagementPageState extends State<PatientManagementPage> {
                           borderRadius: BorderRadius.circular(12)),
                       onSelected: (String value) {
                         if (value == 'view_record') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => MedicalRecordPage(patient: p)),
-                          );
+                          context.go('/medical-record', extra: p);
                         }
                       },
                       itemBuilder: (BuildContext context) => [

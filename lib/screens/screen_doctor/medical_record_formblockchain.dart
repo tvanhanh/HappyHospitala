@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_medicalRecordBlockchain.dart';
 
 class MedicalRecordForm extends StatefulWidget {
@@ -23,10 +23,22 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
   final TextEditingController treatmentController = TextEditingController();
 
   DateTime? visitDate;
+  bool _isLoading = false; // Biến theo dõi trạng thái đang gửi dữ liệu
 
   // Dùng XFile để hỗ trợ cả web và mobile
   final List<XFile> attachments = [];
   final ImagePicker picker = ImagePicker();
+  @override
+  void initState() {
+    super.initState();
+    loadDoctorId();
+  }
+
+  Future<void> loadDoctorId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final doctorId = prefs.getString('doctorId') ?? '';
+    doctorIdController.text = doctorId;
+  }
 
   Future<void> pickAttachments() async {
     final pickedFiles = await picker.pickMultiImage();
@@ -68,17 +80,19 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                   labelText: "Doctor ID",
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
+                //  validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
+                readOnly: true,
               ),
               const SizedBox(height: 14),
-              
-               TextFormField(
+
+              TextFormField(
                 controller: patientNameController,
                 decoration: const InputDecoration(
                   labelText: "Patient Name",
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => value!.isEmpty ? "Nhập PatientName" : null,
+                validator: (value) =>
+                    value!.isEmpty ? "Nhập PatientName" : null,
               ),
               const SizedBox(height: 14),
 
@@ -116,7 +130,8 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
-                validator: (value) => value!.isEmpty ? "Nhập triệu chứng" : null,
+                validator: (value) =>
+                    value!.isEmpty ? "Nhập triệu chứng" : null,
               ),
               const SizedBox(height: 14),
 
@@ -166,47 +181,75 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate() &&
-                        visitDate != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Đang gửi dữ liệu...")),
-                      );
-                      try {
-                        await MedicalRecordBlockchainService.addMedicalRecord(
-                          patientId: patientIdController.text.trim(),
-                          doctorId: doctorIdController.text.trim(),
-                          patientName: patientNameController.text.trim(),
-                          symptoms: symptomsController.text.trim(),
-                          diagnosis: diagnosisController.text.trim(),
-                          treatment: treatmentController.text.trim(),
-                          visitDate: visitDate!,
-                          attachments: attachments, 
-                         
-                        );
+                  // Nếu đang loading thì disable nút (onPressed = null) để tránh nhấn nhiều lần
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (_formKey.currentState!.validate() &&
+                              visitDate != null) {
+                            // Bắt đầu hiệu ứng loading
+                            setState(() {
+                              _isLoading = true;
+                            });
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Tạo hồ sơ thành công!")),
-                        );
-                        _formKey.currentState!.reset();
-                        setState(() {
-                          visitDate = null;
-                          attachments.clear();
-                        });
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Lỗi: $e")),
-                        );
-                      }
-                    } else if (visitDate == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("Vui lòng chọn ngày khám")),
-                      );
-                    }
-                  },
-                  child: const Text("Tạo Hồ Sơ"),
+                            try {
+                              // Gọi hàm xử lý Blockchain (mất ~33s)
+                              await MedicalRecordBlockchainService
+                                  .addMedicalRecord(
+                                patientId: patientIdController.text.trim(),
+                                doctorId: doctorIdController.text.trim(),
+                                patientName: patientNameController.text.trim(),
+                                symptoms: symptomsController.text.trim(),
+                                diagnosis: diagnosisController.text.trim(),
+                                treatment: treatmentController.text.trim(),
+                                visitDate: visitDate!,
+                                attachments: attachments,
+                              );
+
+                              // CHỈ HIỆN THÔNG BÁO KHI ĐÃ CHẠY XONG DÒNG TRÊN
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          "Tạo hồ sơ thành công trên Blockchain!")),
+                                );
+                                _formKey.currentState!.reset();
+                                setState(() {
+                                  visitDate = null;
+                                  attachments.clear();
+                                });
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Lỗi: $e")),
+                                );
+                              }
+                            } finally {
+                              // Kết thúc loading dù thành công hay lỗi
+                              if (mounted) {
+                                setState(() {
+                                  _isLoading = false;
+                                });
+                              }
+                            }
+                          } else if (visitDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text("Vui lòng chọn ngày khám")),
+                            );
+                          }
+                        },
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Tạo Hồ Sơ"),
                 ),
               ),
             ],
@@ -215,4 +258,4 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
       ),
     );
   }
-}  
+}

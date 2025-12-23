@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -120,19 +121,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       });
 
       if (isValid) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ChangePasswordPage(email: email)),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mã OTP không hợp lệ'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  } catch (e) {
+        context.go('/change-password-reset');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mã OTP không hợp lệ'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       setState(() {
         isLoading = false;
       });
