@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 contract MedicalRecords {
     struct Record {
         string patientId;
-        string name;
+        string ipfsHash;
         string dob;
         string data;
         uint256 timestamp;
@@ -14,8 +14,8 @@ contract MedicalRecords {
 
     event RecordAdded(string indexed patientId, uint256 index);
 
-    function addRecord(string memory patientId, string memory name, string memory dob, string memory data) public {
-        recordsByPatient[patientId].push(Record(patientId, name, dob, data, block.timestamp));
+    function addRecord(string memory patientId, string memory ipfsHash, string memory dob, string memory data) public {
+        recordsByPatient[patientId].push(Record(patientId, ipfsHash, dob, data, block.timestamp));
         emit RecordAdded(patientId, recordsByPatient[patientId].length - 1);
     }
 
@@ -26,6 +26,6 @@ contract MedicalRecords {
     function getRecord(string memory patientId, uint256 index) public view returns (string memory, string memory, string memory, string memory, uint256) {
         require(index < recordsByPatient[patientId].length, "Invalid index");
         Record memory rec = recordsByPatient[patientId][index];
-        return (rec.patientId, rec.name, rec.dob, rec.data, rec.timestamp);
+        return (rec.patientId, rec.ipfsHash, rec.dob, rec.data, rec.timestamp);
     }
 }

@@ -7,12 +7,17 @@ import { uploadHashToBlockchain } from "../services/blockchain.service";
 import fs from "fs";
 import pinataSDK from "@pinata/sdk";
 import { getGridFSBucket } from "../config/db";
+import { ethers } from "ethers";
+import { Contract } from "ethers";
+import { getRecordFromBlockchain } from "../services/blockchain.service";
+import { wallet } from "../../blockchain/provider";
+
 
 const pinata = new pinataSDK({ pinataJWTKey: process.env.PINATA_JWT! });
 
 export const uploadPDFToIPFS = async (pdfPath: string) => {
   const fileStream = fs.createReadStream(pdfPath);
-
+  
   const options = {
     pinataMetadata: {
       name: "medical-record.pdf",
@@ -99,18 +104,19 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     // ------------------------------
     // 4. UPLOAD PDF TO IPFS
     // ------------------------------
-    const ipfsHash = await uploadPDFToIPFS(pdfPath);
-    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    const ipfsCID  = await uploadPDFToIPFS(pdfPath);
+    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCID }`;
 
     // ------------------------------
     // 5. HASH + BLOCKCHAIN
     // ------------------------------
     const pdfHash = await calculateHash(pdfPath);
-    const { txHash, network, blockNumber } = await uploadHashToBlockchain(
+    const { txHash, network, blockNumber,  blockchainIndex } = await uploadHashToBlockchain(
       record._id.toString(),
-      patientName,
+      ipfsCID,
       pdfHash
     );
+   
 console.log("🔥 Blockchain result:", {
   txHash,
   network,
@@ -122,11 +128,12 @@ console.log("🔥 Blockchain result:", {
     // ------------------------------
     record.pdfUrl = ipfsUrl;
     record.pdfHash = pdfHash;
-    record.ipfsHash = ipfsHash;
+    record.ipfsHash = ipfsCID ;
 
     record.blockchainTx = txHash;
     record.blockchainNetwork = network;
     record.blockNumber = blockNumber;
+    record.blockchainIndex = blockchainIndex;
     await record.save();
 
     try { fs.unlinkSync(pdfPath); } catch {}
@@ -178,18 +185,47 @@ export const getMedicalRecordDetail = async (req: Request, res: Response) => {
     });
   }
 };
+// export const searchMedicalRecords = async (req: Request, res: Response) => {
+//   const { patientId } = req.query;
+
+//   console.log(" patientId nhận được:", patientId);
+
+//   if (!patientId) {
+//      res.status(400).json({ message: "patientId is required" });
+//   }
+
+//   const records = await MedicalRecord.find({ patientId }).sort({
+//     createdAt: -1,
+//   });
+
+//   res.json({ records });
+// };
 export const searchMedicalRecords = async (req: Request, res: Response) => {
   const { patientId } = req.query;
 
-  console.log("📥 patientId nhận được:", patientId);
+  const records = await MedicalRecord.find({ patientId });
 
-  if (!patientId) {
-     res.status(400).json({ message: "patientId is required" });
-  }
+  const result = await Promise.all(
+    records.map(async (r) => {
+      let isTampered = false;
 
-  const records = await MedicalRecord.find({ patientId }).sort({
-    createdAt: -1,
-  });
+      if (typeof r.blockchainIndex === "number") {
+        const onChain = await getRecordFromBlockchain(
+          r.patientId,
+          r.blockchainIndex
+        );
 
-  res.json({ records });
+        if (onChain && onChain.data !== r.pdfHash) {
+          isTampered = true;
+        }
+      }
+
+      return {
+        ...r.toObject(),
+        isTampered, // 👈 frontend chỉ cần cái này
+      };
+    })
+  );
+
+  res.json({ records: result });
 };
