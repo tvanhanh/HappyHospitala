@@ -55,6 +55,7 @@ const MedicalRecordSchema = new mongoose.Schema({
 
   blockchainTx: {
     type: String,
+    default: null,
   },
   blockchainNetwork: {
     type: String,
@@ -62,6 +63,11 @@ const MedicalRecordSchema = new mongoose.Schema({
   blockNumber: {
     type: Number,
   },
+  blockchainIndex: {
+    type: Number,
+     required: false,
+  },
+
 
   // Lịch sử truy cập (ai xem, lúc nào)
   accessLogs: [
