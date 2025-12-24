@@ -8,9 +8,9 @@ import { addDepartments,
     deleteDepartment, } from '../controllers/departments_cotroller';
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers/doctor_controller';
-import {predictDiabetes} from '../controllers/predictController';
+import {predictDiabetes, predictResource} from '../controllers/predictController';
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords} from "../controllers/medicalRecordController";
+import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
 
 
@@ -45,6 +45,8 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
 
  //AI router python
  router.post("/api_predict",verifyToken, predictDiabetes);
+ router.post("/ai/predictPPO", verifyToken, predictResource);
+
 
  // medical record infor
   router.post("/api_addMedicalRecord", verifyToken,createMedicalRecord);
@@ -55,5 +57,6 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.get("/api/medical-records/:id",verifyToken, getMedicalRecordDetail);
   router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
   router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
+ // router.get("/api/medical-records/:id/verify",verifyToken,verifyMedicalRecord);
   
 export default router;

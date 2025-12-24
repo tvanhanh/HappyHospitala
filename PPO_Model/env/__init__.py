@@ -1,1 +1,2 @@
-from .clinic_env import ClinicResourceEnv
+
+__all__ = []
