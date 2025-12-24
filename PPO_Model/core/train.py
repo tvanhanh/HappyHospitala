@@ -2,7 +2,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
 from PPO_Model.env.clinic_env import ClinicResourceEnv
-from PPO_Model.utils.networks import ClinicFeatureExtractor
+from ..utils.networks import ClinicFeatureExtractor
 
 
 def make_env():

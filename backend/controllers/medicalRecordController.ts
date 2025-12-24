@@ -202,19 +202,21 @@ export const getMedicalRecordDetail = async (req: Request, res: Response) => {
 // };
 export const searchMedicalRecords = async (req: Request, res: Response) => {
   const { patientId } = req.query;
-
+  console.log(" patientId nhận được:", patientId);
   const records = await MedicalRecord.find({ patientId });
 
   const result = await Promise.all(
     records.map(async (r) => {
       let isTampered = false;
+      console.log("blockchainIndex:",r.blockchainIndex);
 
       if (typeof r.blockchainIndex === "number") {
         const onChain = await getRecordFromBlockchain(
           r.patientId,
           r.blockchainIndex
         );
-        console.log(" ON-CHAIN RECORD:", onChain);
+        
+console.log("⛓️ ON-CHAIN RECORD:", onChain);
         console.log("patientId:",r.patientId);
         console.log("blockchainIndex:",r.blockchainIndex);
         if (onChain && onChain.data !== r.pdfHash) {
