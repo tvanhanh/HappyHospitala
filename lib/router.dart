@@ -63,10 +63,6 @@ final GoRouter router = GoRouter(
       path: '/register',
       builder: (context, state) => RegisterScreen(),
     ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
 
     // 3. Màn hình Quên mật khẩu
     GoRoute(

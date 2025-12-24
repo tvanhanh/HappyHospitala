@@ -23,7 +23,7 @@ const ABI = [
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, wallet);
 
 export async function uploadHashToBlockchain(
-  recordId: string,
+  patientId: string,
   ipfsCID : string,
   pdfHash: string
 ): Promise<{
@@ -33,7 +33,7 @@ export async function uploadHashToBlockchain(
   blockchainIndex?: number;
 }> {
   console.log("=== uploadHashToBlockchain ===");
-  console.log({ recordId, ipfsCID , pdfHash });
+  console.log({ patientId, ipfsCID , pdfHash });
 
   const dob = "";
 
@@ -48,7 +48,7 @@ export async function uploadHashToBlockchain(
 
   // Encode calldata (optional log)
   const calldata = contract.interface.encodeFunctionData("addRecord", [
-    recordId,
+    patientId,
     ipfsCID ,
     dob,
     pdfHash,
@@ -56,13 +56,13 @@ export async function uploadHashToBlockchain(
   console.log("Encoded calldata:", calldata.substring(0, 100) + "...");
 
   // Send transaction
-  const tx = await contract.addRecord(recordId, ipfsCID , dob, pdfHash, { gasLimit: 300000 });
+  const tx = await contract.addRecord(patientId, ipfsCID , dob, pdfHash, { gasLimit: 300000 });
   console.log("Transaction hash:", tx.hash);
 
   const receipt = await tx.wait(1);
   if (receipt.status === 0) throw new Error(`Transaction reverted: ${tx.hash}`);
 
-  const count = await contract.getRecordCount(recordId);
+  const count = await contract.getRecordCount(patientId);
   const blockchainIndex = Number(count) - 1;
 
   return {

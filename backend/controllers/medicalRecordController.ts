@@ -112,7 +112,7 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     // ------------------------------
     const pdfHash = await calculateHash(pdfPath);
     const { txHash, network, blockNumber,  blockchainIndex } = await uploadHashToBlockchain(
-      record._id.toString(),
+      patientId,
       ipfsCID,
       pdfHash
     );
@@ -214,7 +214,9 @@ export const searchMedicalRecords = async (req: Request, res: Response) => {
           r.patientId,
           r.blockchainIndex
         );
-
+        console.log(" ON-CHAIN RECORD:", onChain);
+        console.log("patientId:",r.patientId);
+        console.log("blockchainIndex:",r.blockchainIndex);
         if (onChain && onChain.data !== r.pdfHash) {
           isTampered = true;
         }
