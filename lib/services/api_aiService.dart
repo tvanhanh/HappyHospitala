@@ -33,4 +33,33 @@ class AIService {
       return "Lỗi kết nối: $e";
     }
   }
+
+  Future<int> getAIDecision(Map<String, dynamic> state) async {
+    try {
+      final url = Uri.parse('$baseUrl/ai/predictPPO');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      if (token == null) {
+        return -1;
+      }
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(state),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final result = jsonDecode(response.body);
+        return result['decision'];
+      }
+
+      return -1;
+    } catch (e) {
+      return -1;
+    }
+  }
 }
