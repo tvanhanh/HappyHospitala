@@ -336,6 +336,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
 class _DashboardItem {
   final String title;
   final IconData icon;
+
   final Color color; // Thêm màu sắc riêng cho từng item
   final Widget page;
 

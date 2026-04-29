@@ -2,15 +2,17 @@
 import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
-//import { Document } from "interfaces"; // define interface for record if you want
+import axios from "axios";
+import { getImageBufferFromGridFS } from "./gridfs.service";
 
-/**
- * generateMedicalPDF
- * - record: the mongo document or plain object with fields to print
- * - returns: local file path of generated PDF
- */
+
+async function fetchImageBuffer(url: string): Promise<Buffer> {
+  const res = await axios.get(url, { responseType: "arraybuffer" });
+  return Buffer.from(res.data, "binary");
+}
+
 export async function generateMedicalPDF(record: any): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const outDir = path.resolve(process.cwd(), "tmp_pdf");
       if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -22,63 +24,130 @@ export async function generateMedicalPDF(record: any): Promise<string> {
       const stream = fs.createWriteStream(filePath);
       doc.pipe(stream);
 
-      // Header
-      doc.fontSize(18).text("PHIẾU HỒ SƠ BỆNH ÁN", { align: "center" });
-      doc.moveDown(0.5);
-
-      // Meta
-      doc.fontSize(11);
-      doc.text(`Record ID: ${record._id || record.recordId || "N/A"}`);
-      doc.text(`Patient: ${record.patientName || record.patientId || "N/A"}`);
-      doc.text(`Doctor: ${record.doctorName || record.doctorId || "N/A"}`);
-      doc.text(`Visit date: ${new Date(record.visitDate || record.createdAt || Date.now()).toLocaleString()}`);
-      doc.moveDown();
-
-      // Sections
-      const pushSection = (title: string, content: string) => {
-        doc.fontSize(12).fillColor("#333").text(title, { continued: false, underline: true });
-        doc.moveDown(0.2);
-        doc.fontSize(10).fillColor("#000").text(content || "—", { align: "left" });
-        doc.moveDown(0.6);
-      };
-
-      pushSection("Triệu chứng (Symptoms)", record.symptoms || "");
-      pushSection("Khám thực thể (Physical exam)", record.physicalExam || "");
-      pushSection("Chẩn đoán (Diagnosis)", record.diagnosis || "");
-      pushSection("Điều trị (Treatment)", record.treatment || "");
-
-      // Attachments thumbnails (if small images provided)
-      if (record.attachments && Array.isArray(record.attachments) && record.attachments.length) {
-        doc.addPage();
-        doc.fontSize(14).text("Tệp đính kèm", { align: "left" });
-        doc.moveDown(0.5);
-        for (let i = 0; i < record.attachments.length && i < 6; i++) {
-          try {
-            const url = record.attachments[i];
-            // if it's a local path -> drawImage; else skip (PDFKit can't draw remote)
-            if (fs.existsSync(url)) {
-              const x = 40 + (i % 2) * 260;
-              const y = doc.y;
-              doc.image(url, x, y, { fit: [220, 220], align: "center", valign: "center" });
-              if (i % 2 === 1) doc.moveDown(12);
-            } else {
-              // print URL text
-              doc.fontSize(9).text(`Attachment ${i + 1}: ${url}`);
-            }
-          } catch (err) {
-            // ignore single attachment error
-            continue;
-          }
-        }
+      // ========== FONT ==========
+      const fontPath = path.join(__dirname, "..", "assets", "fonts", "Roboto-Regular.ttf");
+      if (fs.existsSync(fontPath)) {
+        doc.registerFont("Roboto", fontPath);
+        doc.font("Roboto");
       }
 
-      // Footer
+      // ========== LOGO ==========
+      const logoPath = path.join(__dirname, "..", "assets", "logo.png");
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 40, 30, { width: 70 });
+      }
+
+      // ========== HEADER ==========
+      doc
+        .fontSize(20)
+        .fillColor("#0057B7")
+        .text("HỒ SƠ BỆNH ÁN", 0, 40, { align: "center" });
+
+      doc.moveDown(2);
+
+      // ========== THÔNG TIN BỆNH NHÂN ==========
+      doc
+        .fontSize(13)
+        .fillColor("#000")
+        .text("📌 Thông tin khám bệnh", { underline: true });
+
+      doc.moveDown(0.5);
+
+      const info = [
+        ["Mã bệnh án:", record._id || "N/A"],
+        ["Mã bệnh nhân:", record.patientId],
+        ["Tên bệnh nhân:", record.patientName],
+        ["Bác sĩ:", record.doctorName || record.doctorId],
+        [
+          "Ngày khám:",
+          new Date(record.visitDate || record.createdAt).toLocaleString("vi-VN"),
+        ],
+      ];
+
+      doc.fontSize(11).fillColor("#333");
+
+      info.forEach(([label, value]) => {
+        doc.text(`${label}  ${value}`);
+      });
+
+      doc.moveDown(1.2);
+
+      // ========== HÀM TẠO SECTION ==========
+      const pushSection = (title: string, content: string) => {
+        doc
+          .fontSize(14)
+          .fillColor("#000")
+          .text(title, { underline: true });
+
+        doc.moveDown(0.3);
+
+        doc
+          .fontSize(11)
+          .fillColor("#333")
+          .text(content || "—", { align: "justify" });
+
+        doc.moveDown(1);
+      };
+
+      pushSection("Triệu chứng", record.symptoms);
+      pushSection("Chẩn đoán", record.diagnosis);
+      pushSection("Cách điều trị", record.treatment);
+
+      // ========== HIỂN THỊ HÌNH ẢNH ==========
+if (record.attachments && Array.isArray(record.attachments) && record.attachments.length) {
+  doc.addPage();
+
+  doc
+    .fontSize(14)
+    .fillColor("#000")
+    .text("📎 Hình ảnh đính kèm", { underline: true });
+
+  doc.moveDown(1);
+
+  for (let i = 0; i < record.attachments.length; i++) {
+    const fileId = record.attachments[i];
+
+    try {
+      const imgBuffer = await getImageBufferFromGridFS(fileId);
+
+      const x = 40 + (i % 2) * 260;
+      const y = doc.y;
+
+      doc.image(imgBuffer, x, y, {
+        fit: [240, 240],
+        align: "center",
+        valign: "center",
+      });
+
+      if (i % 2 === 1) doc.moveDown(16);
+      if (doc.y > 700) doc.addPage();
+
+    } catch (err) {
+      doc
+        .fontSize(10)
+        .fillColor("red")
+        .text(`❌ Không thể tải ảnh: ${fileId}`);
+    }
+  }
+}
+
+
+      // ========== FOOTER ==========
       doc.addPage();
-      doc.fontSize(10).text("Generated by Clinic System", { align: "center" });
+      doc
+        .fontSize(11)
+        .fillColor("#555")
+        .text("Hồ sơ được tạo bởi hệ thống quản lý bệnh viện", {
+          align: "center",
+        });
+      doc.text(`Ngày tạo PDF: ${new Date().toLocaleString("vi-VN")}`, {
+        align: "center",
+      });
 
       doc.end();
+
       stream.on("finish", () => resolve(filePath));
-      stream.on("error", (e) => reject(e));
+      stream.on("error", reject);
     } catch (err) {
       reject(err);
     }

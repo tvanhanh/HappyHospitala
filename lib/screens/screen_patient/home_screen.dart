@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/login_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/register_screen.dart';
+import 'package:flutter_application_datlichkham/screens/screen_patient/medical_records.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -518,6 +519,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           _buildDrawerItem(context, 'Chuyên khoa', SpecialtiesScreen()),
+          _buildDrawerItem(context, 'Hồ sơ bệnh án', MedicalRecordsPage()),
           _buildDrawerItem(context, 'Cơ sở y tế', MedicalFacilitiesScreen()),
           _buildDrawerItem(context, 'Bác sĩ', DoctorsScreen()),
           _buildDrawerItem(context, 'Hỏi đáp', FAQScreen()),

@@ -1,6 +1,7 @@
 import { RequestHandler, Router } from 'express';
-
 import { register, createUserByAdmin,login,updateUserInfor,getUserInfor,verifyOtp, changePassWord, logout, changePassword } from '../controllers/auth.controller';
+import multer from 'multer';
+
 import { verifyToken, isAdmin,  } from '../middleware/auth';
 import { addDepartments, 
     getDepartments,
@@ -11,7 +12,8 @@ import {getDoctors, addDoctors, deleteDoctor, updateDoctor} from '../controllers
 import {predictDiabetes} from '../controllers/predictController';
 
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import {addMedicalRecord,getMedicalRecordById } from "../controllers/medicalRecordController";
+import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords} from "../controllers/medicalRecordController";
+import upload from "../middleware/upload";
 
 
 const router = Router();
@@ -53,7 +55,9 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.put("/api_updateMedicalRecord/:id", verifyToken,updateMedicalRecord);
   router.get("/api_getMedicalRecord",verifyToken, getMedicalRecord);
   // medical record with block chain 
-  router.post("/api/medicalrecord-blockchain", addMedicalRecord);
-  router.get("/medical-records/:Id",verifyToken,getMedicalRecordById);
+  router.post("/api/medicalrecord-blockchain", upload.array("attachments", 10),addMedicalRecord);
+  router.get("/api/medical-records/:id",verifyToken, getMedicalRecordDetail);
+  router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
+  router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
   
 export default router;

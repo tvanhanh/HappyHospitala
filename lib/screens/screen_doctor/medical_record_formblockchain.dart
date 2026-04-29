@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_medicalRecordBlockchain.dart';
 
 class MedicalRecordForm extends StatefulWidget {
@@ -17,6 +17,7 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
 
   final TextEditingController patientIdController = TextEditingController();
   final TextEditingController doctorIdController = TextEditingController();
+  final TextEditingController patientNameController = TextEditingController();
   final TextEditingController symptomsController = TextEditingController();
   final TextEditingController diagnosisController = TextEditingController();
   final TextEditingController treatmentController = TextEditingController();
@@ -26,7 +27,16 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
   // Dùng XFile để hỗ trợ cả web và mobile
   final List<XFile> attachments = [];
   final ImagePicker picker = ImagePicker();
-
+@override
+void initState() {
+  super.initState();
+  loadDoctorId(); 
+}
+  Future<void> loadDoctorId() async {
+  final prefs = await SharedPreferences.getInstance();
+  final doctorId = prefs.getString('doctorId') ?? '';
+  doctorIdController.text = doctorId; 
+}
   Future<void> pickAttachments() async {
     final pickedFiles = await picker.pickMultiImage();
     if (pickedFiles.isNotEmpty) {
@@ -67,7 +77,18 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                   labelText: "Doctor ID",
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
+              //  validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
+              readOnly: true,
+              ),
+              const SizedBox(height: 14),
+              
+               TextFormField(
+                controller: patientNameController,
+                decoration: const InputDecoration(
+                  labelText: "Patient Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value!.isEmpty ? "Nhập PatientName" : null,
               ),
               const SizedBox(height: 14),
 
@@ -165,6 +186,7 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
                         await MedicalRecordBlockchainService.addMedicalRecord(
                           patientId: patientIdController.text.trim(),
                           doctorId: doctorIdController.text.trim(),
+                          patientName: patientNameController.text.trim(),
                           symptoms: symptomsController.text.trim(),
                           diagnosis: diagnosisController.text.trim(),
                           treatment: treatmentController.text.trim(),
@@ -203,4 +225,4 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
       ),
     );
   }
-}
+}  

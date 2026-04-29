@@ -3,7 +3,7 @@ import MedicalRecordsABI from "../../blockchain/artifacts/contracts/MedicalRecor
 
 const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL!);
 const signer = new ethers.Wallet(process.env.SEPOLIA_PRIVATE_KEY!, provider);
-const CONTRACT_ADDRESS = "0x5Db627E8956c7b9d62515B04Fb4EA2363F4cFba1"; // thay bằng contract của bạn
+const CONTRACT_ADDRESS = "0xc6B58592A13a32f344DA58a40755F251a0ac605b"; 
 
 const medicalRecordsContract = new ethers.Contract(
   CONTRACT_ADDRESS,
@@ -11,8 +11,8 @@ const medicalRecordsContract = new ethers.Contract(
   signer
 );
 
-export async function addRecord(patientId: string, name: string, dob: string, data: string) {
-  const tx = await medicalRecordsContract.addRecord(patientId, name, dob, data);
+export async function addRecord(patientId: string, ipfsHash: string, dob: string, data: string) {
+  const tx = await medicalRecordsContract.addRecord(patientId, ipfsHash, dob, data);
   await tx.wait();
   return tx.hash;
 }

@@ -2,14 +2,16 @@ import mongoose from "mongoose";
 
 const MedicalRecordSchema = new mongoose.Schema({
   patientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Patient",
+    type:String,
     required: true,
   },
 
   doctorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Doctor",
+    type: String,
+    required: true,
+  },
+  patientName: {
+    type: String,
     required: true,
   },
 
@@ -18,20 +20,20 @@ const MedicalRecordSchema = new mongoose.Schema({
     required: true,
   },
 
-  symptoms: {
-    type: String,
-    required: true,
-  },
+  // symptoms: {
+  //   type: String,
+  //   required: true,
+  // },
 
-  diagnosis: {
-    type: String,
-    required: true,
-  },
+  // diagnosis: {
+  //   type: String,
+  //   required: true,
+  // },
 
-  treatment: {
-    type: String,
-    required: true,
-  },
+  // treatment: {
+  //   type: String,
+  //   required: true,
+  // },
 
   attachments: [
     {
@@ -47,11 +49,25 @@ const MedicalRecordSchema = new mongoose.Schema({
   pdfHash: {
     type: String,
   },
-
-  // TxHash của blockchain (transaction hash)
-  blockchainTx: {
+  ipfsHash:{
     type: String,
   },
+
+  blockchainTx: {
+    type: String,
+    default: null,
+  },
+  blockchainNetwork: {
+    type: String,
+  },
+  blockNumber: {
+    type: Number,
+  },
+  blockchainIndex: {
+    type: Number,
+     required: false,
+  },
+
 
   // Lịch sử truy cập (ai xem, lúc nào)
   accessLogs: [
