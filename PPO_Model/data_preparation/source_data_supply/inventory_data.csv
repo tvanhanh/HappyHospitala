@@ -1,0 +1,501 @@
+Date,Item_ID,Item_Type,Item_Name,Current_Stock,Min_Required,Avg_Usage_Per_Day,Restock_Lead_Time
+10/1/2024,105,Consumable,Ventilator,1542,264,108,17
+10/2/2024,100,Equipment,Ventilator,2487,656,55,12
+10/3/2024,103,Equipment,Surgical Mask,2371,384,470,6
+10/4/2024,103,Consumable,Surgical Mask,2038,438,207,15
+10/5/2024,107,Equipment,IV Drip,2410,338,158,12
+10/6/2024,109,Equipment,IV Drip,2258,402,386,26
+10/7/2024,103,Consumable,IV Drip,387,210,207,24
+10/8/2024,105,Equipment,IV Drip,123,502,257,11
+10/9/2024,102,Consumable,Ventilator,790,751,16,20
+10/10/2024,104,Equipment,Gloves,2448,28,418,5
+10/11/2024,107,Equipment,Surgical Mask,3451,12,161,21
+10/12/2024,106,Consumable,Surgical Mask,4510,207,254,8
+10/13/2024,108,Consumable,X-ray Machine,3298,231,244,2
+10/14/2024,108,Consumable,Gloves,789,515,230,24
+10/15/2024,101,Consumable,Gloves,4719,239,198,24
+10/16/2024,106,Equipment,Surgical Mask,3465,622,415,25
+10/17/2024,107,Equipment,Gloves,466,372,106,26
+10/18/2024,107,Consumable,X-ray Machine,2410,167,176,6
+10/19/2024,108,Consumable,Ventilator,462,165,499,23
+10/20/2024,101,Equipment,IV Drip,4317,667,59,18
+10/21/2024,105,Equipment,X-ray Machine,228,452,458,17
+10/22/2024,109,Consumable,IV Drip,2912,405,374,17
+10/23/2024,108,Consumable,Surgical Mask,2206,315,392,1
+10/24/2024,109,Consumable,Ventilator,2519,338,415,19
+10/25/2024,104,Equipment,X-ray Machine,2730,354,342,4
+10/26/2024,103,Consumable,Gloves,2100,525,31,2
+10/27/2024,100,Equipment,Ventilator,835,634,426,7
+10/28/2024,103,Consumable,X-ray Machine,4289,21,9,21
+10/29/2024,105,Consumable,Ventilator,757,835,66,1
+10/30/2024,100,Equipment,Surgical Mask,1415,444,110,9
+10/31/2024,102,Consumable,Gloves,4900,665,470,25
+11/1/2024,103,Consumable,IV Drip,3215,963,265,7
+11/2/2024,108,Consumable,IV Drip,873,141,250,12
+11/3/2024,101,Equipment,IV Drip,2275,896,238,5
+11/4/2024,103,Equipment,X-ray Machine,4906,966,50,22
+11/5/2024,103,Consumable,Ventilator,694,945,373,6
+11/6/2024,103,Consumable,Gloves,139,520,65,8
+11/7/2024,107,Consumable,Gloves,2341,991,92,24
+11/8/2024,100,Equipment,X-ray Machine,3745,167,51,26
+11/9/2024,101,Consumable,Gloves,4804,959,177,20
+11/10/2024,109,Consumable,Gloves,3243,77,474,11
+11/11/2024,109,Equipment,Ventilator,2706,578,158,6
+11/12/2024,100,Consumable,Ventilator,2445,213,72,6
+11/13/2024,104,Equipment,Ventilator,2902,385,27,5
+11/14/2024,107,Consumable,X-ray Machine,1457,89,480,29
+11/15/2024,103,Consumable,X-ray Machine,437,311,399,11
+11/16/2024,102,Equipment,X-ray Machine,1732,612,378,26
+11/17/2024,107,Equipment,Gloves,255,89,276,13
+11/18/2024,102,Consumable,IV Drip,2149,235,127,17
+11/19/2024,100,Consumable,Gloves,4707,21,137,26
+11/20/2024,100,Equipment,Ventilator,2366,513,40,6
+11/21/2024,104,Equipment,IV Drip,2964,143,414,14
+11/22/2024,105,Equipment,Surgical Mask,3728,936,280,12
+11/23/2024,105,Consumable,IV Drip,3842,196,334,23
+11/24/2024,106,Consumable,Ventilator,2163,590,41,11
+11/25/2024,108,Consumable,Ventilator,2186,325,130,8
+11/26/2024,104,Consumable,Ventilator,215,554,346,1
+11/27/2024,101,Consumable,Ventilator,484,815,473,25
+11/28/2024,104,Equipment,Surgical Mask,2018,181,287,17
+11/29/2024,109,Consumable,IV Drip,1278,647,426,28
+11/30/2024,108,Consumable,Surgical Mask,1078,326,337,24
+12/1/2024,101,Consumable,Gloves,1248,567,381,25
+12/2/2024,101,Consumable,IV Drip,4032,295,319,29
+12/3/2024,107,Consumable,Gloves,3363,260,332,25
+12/4/2024,109,Equipment,Gloves,3456,165,360,26
+12/5/2024,109,Equipment,Gloves,3638,753,328,21
+12/6/2024,103,Equipment,Ventilator,4872,805,103,15
+12/7/2024,106,Equipment,IV Drip,1024,39,470,1
+12/8/2024,107,Equipment,X-ray Machine,1277,136,473,15
+12/9/2024,102,Consumable,IV Drip,4625,82,294,4
+12/10/2024,100,Consumable,Ventilator,2632,85,300,23
+12/11/2024,103,Equipment,IV Drip,4957,107,444,16
+12/12/2024,105,Equipment,Ventilator,1542,216,165,9
+12/13/2024,109,Equipment,IV Drip,3817,560,161,4
+12/14/2024,104,Equipment,IV Drip,1204,277,330,5
+12/15/2024,104,Equipment,Gloves,1711,468,242,21
+12/16/2024,106,Equipment,Surgical Mask,1714,768,256,15
+12/17/2024,104,Equipment,IV Drip,3473,867,489,29
+12/18/2024,104,Equipment,X-ray Machine,234,42,401,5
+12/19/2024,103,Consumable,Surgical Mask,3832,700,420,28
+12/20/2024,104,Consumable,X-ray Machine,2288,50,248,18
+12/21/2024,104,Consumable,IV Drip,4909,208,388,28
+12/22/2024,108,Equipment,Ventilator,2815,296,40,20
+12/23/2024,104,Equipment,IV Drip,1726,672,422,25
+12/24/2024,103,Equipment,Gloves,343,133,260,25
+12/25/2024,107,Equipment,Ventilator,4101,597,425,4
+12/26/2024,105,Consumable,X-ray Machine,2413,301,59,19
+12/27/2024,105,Consumable,IV Drip,4485,478,484,2
+12/28/2024,100,Equipment,IV Drip,3930,974,130,13
+12/29/2024,101,Consumable,Ventilator,1434,585,4,21
+12/30/2024,105,Equipment,IV Drip,4129,782,12,8
+12/31/2024,109,Equipment,Surgical Mask,3919,699,388,23
+1/1/2025,103,Equipment,X-ray Machine,1126,894,111,13
+1/2/2025,100,Equipment,IV Drip,2748,167,188,25
+1/3/2025,105,Equipment,IV Drip,3846,713,141,16
+1/4/2025,100,Consumable,Ventilator,690,839,353,1
+1/5/2025,101,Consumable,Gloves,3801,613,424,2
+1/6/2025,102,Consumable,X-ray Machine,4184,633,307,14
+1/7/2025,104,Consumable,Surgical Mask,1556,221,257,2
+1/8/2025,102,Equipment,Surgical Mask,243,370,55,4
+1/9/2025,100,Consumable,Ventilator,1196,100,55,8
+1/10/2025,103,Consumable,Surgical Mask,2787,548,112,25
+1/11/2025,102,Consumable,Gloves,4377,595,344,5
+1/12/2025,100,Consumable,IV Drip,1395,956,200,7
+1/13/2025,107,Equipment,X-ray Machine,1415,233,188,28
+1/14/2025,105,Equipment,IV Drip,2532,872,322,27
+1/15/2025,109,Equipment,Ventilator,1400,795,483,3
+1/16/2025,100,Equipment,IV Drip,2712,721,270,14
+1/17/2025,102,Equipment,Gloves,2087,834,441,7
+1/18/2025,107,Consumable,Surgical Mask,534,813,31,16
+1/19/2025,102,Equipment,X-ray Machine,2249,211,342,26
+1/20/2025,109,Consumable,Gloves,2220,742,82,17
+1/21/2025,102,Consumable,Ventilator,2180,825,152,17
+1/22/2025,103,Equipment,X-ray Machine,139,58,420,19
+1/23/2025,103,Equipment,IV Drip,800,385,418,10
+1/24/2025,102,Equipment,Ventilator,3235,977,391,26
+1/25/2025,103,Equipment,IV Drip,205,639,25,1
+1/26/2025,104,Equipment,Gloves,1587,589,35,16
+1/27/2025,101,Consumable,Gloves,2363,645,105,22
+1/28/2025,102,Consumable,Ventilator,4261,721,442,17
+1/29/2025,109,Equipment,Surgical Mask,1923,328,359,11
+1/30/2025,101,Consumable,Ventilator,4541,978,458,5
+1/31/2025,104,Consumable,Surgical Mask,2345,303,153,8
+2/1/2025,106,Equipment,Ventilator,3627,15,222,24
+2/2/2025,108,Equipment,Ventilator,104,619,6,18
+2/3/2025,102,Equipment,X-ray Machine,1366,65,241,9
+2/4/2025,103,Consumable,Surgical Mask,3248,486,433,7
+2/5/2025,100,Consumable,Surgical Mask,69,440,410,14
+2/6/2025,100,Equipment,Gloves,1057,48,453,6
+2/7/2025,106,Equipment,IV Drip,3831,571,239,18
+2/8/2025,100,Consumable,Gloves,4870,274,39,6
+2/9/2025,106,Consumable,Surgical Mask,258,644,385,5
+2/10/2025,103,Consumable,X-ray Machine,2754,203,316,3
+2/11/2025,103,Equipment,Surgical Mask,2283,332,207,23
+2/12/2025,108,Equipment,IV Drip,2194,72,74,29
+2/13/2025,108,Consumable,IV Drip,2376,26,229,27
+2/14/2025,108,Equipment,Ventilator,1466,199,496,18
+2/15/2025,102,Consumable,X-ray Machine,4976,204,435,28
+2/16/2025,103,Equipment,Gloves,1934,277,29,2
+2/17/2025,102,Consumable,X-ray Machine,1243,425,400,28
+2/18/2025,100,Equipment,Ventilator,1916,404,195,8
+2/19/2025,108,Equipment,Surgical Mask,152,30,37,14
+2/20/2025,108,Equipment,IV Drip,1678,110,136,26
+2/21/2025,103,Equipment,Surgical Mask,2206,792,466,6
+2/22/2025,108,Consumable,Surgical Mask,957,642,160,5
+2/23/2025,102,Consumable,Ventilator,141,62,172,27
+2/24/2025,108,Consumable,Gloves,1891,465,42,18
+2/25/2025,104,Equipment,Surgical Mask,4729,679,464,16
+2/26/2025,103,Equipment,IV Drip,1497,911,285,22
+2/27/2025,100,Equipment,IV Drip,2968,280,383,8
+2/28/2025,104,Equipment,Gloves,1147,636,183,9
+3/1/2025,103,Consumable,Gloves,1930,760,309,19
+3/2/2025,106,Consumable,Ventilator,4286,985,119,21
+3/3/2025,109,Consumable,X-ray Machine,2842,829,171,26
+3/4/2025,108,Consumable,IV Drip,1299,42,249,8
+3/5/2025,100,Consumable,Surgical Mask,3949,417,416,3
+3/6/2025,108,Consumable,Ventilator,4864,771,87,9
+3/7/2025,105,Equipment,Gloves,3649,869,58,19
+3/8/2025,109,Equipment,Surgical Mask,1078,784,499,18
+3/9/2025,100,Consumable,X-ray Machine,1766,723,24,9
+3/10/2025,109,Equipment,Gloves,3961,130,125,8
+3/11/2025,106,Consumable,X-ray Machine,2426,75,325,2
+3/12/2025,105,Consumable,X-ray Machine,3383,85,65,4
+3/13/2025,103,Equipment,IV Drip,601,865,402,27
+3/14/2025,101,Consumable,IV Drip,385,518,199,22
+3/15/2025,108,Equipment,X-ray Machine,3969,720,69,16
+3/16/2025,100,Consumable,IV Drip,3931,818,204,25
+3/17/2025,104,Consumable,Gloves,712,710,481,18
+3/18/2025,109,Consumable,X-ray Machine,1291,46,209,20
+3/19/2025,106,Consumable,X-ray Machine,847,918,387,26
+3/20/2025,105,Equipment,Ventilator,1851,941,203,2
+3/21/2025,107,Consumable,Ventilator,3517,72,424,11
+3/22/2025,108,Consumable,Ventilator,2991,463,167,19
+3/23/2025,108,Equipment,Ventilator,2969,840,439,8
+3/24/2025,109,Equipment,Surgical Mask,3844,452,253,12
+3/25/2025,102,Consumable,Ventilator,305,598,104,6
+3/26/2025,108,Consumable,Gloves,1385,540,248,27
+3/27/2025,106,Equipment,Surgical Mask,1596,394,129,9
+3/28/2025,106,Consumable,Gloves,1727,11,266,6
+3/29/2025,109,Equipment,Ventilator,4201,734,76,20
+3/30/2025,101,Consumable,X-ray Machine,457,727,429,3
+3/31/2025,106,Equipment,Surgical Mask,1431,612,53,22
+4/1/2025,108,Consumable,X-ray Machine,1661,122,210,5
+4/2/2025,108,Equipment,Gloves,1959,117,357,25
+4/3/2025,103,Equipment,Gloves,4298,159,362,2
+4/4/2025,102,Equipment,Surgical Mask,3459,600,176,1
+4/5/2025,103,Consumable,Gloves,3268,279,198,25
+4/6/2025,106,Equipment,Surgical Mask,4209,77,490,14
+4/7/2025,103,Consumable,Gloves,1615,883,49,16
+4/8/2025,106,Equipment,X-ray Machine,3043,411,423,25
+4/9/2025,105,Equipment,IV Drip,4643,271,37,5
+4/10/2025,107,Consumable,Ventilator,2460,36,389,1
+4/11/2025,100,Consumable,Ventilator,4249,713,252,5
+4/12/2025,108,Consumable,IV Drip,3389,421,498,29
+4/13/2025,104,Equipment,IV Drip,362,759,204,19
+4/14/2025,106,Equipment,Surgical Mask,1362,947,40,24
+4/15/2025,105,Consumable,Gloves,423,535,222,21
+4/16/2025,108,Consumable,X-ray Machine,883,823,236,5
+4/17/2025,102,Consumable,Ventilator,2123,442,191,6
+4/18/2025,103,Consumable,IV Drip,4094,578,174,15
+4/19/2025,109,Consumable,IV Drip,3018,68,460,23
+4/20/2025,107,Consumable,IV Drip,4293,27,299,16
+4/21/2025,105,Equipment,Gloves,998,224,161,20
+4/22/2025,103,Consumable,X-ray Machine,2554,873,386,13
+4/23/2025,104,Consumable,IV Drip,4192,995,237,8
+4/24/2025,105,Consumable,X-ray Machine,4181,230,176,1
+4/25/2025,103,Consumable,Ventilator,2307,215,163,26
+4/26/2025,103,Equipment,Surgical Mask,1225,401,299,21
+4/27/2025,107,Consumable,Surgical Mask,2159,292,299,21
+4/28/2025,109,Consumable,Ventilator,1255,283,365,27
+4/29/2025,109,Consumable,Surgical Mask,4670,718,203,6
+4/30/2025,109,Equipment,IV Drip,4652,565,427,11
+5/1/2025,107,Equipment,Gloves,2208,441,253,25
+5/2/2025,103,Consumable,Surgical Mask,729,744,233,12
+5/3/2025,102,Equipment,Ventilator,1308,135,47,22
+5/4/2025,103,Consumable,Gloves,1951,358,488,29
+5/5/2025,109,Consumable,Ventilator,3037,515,464,7
+5/6/2025,107,Consumable,IV Drip,644,850,110,2
+5/7/2025,107,Equipment,Ventilator,1536,708,219,21
+5/8/2025,105,Consumable,IV Drip,151,805,106,14
+5/9/2025,101,Consumable,Surgical Mask,2474,16,41,16
+5/10/2025,102,Consumable,Gloves,4330,913,109,16
+5/11/2025,102,Equipment,X-ray Machine,2132,703,369,12
+5/12/2025,108,Equipment,Gloves,1036,897,337,22
+5/13/2025,101,Equipment,X-ray Machine,573,514,428,4
+5/14/2025,105,Consumable,Surgical Mask,2718,36,349,10
+5/15/2025,108,Consumable,Ventilator,3261,645,449,23
+5/16/2025,104,Equipment,IV Drip,2458,725,64,25
+5/17/2025,100,Consumable,IV Drip,4016,815,45,24
+5/18/2025,102,Equipment,IV Drip,3299,103,382,5
+5/19/2025,105,Equipment,Surgical Mask,4094,443,131,29
+5/20/2025,105,Consumable,Surgical Mask,4092,542,23,27
+5/21/2025,100,Consumable,X-ray Machine,4732,487,381,24
+5/22/2025,108,Consumable,Gloves,3261,897,409,25
+5/23/2025,101,Consumable,Gloves,4860,450,429,18
+5/24/2025,101,Consumable,Ventilator,3582,967,340,21
+5/25/2025,100,Consumable,X-ray Machine,2851,449,223,6
+5/26/2025,103,Consumable,Surgical Mask,2466,742,462,22
+5/27/2025,108,Consumable,Surgical Mask,1596,161,392,15
+5/28/2025,108,Equipment,IV Drip,820,707,212,20
+5/29/2025,104,Consumable,X-ray Machine,1451,659,228,9
+5/30/2025,104,Equipment,X-ray Machine,125,650,310,4
+5/31/2025,100,Consumable,Surgical Mask,2016,624,319,6
+6/1/2025,109,Equipment,X-ray Machine,3173,413,414,4
+6/2/2025,103,Consumable,IV Drip,4059,465,213,21
+6/3/2025,107,Consumable,IV Drip,4140,60,9,7
+6/4/2025,103,Consumable,Surgical Mask,3765,560,459,2
+6/5/2025,102,Equipment,Surgical Mask,2370,973,298,26
+6/6/2025,101,Consumable,X-ray Machine,3928,774,419,10
+6/7/2025,101,Equipment,X-ray Machine,4406,424,175,13
+6/8/2025,102,Equipment,Gloves,965,559,446,24
+6/9/2025,101,Consumable,X-ray Machine,4739,962,204,23
+6/10/2025,104,Consumable,X-ray Machine,3266,904,254,6
+6/11/2025,102,Consumable,Ventilator,2480,655,201,3
+6/12/2025,105,Equipment,Surgical Mask,714,69,118,26
+6/13/2025,105,Consumable,X-ray Machine,1341,986,312,28
+6/14/2025,105,Equipment,Ventilator,200,484,470,15
+6/15/2025,102,Equipment,X-ray Machine,3694,455,245,20
+6/16/2025,105,Equipment,Surgical Mask,1293,809,69,6
+6/17/2025,107,Consumable,Gloves,4788,976,304,27
+6/18/2025,107,Equipment,IV Drip,1638,355,8,25
+6/19/2025,106,Consumable,Surgical Mask,2442,213,249,29
+6/20/2025,101,Consumable,Surgical Mask,3015,667,313,29
+6/21/2025,106,Consumable,Ventilator,2513,41,86,4
+6/22/2025,107,Consumable,Ventilator,805,681,87,16
+6/23/2025,102,Consumable,Ventilator,3784,94,327,2
+6/24/2025,103,Equipment,Gloves,3758,100,20,26
+6/25/2025,101,Consumable,Ventilator,1372,49,172,23
+6/26/2025,109,Consumable,Surgical Mask,2833,767,327,11
+6/27/2025,105,Consumable,Ventilator,360,188,353,8
+6/28/2025,109,Equipment,X-ray Machine,2692,596,358,9
+6/29/2025,109,Equipment,X-ray Machine,3913,304,343,18
+6/30/2025,102,Consumable,IV Drip,351,590,362,26
+7/1/2025,100,Equipment,X-ray Machine,2021,389,278,8
+7/2/2025,109,Consumable,IV Drip,1389,561,245,20
+7/3/2025,101,Equipment,X-ray Machine,2014,137,140,8
+7/4/2025,109,Consumable,Gloves,1228,217,172,10
+7/5/2025,100,Equipment,IV Drip,3754,23,68,21
+7/6/2025,106,Equipment,X-ray Machine,2727,173,225,2
+7/7/2025,100,Consumable,IV Drip,4779,496,414,18
+7/8/2025,104,Equipment,IV Drip,466,901,406,25
+7/9/2025,108,Consumable,X-ray Machine,1872,405,210,29
+7/10/2025,104,Equipment,Surgical Mask,3449,369,326,11
+7/11/2025,103,Consumable,Ventilator,4242,341,240,13
+7/12/2025,103,Consumable,IV Drip,1775,832,476,16
+7/13/2025,108,Equipment,IV Drip,563,430,258,3
+7/14/2025,108,Consumable,IV Drip,3624,92,162,1
+7/15/2025,107,Consumable,Ventilator,2463,213,425,25
+7/16/2025,100,Consumable,IV Drip,3240,701,364,22
+7/17/2025,103,Equipment,IV Drip,2572,172,104,6
+7/18/2025,108,Consumable,X-ray Machine,1089,964,250,20
+7/19/2025,107,Equipment,Surgical Mask,1276,90,172,1
+7/20/2025,107,Consumable,Gloves,3801,550,52,18
+7/21/2025,101,Consumable,Gloves,156,403,486,24
+7/22/2025,108,Consumable,Ventilator,4402,879,351,15
+7/23/2025,104,Equipment,Gloves,1667,18,467,21
+7/24/2025,107,Consumable,Surgical Mask,3308,155,439,27
+7/25/2025,100,Consumable,Gloves,3134,762,464,5
+7/26/2025,104,Equipment,Surgical Mask,481,246,253,5
+7/27/2025,109,Equipment,Surgical Mask,840,230,308,13
+7/28/2025,100,Equipment,X-ray Machine,4518,675,430,13
+7/29/2025,106,Consumable,Gloves,2068,360,233,5
+7/30/2025,104,Equipment,IV Drip,3932,133,350,16
+7/31/2025,102,Consumable,Ventilator,3446,111,133,6
+8/1/2025,104,Equipment,IV Drip,4012,709,185,23
+8/2/2025,106,Equipment,Gloves,880,389,433,25
+8/3/2025,103,Equipment,Gloves,3926,69,377,14
+8/4/2025,103,Equipment,IV Drip,3973,196,491,21
+8/5/2025,107,Equipment,X-ray Machine,2270,284,405,21
+8/6/2025,108,Consumable,Gloves,771,534,273,27
+8/7/2025,105,Consumable,X-ray Machine,2338,907,54,29
+8/8/2025,100,Equipment,Ventilator,248,293,470,8
+8/9/2025,108,Consumable,Gloves,312,532,195,15
+8/10/2025,105,Equipment,IV Drip,3554,973,405,24
+8/11/2025,104,Consumable,X-ray Machine,4223,967,494,21
+8/12/2025,107,Consumable,Ventilator,2491,794,441,6
+8/13/2025,104,Equipment,Surgical Mask,519,293,409,8
+8/14/2025,101,Equipment,Ventilator,1908,646,300,5
+8/15/2025,103,Consumable,X-ray Machine,1238,784,341,16
+8/16/2025,103,Consumable,Gloves,334,522,238,10
+8/17/2025,109,Consumable,Gloves,1020,17,192,6
+8/18/2025,102,Equipment,Surgical Mask,1588,675,16,26
+8/19/2025,105,Equipment,X-ray Machine,2519,77,354,2
+8/20/2025,102,Consumable,Gloves,1808,837,281,21
+8/21/2025,103,Consumable,Gloves,4099,770,345,1
+8/22/2025,105,Consumable,X-ray Machine,1589,382,361,2
+8/23/2025,107,Consumable,Ventilator,161,521,92,20
+8/24/2025,102,Consumable,IV Drip,1829,430,318,10
+8/25/2025,107,Consumable,Ventilator,4740,438,132,3
+8/26/2025,101,Equipment,X-ray Machine,4964,735,404,17
+8/27/2025,106,Equipment,Ventilator,2031,635,141,24
+8/28/2025,105,Equipment,Gloves,2588,768,115,27
+8/29/2025,100,Equipment,X-ray Machine,4174,521,301,19
+8/30/2025,100,Equipment,Gloves,1877,210,331,26
+8/31/2025,103,Equipment,Gloves,359,633,394,27
+9/1/2025,101,Equipment,Gloves,3916,176,192,11
+9/2/2025,109,Equipment,Ventilator,3491,948,477,17
+9/3/2025,109,Consumable,IV Drip,3936,686,374,18
+9/4/2025,106,Consumable,Surgical Mask,4343,78,175,9
+9/5/2025,106,Consumable,IV Drip,177,101,224,29
+9/6/2025,107,Consumable,Surgical Mask,221,791,472,18
+9/7/2025,108,Consumable,X-ray Machine,1157,663,398,27
+9/8/2025,108,Consumable,IV Drip,4208,947,70,18
+9/9/2025,107,Consumable,Surgical Mask,3324,338,174,6
+9/10/2025,100,Equipment,Gloves,1293,656,489,10
+9/11/2025,108,Consumable,X-ray Machine,4885,360,136,7
+9/12/2025,106,Equipment,IV Drip,2962,150,298,13
+9/13/2025,108,Consumable,Ventilator,4312,620,111,7
+9/14/2025,109,Equipment,X-ray Machine,3877,909,401,16
+9/15/2025,108,Consumable,Gloves,3504,242,179,25
+9/16/2025,103,Equipment,Gloves,3859,538,296,2
+9/17/2025,106,Equipment,Gloves,3951,271,36,15
+9/18/2025,101,Consumable,Surgical Mask,3931,562,363,6
+9/19/2025,107,Equipment,IV Drip,2453,449,285,10
+9/20/2025,104,Equipment,X-ray Machine,2348,935,118,6
+9/21/2025,109,Consumable,IV Drip,2842,703,82,7
+9/22/2025,102,Equipment,IV Drip,329,288,38,12
+9/23/2025,100,Consumable,Surgical Mask,1196,367,2,26
+9/24/2025,108,Consumable,Surgical Mask,3962,545,466,17
+9/25/2025,102,Consumable,Gloves,3675,261,287,20
+9/26/2025,107,Equipment,IV Drip,3359,900,35,27
+9/27/2025,108,Equipment,Surgical Mask,4974,942,373,24
+9/28/2025,104,Consumable,Gloves,865,757,4,19
+9/29/2025,104,Consumable,X-ray Machine,1729,197,418,26
+9/30/2025,101,Equipment,Surgical Mask,2704,44,172,17
+10/1/2025,107,Consumable,Surgical Mask,2071,976,346,10
+10/2/2025,106,Consumable,X-ray Machine,860,400,2,11
+10/3/2025,109,Equipment,X-ray Machine,562,354,355,10
+10/4/2025,104,Consumable,Surgical Mask,3000,598,441,10
+10/5/2025,101,Equipment,X-ray Machine,4879,27,306,8
+10/6/2025,105,Equipment,X-ray Machine,3189,617,104,27
+10/7/2025,109,Consumable,Gloves,4433,570,297,24
+10/8/2025,107,Consumable,Surgical Mask,2895,815,83,23
+10/9/2025,101,Equipment,X-ray Machine,2037,10,42,11
+10/10/2025,103,Equipment,Gloves,4143,468,311,12
+10/11/2025,105,Equipment,Surgical Mask,1336,635,470,8
+10/12/2025,107,Consumable,Surgical Mask,4379,886,176,28
+10/13/2025,103,Consumable,Surgical Mask,3607,14,93,1
+10/14/2025,106,Equipment,X-ray Machine,4413,617,384,23
+10/15/2025,106,Consumable,X-ray Machine,3459,966,450,1
+10/16/2025,107,Consumable,IV Drip,2921,649,298,3
+10/17/2025,109,Equipment,Gloves,1373,532,295,23
+10/18/2025,101,Equipment,IV Drip,4678,807,397,16
+10/19/2025,109,Consumable,Gloves,4621,875,208,9
+10/20/2025,106,Consumable,Ventilator,561,883,413,16
+10/21/2025,100,Consumable,IV Drip,2729,250,282,25
+10/22/2025,103,Consumable,Surgical Mask,4416,535,252,23
+10/23/2025,108,Equipment,Ventilator,320,285,243,20
+10/24/2025,104,Equipment,Ventilator,2178,51,54,15
+10/25/2025,101,Equipment,Ventilator,497,214,471,3
+10/26/2025,104,Equipment,Gloves,4519,438,192,4
+10/27/2025,105,Consumable,X-ray Machine,93,61,348,2
+10/28/2025,100,Consumable,X-ray Machine,3849,117,78,11
+10/29/2025,103,Equipment,Ventilator,2633,154,162,5
+10/30/2025,101,Consumable,X-ray Machine,3410,514,463,1
+10/31/2025,104,Consumable,Surgical Mask,2931,764,374,25
+11/1/2025,104,Equipment,X-ray Machine,2887,943,393,19
+11/2/2025,104,Consumable,Gloves,4587,536,197,7
+11/3/2025,100,Consumable,Ventilator,2678,686,47,24
+11/4/2025,100,Consumable,IV Drip,1050,124,119,13
+11/5/2025,108,Equipment,Surgical Mask,4057,142,342,16
+11/6/2025,104,Consumable,IV Drip,4938,313,174,27
+11/7/2025,106,Equipment,Ventilator,2440,906,477,24
+11/8/2025,109,Equipment,Ventilator,4070,827,279,25
+11/9/2025,103,Consumable,IV Drip,3596,943,271,17
+11/10/2025,103,Equipment,Ventilator,3770,264,257,19
+11/11/2025,102,Equipment,Ventilator,2871,469,435,14
+11/12/2025,101,Consumable,Ventilator,4488,822,486,2
+11/13/2025,102,Consumable,X-ray Machine,300,591,183,23
+11/14/2025,101,Consumable,X-ray Machine,3716,370,179,4
+11/15/2025,103,Consumable,Gloves,2672,504,394,27
+11/16/2025,104,Consumable,IV Drip,1615,794,290,7
+11/17/2025,101,Equipment,Surgical Mask,189,282,245,8
+11/18/2025,101,Equipment,IV Drip,2256,788,41,26
+11/19/2025,100,Equipment,IV Drip,377,527,169,21
+11/20/2025,107,Consumable,Gloves,3692,929,244,17
+11/21/2025,108,Equipment,X-ray Machine,715,953,392,25
+11/22/2025,104,Equipment,Surgical Mask,542,589,411,3
+11/23/2025,103,Consumable,Surgical Mask,872,176,158,29
+11/24/2025,105,Equipment,Gloves,389,284,435,11
+11/25/2025,106,Consumable,Ventilator,2271,104,186,20
+11/26/2025,103,Consumable,IV Drip,1451,474,18,3
+11/27/2025,102,Consumable,IV Drip,540,809,127,25
+11/28/2025,109,Consumable,Surgical Mask,934,436,267,1
+11/29/2025,108,Equipment,IV Drip,4131,57,300,7
+11/30/2025,101,Equipment,Surgical Mask,901,287,447,14
+12/1/2025,104,Equipment,X-ray Machine,2347,65,226,7
+12/2/2025,100,Equipment,X-ray Machine,2647,340,450,26
+12/3/2025,108,Equipment,Surgical Mask,926,118,231,28
+12/4/2025,103,Consumable,Gloves,3851,41,382,16
+12/5/2025,109,Equipment,IV Drip,1593,605,276,6
+12/6/2025,105,Consumable,Surgical Mask,3054,76,222,14
+12/7/2025,105,Equipment,Gloves,4500,157,391,10
+12/8/2025,101,Equipment,X-ray Machine,1562,169,6,24
+12/9/2025,107,Equipment,IV Drip,1907,892,197,20
+12/10/2025,108,Equipment,IV Drip,1080,797,451,23
+12/11/2025,106,Equipment,X-ray Machine,1444,817,248,25
+12/12/2025,104,Consumable,Ventilator,4913,945,425,14
+12/13/2025,107,Consumable,Surgical Mask,3694,583,489,22
+12/14/2025,103,Equipment,Gloves,2159,619,465,14
+12/15/2025,105,Equipment,Gloves,3625,950,328,3
+12/16/2025,103,Consumable,Ventilator,2556,254,425,25
+12/17/2025,106,Consumable,Gloves,4943,758,281,10
+12/18/2025,104,Equipment,Gloves,1313,448,216,2
+12/19/2025,107,Equipment,IV Drip,1066,744,181,27
+12/20/2025,103,Equipment,Surgical Mask,4174,132,379,14
+12/21/2025,100,Equipment,IV Drip,3509,497,151,21
+12/22/2025,105,Consumable,X-ray Machine,4612,200,42,1
+12/23/2025,109,Consumable,IV Drip,1735,214,263,26
+12/24/2025,103,Consumable,Ventilator,3384,922,121,29
+12/25/2025,107,Consumable,Surgical Mask,1351,90,207,15
+12/26/2025,105,Consumable,Ventilator,3753,520,52,5
+12/27/2025,105,Consumable,Surgical Mask,3020,144,168,8
+12/28/2025,108,Equipment,Surgical Mask,4594,462,25,17
+12/29/2025,100,Equipment,Surgical Mask,2485,823,32,10
+12/30/2025,108,Consumable,Gloves,1450,990,149,13
+12/31/2025,103,Consumable,IV Drip,2749,516,147,18
+1/1/2026,106,Consumable,Gloves,2078,680,292,5
+1/2/2026,109,Consumable,Gloves,1591,598,481,17
+1/3/2026,103,Equipment,IV Drip,2883,901,213,17
+1/4/2026,102,Equipment,Ventilator,1307,703,89,26
+1/5/2026,107,Consumable,Surgical Mask,160,427,481,17
+1/6/2026,100,Consumable,Ventilator,2718,612,92,4
+1/7/2026,103,Equipment,Ventilator,1104,412,301,9
+1/8/2026,100,Consumable,X-ray Machine,3988,144,357,23
+1/9/2026,103,Equipment,Gloves,1845,642,467,3
+1/10/2026,106,Equipment,Surgical Mask,178,140,151,1
+1/11/2026,101,Consumable,IV Drip,1935,164,483,26
+1/12/2026,109,Consumable,Ventilator,2398,248,416,7
+1/13/2026,102,Equipment,X-ray Machine,1310,291,179,22
+1/14/2026,109,Equipment,X-ray Machine,4017,535,275,29
+1/15/2026,104,Consumable,Ventilator,2725,969,79,23
+1/16/2026,109,Equipment,Ventilator,3055,741,8,28
+1/17/2026,101,Consumable,X-ray Machine,2352,584,12,26
+1/18/2026,103,Consumable,Gloves,3122,67,192,18
+1/19/2026,102,Equipment,X-ray Machine,3907,303,203,5
+1/20/2026,104,Equipment,X-ray Machine,2511,951,442,5
+1/21/2026,109,Consumable,X-ray Machine,1677,415,315,3
+1/22/2026,107,Consumable,Gloves,1060,117,39,26
+1/23/2026,104,Equipment,Gloves,1302,514,170,12
+1/24/2026,109,Consumable,Gloves,1261,847,471,11
+1/25/2026,104,Consumable,IV Drip,4209,827,449,3
+1/26/2026,101,Consumable,IV Drip,1687,35,35,12
+1/27/2026,102,Equipment,IV Drip,1793,278,210,13
+1/28/2026,107,Equipment,IV Drip,2995,574,427,21
+1/29/2026,102,Equipment,Surgical Mask,3099,848,437,10
+1/30/2026,103,Consumable,Surgical Mask,1823,953,71,27
+1/31/2026,109,Equipment,Surgical Mask,1310,775,132,4
+2/1/2026,107,Equipment,Ventilator,2023,83,425,20
+2/2/2026,106,Consumable,Surgical Mask,2724,916,380,7
+2/3/2026,106,Consumable,Ventilator,3297,594,92,28
+2/4/2026,102,Equipment,X-ray Machine,1780,484,461,11
+2/5/2026,103,Equipment,Surgical Mask,317,154,168,17
+2/6/2026,106,Equipment,Gloves,1979,361,214,9
+2/7/2026,100,Equipment,IV Drip,2906,872,282,26
+2/8/2026,108,Consumable,Ventilator,4072,776,257,6
+2/9/2026,100,Equipment,X-ray Machine,997,239,108,16
+2/10/2026,107,Equipment,Surgical Mask,4193,304,419,27
+2/11/2026,106,Consumable,IV Drip,822,186,382,6
+2/12/2026,105,Consumable,Gloves,3619,710,450,19

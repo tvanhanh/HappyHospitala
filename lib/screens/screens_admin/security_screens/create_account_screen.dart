@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:logger/logger.dart';
+import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:flutter_application_datlichkham/screens/screens_admin/security_screens/security_ayth.dart'; (Nếu cần redirect)
 
 class CreateUserScreenState extends StatefulWidget {
@@ -38,9 +40,7 @@ class _CreateUserScreenStateState extends State<CreateUserScreenState> {
         backgroundColor: Colors.blue.shade800,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
-        ),
+            icon: Icon(Icons.arrow_back_ios), onPressed: () => context.pop()),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -130,23 +130,34 @@ class _CreateUserScreenStateState extends State<CreateUserScreenState> {
     );
   }
 
-  // --- LOGIC XỬ LÝ ĐĂNG KÝ ---
   Future<void> _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       if (password != confirmPassword) {
         showSnackbar("Mật khẩu không khớp", isError: true);
         return;
       }
+
       try {
-        // Giả lập gọi API (Thay bằng ApiService.registerUser thực tế của bạn)
-        // Lưu ý: Cần update hàm registerUser để nhận thêm tham số 'role' nếu backend hỗ trợ
-        final error = await ApiService.registerUser(
-            name, email, password, confirmPassword); // + selectedRole
+        final prefs = await SharedPreferences.getInstance();
+        final token = await prefs.getString('token'); // ✅ LẤY TOKEN
+        if (token == null) {
+          showSnackbar("Bạn chưa đăng nhập", isError: true);
+          return;
+        }
+        final error = await ApiService.registerUserByAdmin(
+          name,
+          email,
+          password,
+          confirmPassword,
+          selectedRole,
+          token, // ✅ THÊM TOKEN VÀO ĐÂY
+        );
 
         if (!mounted) return;
+
         if (error == null) {
           showSnackbar("Tạo tài khoản thành công!");
-          Navigator.pop(context); // Quay về màn hình quản lý
+          context.pop();
         } else {
           showSnackbar(error, isError: true);
         }

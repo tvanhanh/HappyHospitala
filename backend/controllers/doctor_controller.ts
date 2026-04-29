@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import Doctor, { IDoctor } from "../models/Doctor";
 import Department,{IDepartment} from"../models/Departments";
 import mongoose from 'mongoose';
-
+import User from "../models/User";
 
 // Thêm phòng ban
 export const addDoctors = async (req: Request, res: Response) => {
@@ -11,7 +11,7 @@ export const addDoctors = async (req: Request, res: Response) => {
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
     const newDoctors = new Doctor({
-        doctorName,
+      doctorName,
       email,
       phone,
       address,
@@ -30,80 +30,104 @@ export const addDoctors = async (req: Request, res: Response) => {
   }
 };
 
-// Lấy danh sách 
 export const getDoctors = async (req: Request, res: Response) => {
   try {
-    const doctors = await Doctor.find();
-    const formattedDoctors = await Promise.all(
-      doctors.map(async (doctor:IDoctor ) => {
-        const department: IDepartment | null = await Department.findById(doctor.departmentName);
-        return {
-          _id: doctor._id.toString(),
-          doctorName: doctor.doctorName || 'Không rõ tên',
-          email: doctor.email || 'Chưa có',
-          phone:doctor.phone || 'chưa có',
-          address:doctor.address || 'chưa có',
-          departmentId: doctor.departmentName.toString() || 'không rõ',
-          departmentName: department?.departmentName || 'Không rõ',
-          specialization: doctor.specialization || 'chưa có',
-          avatar: doctor.avatar || ' chưa có',
-        };
-      })
-    );
-    res.status(200).json(formattedDoctors);
+    const doctors = await User.find({ role: "doctor" }).select("-password");
+
+    res.status(200).json({
+      message: "Get doctors success",
+      data: doctors,
+    });
   } catch (error) {
-    console.error("Lỗi khi lấy phòng ban", error);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-// Cập nhật 
-export const updateDoctor = async (req: Request, res: Response) => {
+export const updateDoctorProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const doctorId = req.params.id;
+
+    const doctor = await User.findById(doctorId);
+
+    if (!doctor) {
+      res.status(404).json({ message: "Doctor not found" });
+      return;
+    }
+
+    doctor.profile = {
+      ...(doctor.profile || {}),
+      ...req.body,
+    };
+
+    await doctor.save();
+
+    res.status(200).json({
+      message: "Update success",
+      doctor,
+    });
+    return;
+
+  } catch (error) {
+    console.error("UPDATE ERROR:", error);
+
+    res.status(500).json({
+      message: "Server error",
+      error: String(error),
+    });
+    return;
+  }
+}
+
+export const getDoctorById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { doctorName, email, phone,address, departmentName,specialization, avatar } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-       res.status(400).json({ message: 'ID không hợp lệ' });
-       return;
+      res.status(400).json({ message: "ID không hợp lệ" });
+      return;
     }
 
-    const updated = await Doctor.findByIdAndUpdate(
-      id,
-      {doctorName, email, phone,address,departmentName, specialization,avatar   },
-      { new: true }
-    );
+    const doctor = await User.findOne({
+      _id: id,
+      role: "doctor",
+    });
 
-    if (!updated) {
-       res.status(404).json({ message: "Không tìm thấy doctor" });
-       return;
+    if (!doctor) {
+      res.status(404).json({ message: "Không tìm thấy bác sĩ" });
+      return;
     }
 
-    res.status(200).json({ message: "Cập nhật thành công", Doctor: updated });
+    res.status(200).json({
+      message: "Lấy thông tin bác sĩ thành công",
+      data: doctor,
+    });
   } catch (error) {
-    console.error("Lỗi khi cập nhật phòng ban", error);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    console.log(error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 };
 
-// Xoá phòng ban
-export const deleteDoctor = async (req: Request, res: Response) => {
+export const getFeaturedDoctors = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-       res.status(400).json({ message: 'ID không hợp lệ' });
-       return;
-    }
-    const deleted = await Doctor.findByIdAndDelete(id);
+    const doctors = await User.find({
+  role: "doctor",
+  isDeleted: false,
+})
+  .sort({ "profile.experience": -1 }) // 🔥 nhiều năm nhất lên đầu
+  .limit(4)
+  .lean();
 
-    if (!deleted) {
-       res.status(404).json({ message: "Không tìm thấy phòng ban" });
-       return;
-    }
+    const result = doctors.map((d: any) => ({
+      _id: d._id,
+      name: d.name,
+      avatar: d.profile?.avatar,
+      specialty: d.profile?.specialty,
+      experience: d.profile?.experience,
+      price: d.profile?.price, // ⚠️ bạn đang đặt tên sai
+    }));
 
-    res.status(200).json({ message: "Xoá thành công" });
+    res.json(result);
   } catch (error) {
-    console.error("Lỗi khi xoá phòng ban", error);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    res.status(500).json({ message: "Lỗi server" });
   }
 };

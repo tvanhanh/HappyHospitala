@@ -111,6 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 // [Logic chuyển hướng]
                                 if (result != null && result['error'] == null) {
                                   final role = result['role'];
+
                                   if (role == 'admin') {
                                     context.go('/admin');
                                   } else if (role == 'patient') {

@@ -27,10 +27,21 @@ def predict_api():
             return jsonify({"error": f"Thiếu các trường: {', '.join(missing_fields)}"}), 400
 
         # Mã hóa giới tính: "M" => 0, "F" => 1
+        gender_raw = input_data.get("Gender")
+
+        if gender_raw is None:
+            return jsonify({"error": "Thiếu Gender"}), 400
+
+        # normalize
+        gender = str(gender_raw).strip().lower()
         gender_map = {"M": 0, "F": 1}
-        gender_raw = input_data["Gender"]
-        if not isinstance(gender_raw, str) or gender_raw.strip().upper() not in gender_map:
-            return jsonify({"error": "Giá trị Gender không hợp lệ. Chỉ nhận M hoặc F"}), 400
+
+        if gender in ["m", "male", "nam"]:
+            input_data["Gender"] = 0
+        elif gender in ["f", "female", "nữ", "nu"]:
+            input_data["Gender"] = 1
+        else:
+            return jsonify({"error": f"Gender không hợp lệ: {gender_raw}"}), 400
 
         input_data["Gender"] = gender_map[gender_raw.strip().upper()]
 

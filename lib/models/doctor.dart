@@ -1,27 +1,28 @@
 class Doctor {
+  final String id;
   final String name;
+  final String avatar;
   final String specialty;
-  final String imageUrl;
-  final String hospital;
-  final int experience;
-  final String description;
-  final String phone;
-  final String email;
-  final String address;
-  final String workingHours;
-  final String bookingLink;
+  final String experience;
+  final String price;
 
   Doctor({
+    required this.id,
     required this.name,
+    required this.avatar,
     required this.specialty,
-    required this.imageUrl,
-    required this.hospital,
     required this.experience,
-    required this.description,
-    required this.phone,
-    required this.email,
-    required this.address,
-    required this.workingHours,
-    required this.bookingLink,
+    required this.price,
   });
+
+  factory Doctor.fromJson(Map<String, dynamic> json) {
+    return Doctor(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      avatar: json['avatar'] ?? '',
+      specialty: json['specialty'] ?? '',
+      experience: json['experience'] ?? '',
+      price: json['price']?.toString() ?? '',
+    );
+  }
 }

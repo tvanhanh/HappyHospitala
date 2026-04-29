@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
-import Appointment, { IAppointment } from "../models/Appointment";
 
-// Khai báo type cho Request (nếu dùng Cách 1)
+// ================= TYPE =================
 declare global {
   namespace Express {
     interface Request {
@@ -13,61 +12,68 @@ declare global {
         role?: string;
         status?: string;
       };
-      // appoitment?: IAppointment;
     }
   }
 }
 
+// ================= AUTH MIDDLEWARE =================
 export const verifyToken = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) {
-    res.status(401).json({ message: "Không có token" });
-    return;
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      _id: string;
-      email: string;
-    };
+    const authHeader = req.headers.authorization;
 
-    // Tìm người dùng trong cơ sở dữ liệu để lấy role
-    const user = await User.findById(decoded._id);
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({ message: "Không có token" });
+      return;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // ===== VERIFY TOKEN =====
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+
+    // 🔥 FIX QUAN TRỌNG: hỗ trợ cả id và _id
+    const userId = decoded.id || decoded._id;
+
+    if (!userId) {
+      res.status(401).json({ message: "Token sai format" });
+      return;
+    }
+
+    // ===== FIND USER =====
+    const user = await User.findById(userId);
+
     if (!user) {
       res.status(401).json({ message: "Người dùng không tồn tại" });
       return;
     }
 
-    // Gán req.user với thông tin bao gồm role
-    req.user = {
-      id: decoded._id,
-      email: decoded.email,
-      role: user.role, // Giả sử User model có trường role
-      status: user.status,
-    };
+    // ===== SET REQUEST USER =====
+   const u = user as any;
 
-    // const appointmentId = req.params.id || req.body.appointmentId; // Lấy ID từ params hoặc body
-    // if (appointmentId) {
-    //   const appoitment = await Appointment.findById(appointmentId);
-    //   if (!appoitment) {
-    //     res.status(404).json({ message: "Lịch hẹn không tồn tại" });
-    //     return;
-    //   }
-    //   req.appoitment = appoitment;
-    // }
-   
+req.user = {
+  id: u._id.toString(),
+  email: u.email,
+  role: u.role,
+  status: u.status,
+};
+
     next();
   } catch (error) {
+    console.log("AUTH ERROR:", error);
     res.status(401).json({ message: "Token không hợp lệ" });
-    return;
   }
 };
 
-export const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
+// ================= ADMIN CHECK =================
+export const isAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   if (!req.user || req.user.role !== "admin") {
     res.status(403).json({ message: "Chỉ admin mới được phép" });
     return;

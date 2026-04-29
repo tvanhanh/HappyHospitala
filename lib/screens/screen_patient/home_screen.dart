@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/login_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/register_screen.dart';
+import 'package:flutter_application_datlichkham/screens/screen_patient/doctor_search_bar.dart';
+import 'package:flutter_application_datlichkham/screens/screen_patient/featured_doctors.dart';
+import 'package:flutter_application_datlichkham/screens/screen_patient/patient_appointments_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'doctors_screen.dart';
 import 'faq_screen.dart';
 import 'medical_facilities_screen.dart';
 import 'specialties_screen.dart';
@@ -29,10 +31,46 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _user;
   bool _isLoading = true;
 
+  // state profile
+  bool showBanner = false;
+  bool isLoading = true;
+  bool dismissed = false;
+
   @override
   void initState() {
     super.initState();
+    print("INIT STATE RUNNING");
     _checkUser();
+    loadProfile();
+    loadUser();
+  }
+
+  Future<void> loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final name = prefs.getString('name');
+    final role = prefs.getString('role');
+
+    if (name != null && role != null) {
+      setState(() {
+        _user = {
+          'name': name,
+          'role': role,
+        };
+      });
+    }
+  }
+
+  Future<void> loadProfile() async {
+    print("LOAD PROFILE START"); // 🔥
+    final profile = await ApiService.getProfile();
+
+    debugPrint("PROFILE: $profile");
+    setState(() {
+      isLoading = false;
+      showBanner =
+          profile['profileStatus']['isComplete'] == false && !dismissed;
+    });
   }
 
   Future<void> _checkUser() async {
@@ -62,37 +100,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('user');
+
+    // Xóa toàn bộ session
+    await prefs.clear();
+
     setState(() {
       _user = null;
     });
+
+    if (context.mounted) {
+      context.go('/login');
+    }
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-  }
 
-  Widget _buildScreen(int index) {
     switch (index) {
       case 0:
-        return _buildHomeContent();
+        context.go('/home');
+        break;
       case 1:
-        return ProfileScreen();
+        context.go('/home/profile');
+        break;
       case 2:
-        return DiscussionScreen();
+        context.go('/home/discussion');
+        break;
       case 3:
-        return BookingScreen();
+        context.go('/home/appointments');
+        break;
       case 4:
-        return DiagnosisResultScreen();
+        context.go('/home/results');
+        break;
       case 5:
-        return DiagnosisResultScreen();
-      default:
-        return _buildHomeContent();
+        context.go('/patient/medical-records');
+        break;
     }
   }
 
+  @override
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -100,25 +148,22 @@ class _HomeScreenState extends State<HomeScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
       appBar: AppBar(
-        // Sử dụng Row để kết hợp Logo và Text
         title: Row(
           children: [
-            // Bọc Image.asset bằng ClipOval
             ClipOval(
               child: Image.asset(
                 'assets/logo.png',
-                height: 40, // ✅ Giảm kích thước logo
-                width: 40,
+                height: 50,
+                width: 50,
                 fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 10),
-            const Text('Happy Clinic', style: TextStyle(color: Colors.white)),
           ],
         ),
-
         backgroundColor: Colors.blue,
         leading: Builder(
           builder: (context) => IconButton(
@@ -126,24 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-
         actions: [
           _user == null
-              ? Row(
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => LoginScreen(),
-                        );
-                      },
-                      child: const Text(
-                        'Đăng xuất',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
+              ? TextButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => LoginScreen(),
+                    );
+                  },
+                  child: const Text(
+                    'Đăng nhập',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 )
               : Row(
                   children: [
@@ -159,40 +199,97 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
         ],
       ),
+
       drawer: buildDrawerMenu(context),
-      body: _buildScreen(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Trang chủ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Thông tin',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat),
-            label: 'Thảo luận',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Đặt lịch',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: 'Kết quả',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description),
-            label: 'Bệnh án',
-          ),
+
+      // 🔥 BANNER + BODY FIX Ở ĐÂY
+      body: Column(
+        children: [
+          // 🔥 BANNER (đã fix đúng vị trí)
+          if (showBanner)
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.all(12),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info, color: Colors.white),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Bạn chưa hoàn thiện hồ sơ",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context.push('/update_profile');
+                    },
+                    child: Text(
+                      "Cập nhật thông tin",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // 🔥 MAIN CONTENT
+          Expanded(child: _buildHomeContent()),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
+      ),
+    );
+  }
+
+  Widget buildBanner() {
+    return Container(
+      margin: EdgeInsets.all(12),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange, Colors.deepOrange],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info, color: Colors.white),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              "Hoàn thiện hồ sơ để sử dụng đầy đủ tính năng",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          Column(
+            children: [
+              // ❌ close banner
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    showBanner = false;
+                    dismissed = true;
+                  });
+                },
+                child: Icon(Icons.close, color: Colors.white),
+              ),
+
+              SizedBox(height: 8),
+
+              // 🔥 đi tới update profile
+              ElevatedButton(
+                onPressed: () {
+                  context.push('/update_profile');
+                },
+                child: Text("Cập nhật"),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }
@@ -209,7 +306,15 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 20),
+            DoctorSearchBar(
+              onSearch: (keyword) {
+                context.push('/doctors?search=$keyword');
+              },
+            ),
+            SizedBox(height: 20),
             _buildCarousel(),
+            SizedBox(height: 20),
+            FeaturedDoctors(),
             SizedBox(height: 20),
             _buildProfileCard(),
             SizedBox(height: 20),
@@ -230,8 +335,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildCarousel() {
     final List<String> images = [
       'assets/banner1.jpg',
-      'assets/banner2.jpg',
-      'assets/banner3.jpg',
+      'assets/banner4.jpg',
+      'assets/banner5.jpg',
+      'assets/banner6.jpg',
     ];
 
     return CarouselSlider(
@@ -437,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               TextButton(
                 onPressed: () {
-                  context.go('/patient/doctor_screen');
+                  context.go('/doctor_list');
                 },
                 child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
@@ -530,7 +636,9 @@ class _HomeScreenState extends State<HomeScreen> {
       title: Text(title, style: const TextStyle(fontSize: 18)),
       onTap: () {
         // 1. Đóng Drawer trước
-        Navigator.pop(context);
+        if (context.canPop()) {
+          context.pop();
+        }
 
         // 2. Chuyển trang bằng GoRouter (Dùng path)
         context.go(routePath);
@@ -564,7 +672,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () {
+                  context.push('/doctor_list');
+                },
                 child: Text('Xem tất cả', style: TextStyle(color: Colors.blue)),
               ),
             ],
@@ -598,284 +708,6 @@ class _HomeScreenState extends State<HomeScreen> {
           }).toList(),
         ),
       ],
-    );
-  }
-
-  Widget _buildLoginDialog() {
-    final _formKey = GlobalKey<FormState>();
-    String email = '', password = '';
-    bool isPasswordVisible = false;
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('assets/logo.png', height: 80),
-                  SizedBox(height: 10),
-                  Text(
-                    "Chăm sóc sức khỏe toàn diện - Vì bạn xứng đáng!",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey.shade700,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    "Chào mừng trở lại!",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Đăng nhập để tiếp tục",
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-                  SizedBox(height: 25),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon:
-                          Icon(Icons.email, color: Colors.blue.shade700),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    validator: (value) =>
-                        value!.isEmpty ? "Không được để trống" : null,
-                    onChanged: (value) => email = value,
-                  ),
-                  SizedBox(height: 15),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Mật khẩu',
-                      prefixIcon: Icon(Icons.lock, color: Colors.blue.shade700),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isPasswordVisible = !isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    obscureText: !isPasswordVisible,
-                    validator: (value) =>
-                        value!.isEmpty ? "Không được để trống" : null,
-                    onChanged: (value) => password = value,
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        final result =
-                            await ApiService.loginUser(email, password);
-                        if (!context.mounted) return;
-
-                        if (result != null && result['error'] == null) {
-                          final role = result['role'];
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('user', jsonEncode(result));
-
-                          setState(() {
-                            _user = result;
-                          });
-                          Navigator.pop(context);
-
-                          if (role == 'admin') {
-                            context.go('/admin');
-                          } else if (role == 'doctor') {
-                            context.go('/doctor');
-                          }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  result?['error'] ?? 'Đăng nhập thất bại'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade700,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                    ),
-                    child: Text("Đăng nhập", style: TextStyle(fontSize: 16)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRegisterDialog() {
-    final _formKey = GlobalKey<FormState>();
-    String name = '', email = '', password = '';
-    bool isPasswordVisible = false;
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('assets/logo.png', height: 80),
-                  SizedBox(height: 10),
-                  Text(
-                    "Chăm sóc sức khỏe toàn diện - Vì bạn xứng đáng!",
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.grey.shade700,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    "Đăng Ký Tài Khoản",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "Tạo tài khoản để trải nghiệm dịch vụ",
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-                  SizedBox(height: 25),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Họ và tên',
-                      prefixIcon:
-                          Icon(Icons.person, color: Colors.blue.shade700),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    validator: (value) =>
-                        value!.isEmpty ? "Không được để trống" : null,
-                    onChanged: (value) => name = value,
-                  ),
-                  SizedBox(height: 15),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon:
-                          Icon(Icons.email, color: Colors.blue.shade700),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    validator: (value) =>
-                        value!.isEmpty ? "Không được để trống" : null,
-                    onChanged: (value) => email = value,
-                  ),
-                  SizedBox(height: 15),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      labelText: 'Mật khẩu',
-                      prefixIcon: Icon(Icons.lock, color: Colors.blue.shade700),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            isPasswordVisible = !isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                    obscureText: !isPasswordVisible,
-                    validator: (value) =>
-                        value!.isEmpty ? "Không được để trống" : null,
-                    onChanged: (value) => password = value,
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        try {
-                          final response = await http.post(
-                            Uri.parse(
-                                'http://your-backend-url/api/auth/register'),
-                            headers: {'Content-Type': 'application/json'},
-                            body: jsonEncode({
-                              'name': name,
-                              'email': email,
-                              'password': password,
-                              'role': 'patient',
-                            }),
-                          );
-                          if (response.statusCode == 201) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Đăng ký thành công, vui lòng đăng nhập')),
-                            );
-                          } else {
-                            throw Exception(
-                                'Đăng ký thất bại: ${response.body}');
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(e.toString())),
-                          );
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade700,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      padding:
-                          EdgeInsets.symmetric(vertical: 12, horizontal: 50),
-                    ),
-                    child: Text("Đăng xuất", style: TextStyle(fontSize: 16)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

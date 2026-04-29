@@ -14,11 +14,13 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-  final TextEditingController specializationController = TextEditingController();
+  final TextEditingController specializationController =
+      TextEditingController();
 
   List<Map<String, dynamic>> departments = [];
   String? selectedDepartmentId;
   File? _image;
+  Map<String, dynamic>? doctor;
 
   @override
   void initState() {
@@ -107,18 +109,22 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
               controller: nameController,
               decoration: InputDecoration(labelText: 'Tên bác sĩ'),
             ),
+            SizedBox(height: 16),
             TextField(
               controller: emailController,
               decoration: InputDecoration(labelText: 'Email'),
             ),
+            SizedBox(height: 16),
             TextField(
               controller: phoneController,
               decoration: InputDecoration(labelText: 'Số điện thoại'),
             ),
+            SizedBox(height: 16),
             TextField(
               controller: addressController,
               decoration: InputDecoration(labelText: 'Địa chỉ'),
             ),
+            SizedBox(height: 16),
             TextField(
               controller: specializationController,
               decoration: InputDecoration(labelText: 'Chuyên khoa'),
@@ -131,7 +137,8 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
                 final id = dept['id']?.toString() ?? '';
                 return DropdownMenuItem<String>(
                   value: id,
-                  child: Text(dept['departmentName']?.toString()??'Không rõ tên phòng ban'),
+                  child: Text(dept['departmentName']?.toString() ??
+                      'Không rõ tên phòng ban'),
                 );
               }).toList(),
               onChanged: (value) {

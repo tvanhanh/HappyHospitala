@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:url_strategy/url_strategy.dart';
 import 'router.dart'; // Import file router bạn vừa tạo
 
 const Color kPrimaryColor = Color(0xFF1565C0);
 
 void main() async {
+  setPathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi', null);
   runApp(const MyApp());

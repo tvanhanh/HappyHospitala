@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_datlichkham/screens/screens_admin/appointment_managemet.dart';
+import 'package:flutter_application_datlichkham/screens/screens_admin/manage_price.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 // Import các màn hình (giữ nguyên)
 import 'report_statistics.dart';
@@ -33,14 +35,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // Đưa Lịch hẹn (AI) và Bảo mật (Blockchain) lên đầu để nhấn mạnh đề tài
   final List<Widget> pages = [
     DashboardOverview(), // 0. Tổng quan
-    AppointmentListScreen(), // 1. Lịch hẹn & Tối ưu hóa (AI Core)
+    AdminAppointmentsScreen(), // 1. Lịch hẹn & Tối ưu hóa (AI Core)
     UserManagementScreen(), // 2. Bảo mật & Phân quyền (Blockchain Core)
     PatientListScreen(), // 3. Quản lý Bệnh nhân
     DoctorListScreen(), // 4. Quản lý Bác sĩ
     StaffManagement(), // 5. Quản lý Nhân viên
-    DepartmentManagement(), // 6. Quản lý Phòng ban
-    MedicineInventory(), // 7. Quản lý Thuốc & Kho
-    MonthlyReportScreen(), // 8. Báo cáo
+    UserManagementScreen(), //6.Quản lý User
+    DepartmentManagement(), // 7. Quản lý Phòng ban
+    MedicineInventory(), // 8. Quản lý Thuốc & Kho
+    MonthlyReportScreen(), //9
+    ManagePriceScreen() // 10. Báo cáo
   ];
 
   void onSelectMenu(int index) {
@@ -122,13 +126,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   _buildDrawerItem(
                       4, Icons.medical_information_outlined, 'Bác sĩ'),
                   _buildDrawerItem(5, Icons.badge_outlined, 'Nhân viên'),
-                  _buildDrawerItem(6, Icons.apartment_outlined, 'Phòng ban'),
-
+                  _buildDrawerItem(7, Icons.apartment_outlined, 'Phòng ban'),
+                  _buildDrawerItem(
+                      9, Icons.apartment_outlined, 'Quản Lý Giá Khám'),
+                  _buildDrawerItem(
+                      6, Icons.manage_accounts_outlined, 'Tài khoản'),
                   SizedBox(height: 10),
                   _buildSectionTitle("HẬU CẦN & BÁO CÁO"),
 
-                  _buildDrawerItem(7, Icons.inventory_2_outlined, 'Kho thuốc'),
-                  _buildDrawerItem(8, Icons.analytics_outlined, 'Thống kê'),
+                  _buildDrawerItem(8, Icons.inventory_2_outlined, 'Kho thuốc'),
+                  _buildDrawerItem(9, Icons.analytics_outlined, 'Thống kê'),
                 ],
               ),
             ),
@@ -340,7 +347,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 0:
         return 'Tổng Quan Hệ Thống';
       case 1:
-        return 'Tối Ưu Hóa Vận Hành (AI)';
+        return '';
       case 2:
         return 'Bảo Mật Dữ Liệu (Blockchain)';
       case 3:
@@ -350,10 +357,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
       case 5:
         return 'Quản Lý Nhân Viên';
       case 6:
-        return 'Cơ Cấu Phòng Ban';
+        return 'Quản lý tài khoản';
       case 7:
-        return 'Kho Thuốc & Vật Tư';
+        return 'Cơ Cấu Phòng Ban';
       case 8:
+        return 'Quản Lý Giá Khám';
+      case 9:
+        return 'Kho Thuốc & Vật Tư';
+      case 10:
         return 'Báo Cáo & Thống Kê';
       default:
         return 'Admin Dashboard';

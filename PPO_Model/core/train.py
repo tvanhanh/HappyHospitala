@@ -34,7 +34,7 @@ def main():
     )
 
     model.learn(total_timesteps=100_000)
-    model.save("models/ppo_clinic_resource")
+    model.save("modelsPPO/ppo_clinic_resource")
     env.close()
 
 
