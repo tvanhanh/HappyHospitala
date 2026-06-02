@@ -154,70 +154,72 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  void submit() async {
-    if (!_formKey.currentState!.validate()) return;
+ void submit() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    if (selectedDate == null || selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng chọn ngày và giờ")),
-      );
-      return;
+  if (selectedDate == null || selectedTime == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Vui lòng chọn ngày và giờ")),
+    );
+    return;
+  }
+
+  try {
+    if (imageFile != null) {
+      imageUrl = await uploadToCloudinary(imageFile!);
     }
 
-    try {
-      // upload image nếu có
-      if (imageFile != null) {
-        imageUrl = await uploadToCloudinary(imageFile!);
-      }
+    final date = DateFormat('yyyy-MM-dd').format(selectedDate!);
+    final time = selectedTime!.format(context);
 
-      final date = DateFormat('yyyy-MM-dd').format(selectedDate!);
-      final time = selectedTime!.format(context);
+    final result = await AppointmentApi.addAppointment(
+      doctorId: doctor!['_id'],
+      departmentId: doctor!['departmentId'] ?? '',
+      patientName: patientName,
+      phone: phone,
+      cccd: "",
+      birthDate: "",
+      gender: gender,
+      address: address,
+      medicalHistory: medicalHistory,
+      allergies: allergies,
+      reason: reason,
+      date: date,
+      time: time,
+      imageUrl: imageUrl,
+    );
 
-      final result = await AppointmentApi.addAppointment(
-        doctorId: doctor!['_id'],
-        patientName: patientName,
-        phone: phone,
-        gender: gender,
-        address: address,
-        medicalHistory: medicalHistory,
-        allergies: allergies,
-        reason: reason,
-        date: date,
-        time: time,
-        imageUrl: imageUrl,
+    if (!mounted) return;
+    final success = result is Map && result["success"] == true;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Đặt lịch thành công 🎉"),
+          backgroundColor: Colors.green,
+        ),
       );
 
-      // ================= SUCCESS =================
-      if (result.toLowerCase().contains("success") ||
-          result.toLowerCase().contains("thành công")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Đặt lịch thành công 🎉"),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // optional: quay về màn trước
-        Navigator.pop(context);
-      }
-      // ================= FAIL =================
-      else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Thất bại: $result"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
+      Navigator.pop(context);
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Lỗi hệ thống: $e"),
+          content: Text(
+            "Thất bại: ${result is Map ? result["message"] : result}",
+          ),
           backgroundColor: Colors.red,
         ),
       );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Lỗi hệ thống: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

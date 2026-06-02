@@ -43,15 +43,21 @@ import 'screens/screen_doctor/chatAI_screen.dart';
 import 'screens/screen_patient/profile_screen.dart';
 import 'screens/screen_patient/diagnosis_result_screen.dart';
 import 'screens/screen_patient/specialties_screen.dart';
-
+import 'screens/screen_patient/booking_screen.dart';
 import 'screens/screen_patient/medical_facilities_screen.dart';
 import 'screens/screen_patient/faq_screen.dart';
 import 'screens/screen_patient/medical_records.dart';
 import 'screens/screen_doctor/medical_record_formblockchain.dart';
 import 'screens/screen_doctor/list_medical_record.dart';
-
-// Thay bằng đường dẫn thực tế đến file model của bạn
-
+import 'screens/screen_doctor/medical_record_detail_page.dart';
+import 'screens/screen_patient/appointment_detail_screen.dart';
+import 'screens/screen_doctor/appointment_detail_screen.dart';
+import 'screens/screen_receptionist/appointment_management_screen.dart';
+import 'screens/screen_receptionist/dashboard.dart';
+import 'screens/screen_receptionist/patient_management_screen.dart';
+import 'screens/screen_receptionist/notificationScreen.dart';
+import 'screens/screen_receptionist/medical_records_screen.dart';
+import 'screens/screen_receptionist/dashboard.dart';
 final GoRouter router = GoRouter(
   initialLocation: '/',
   routes: [
@@ -59,7 +65,6 @@ final GoRouter router = GoRouter(
       path: '/',
       builder: (context, state) => SplashScreen(),
     ),
-    //Authentication
     GoRoute(
       path: '/login',
       builder: (context, state) => LoginScreen(),
@@ -68,22 +73,14 @@ final GoRouter router = GoRouter(
       path: '/register',
       builder: (context, state) => RegisterScreen(),
     ),
-
-    // 3. Màn hình Quên mật khẩu
     GoRoute(
       path: '/forgot-password',
       builder: (context, state) => ForgotPasswordScreen(),
     ),
-
-    // 4. Màn hình Xác nhận (OTP hoặc link xác nhận)
-
-    // 5. Màn hình Đổi mật khẩu (Sau khi quên mật khẩu)
     GoRoute(
       path: '/change-password-reset',
       builder: (context, state) => const ChangePasswordScreen(),
     ),
-
-    // 6. Trang Đổi mật khẩu (Thường dùng trong mục Profile/Cài đặt)
     GoRoute(
       path: '/change-password-page',
       builder: (context, state) {
@@ -99,7 +96,7 @@ final GoRouter router = GoRouter(
 
     //Patient
     GoRoute(
-      path: '/doctor_list',
+      path: '/patient/doctor_list',
       builder: (context, state) => PatientDoctorListScreen(),
     ),
     GoRoute(
@@ -158,6 +155,7 @@ final GoRouter router = GoRouter(
     GoRoute(
         path: '/patient/specialties_screen',
         builder: (context, state) => SpecialtiesScreen()),
+   
     GoRoute(
         path: '/patient/medical_facilities_screen',
         builder: (context, state) => MedicalFacilitiesScreen()),
@@ -168,13 +166,12 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/patient-detail',
       builder: (context, state) {
-        // Ép kiểu state.extra về Map<String, dynamic>
-        // Nếu state.extra bị null (do F5), ta tạo một Map trống để tránh lỗi crash
         final patientData = (state.extra as Map<String, dynamic>?) ?? {};
 
         return PatientDetailScreen(patient: patientData);
       },
     ),
+
     //Admin
     GoRoute(
       path: '/admin/user_management',
@@ -196,36 +193,55 @@ final GoRouter router = GoRouter(
     //Staff
     GoRoute(
       path: '/staff',
-      builder: (context, state) => StaffDashboard(),
+      builder: (context, state) => ReceptionistDashboard(),
     ),
+    //Receptionist
+    GoRoute(
+      path: '/receptionist/dashboard',
+      builder: (context, state) => const ReceptionistDashboard(),
+    ),
+    GoRoute(
+      path: '/receptionist/patient-management',
+      builder: (context, state) => const PatientManagementScreen(),
+    ),
+    GoRoute(
+      path: '/receptionist/appointment-management',
+       builder: (context, state) {
+    return AppointmentScreen(
+      appointments: [],
+    );
+  },
+    ),
+   
+    GoRoute(
+      path: '/receptionist/notification',
+      builder: (context, state) => const NotificationScreen(),
+    
+    ),
+    GoRoute(
+  path: '/receptionist/medical-records',
+  builder: (context, state) =>
+      const MedicalRecordsScreen(),
+),
+// 
     //Doctor
     GoRoute(
       path: '/doctor',
       builder: (context, state) => DoctorDashboard(),
     ),
-    // GoRoute(
-    //   path: '/doctor/addPatient',
-    //   builder: (context, state) {
-    //     // Ép kiểu state.extra về Map<String, dynamic>
-    //     // Nếu state.extra bị null (do F5), ta tạo một Map trống để tránh lỗi crash
-    //     final appData = (state.extra as Map<String, dynamic>?) ?? {};
-
-    //     return AppointmentDetailPage(appointment: appData);
-    //   },
-    // ),
+    GoRoute(
+      path: '/doctor/appointments',
+      builder: (context, state) => DoctorAppointmentsScreen(),
+    ),
+    GoRoute(
+      path: '/doctor/appointments/appointment-detail',
+      builder: (context, state) => AppointmentDetailDoctorScreen(
+        appointment: state.extra as Appointment,
+      ),
+      
+    ),
     GoRoute(
         path: '/diagnosis', builder: (context, state) => DiagnosisFormScreen()),
-    // GoRoute(
-    //   path: '/medical-record',
-    //   builder: (context, state) {
-    //     // Lấy dữ liệu bệnh nhân từ state.extra
-    //     // Ép kiểu (cast) về Map hoặc PatientModel tùy vào cấu trúc của bạn
-    //     final patientData = state.extra as Patient;
-
-    //     return MedicalRecordsPage(patient : patientData);
-    //   },
-    //),
-
     GoRoute(
       path: '/doctor/edit/:doctorId',
       builder: (context, state) {
@@ -240,24 +256,14 @@ final GoRouter router = GoRouter(
     ),
 
     GoRoute(
-      path: '/doctor/appointments',
-      builder: (context, state) => DoctorAppointmentsScreen(),
-    ),
-    GoRoute(
       // :recordId là biến số, nó sẽ thay đổi tùy theo bệnh án bạn chọn
       path: '/medical-record-detail/:recordId',
       builder: (context, state) {
         // Lấy recordId từ URL thanh địa chỉ
         final recordId = state.pathParameters['recordId']!;
-
         return MedicalRecordDetailPage(recordId: recordId);
       },
     ),
-    GoRoute(
-      path: '/doctor/create-medical-record',
-      builder: (context, state) => const MedicalRecordForm(),
-    ),
-
     GoRoute(
       path: '/prescription',
       builder: (context, state) => PrescriptionPage(),
@@ -280,7 +286,14 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/doctor/create-medical-record',
-      builder: (context, state) => MedicalRecordForm(),
+      builder: (context, state) {
+        final appointment =
+            state.extra as Appointment;
+
+        return MedicalRecordForm(
+          appointment: appointment,
+        );
+      },
     ),
 
     GoRoute(
@@ -303,10 +316,5 @@ final GoRouter router = GoRouter(
         );
       },
     ),
-    // Department
-    // GoRoute(
-    //   path: '/admin/manage-price',
-    //   builder: (context, state) => const ManagePriceScreen(),
-    // ),
   ],
 );

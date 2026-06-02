@@ -45,22 +45,22 @@ export const getDoctors = async (req: Request, res: Response) => {
 
 export const updateDoctorProfile = async (req: Request, res: Response): Promise<void> => {
   try {
+     console.log(req.body);
+
     const doctorId = req.params.id;
-
     const doctor = await User.findById(doctorId);
-
     if (!doctor) {
       res.status(404).json({ message: "Doctor not found" });
       return;
     }
-
+     if (req.body.departmentId) {
+      doctor.departmentId = req.body.departmentId;
+    }
     doctor.profile = {
       ...(doctor.profile || {}),
       ...req.body,
     };
-
     await doctor.save();
-
     res.status(200).json({
       message: "Update success",
       doctor,
@@ -69,7 +69,6 @@ export const updateDoctorProfile = async (req: Request, res: Response): Promise<
 
   } catch (error) {
     console.error("UPDATE ERROR:", error);
-
     res.status(500).json({
       message: "Server error",
       error: String(error),
@@ -129,5 +128,27 @@ export const getFeaturedDoctors = async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Lỗi server" });
+  }
+};
+export const getDoctorsByDepartment = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { departmentId } = req.params;
+    console.log("Department =", req.params.departmentId);
+    const doctors = await User.find({
+      role: "doctor",
+      departmentId: departmentId,
+      isDeleted: false,
+    }).select(
+      "_id name profile.avatar profile.specialty"
+    );
+
+    res.status(200).json(doctors);
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };

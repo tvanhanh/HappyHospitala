@@ -10,12 +10,15 @@ import mongoose from "mongoose";
 export const addAppointment = async (req: any, res: Response): Promise<void> => {
   try {
     const patientId = req.user.id;
-
+    console.log(req.body);
     const {
       doctor,
+      department,
       patientName,
       phone,
+      cccd,
       gender,
+      birthDate,
       address,
       medicalHistory,
       allergies,
@@ -26,7 +29,7 @@ export const addAppointment = async (req: any, res: Response): Promise<void> => 
     } = req.body;
 
     // ================= VALIDATION =================
-    if (!doctor || !reason || !date || !time) {
+    if (!doctor ||!department ) {
       res.status(400).json({
         success: false,
         message: "Thiếu dữ liệu bắt buộc",
@@ -37,15 +40,16 @@ export const addAppointment = async (req: any, res: Response): Promise<void> => 
     // ================= CREATE =================
     const appointment = await Appointment.create({
       patient: patientId,
-      doctor,
-
+      doctor : doctor,
+      departmentId: department,
       patientName,
       phone,
+      cccd,
       gender,
+      birthDate,
       address,
       medicalHistory,
       allergies,
-
       reason,
       date,
       time,
@@ -196,5 +200,39 @@ export const cancelAppointment = async (req: Request, res: Response) => {
       success: false,
       message: "Huỷ lịch thất bại",
     });
+  }
+  
+};
+// Lấy theo Ngày
+export const getAppointmentsByDate = async (req: Request, res: Response) => {
+  try {
+    const { date } = req.query; 
+    console.log("Date:", date);
+    if (!date) {
+       res.status(400).json({
+        success: false,
+        message: "Thiếu ngày",
+      });
+      return;
+    }
+    const appointments = await Appointment.find({
+      date: date,
+    })
+      .populate("doctor", "name specialty")
+      .populate("departmentId", "departmentName")
+      .sort({ time: 1 });
+
+    res.json({
+      success: true,
+      data: appointments,
+    });
+    return;
+  } catch (err) {
+   res.status(500).json({
+      success: false,
+      message: "Lỗi server",
+      error: err,
+    });
+    return;
   }
 };

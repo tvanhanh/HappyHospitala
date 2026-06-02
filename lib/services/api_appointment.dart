@@ -6,58 +6,79 @@ import 'config.dart';
 
 class AppointmentApi {
   // ================= CREATE APPOINTMENT =================
-  static Future<String> addAppointment({
-    required String doctorId,
-    required String patientName,
-    required String phone,
-    required String gender,
-    required String address,
-    required String medicalHistory,
-    required String allergies,
-    required String reason,
-    required String date,
-    required String time,
-    String? imageUrl,
-  }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("token");
-      if (token == null) {
-        return "Chưa đăng nhập";
-      }
-
-      final res = await http.post(
-        Uri.parse("$baseUrl/appointments/add"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode({
-          "doctor": doctorId,
-          "patientName": patientName,
-          "phone": phone,
-          "gender": gender,
-          "address": address,
-          "medicalHistory": medicalHistory,
-          "allergies": allergies,
-          "reason": reason,
-          "date": date,
-          "time": time,
-          "imageUrl": imageUrl ?? "",
-        }),
-      );
-
-      final data = jsonDecode(res.body);
-
-      if (res.statusCode == 201 || res.statusCode == 200) {
-        return data["message"] ?? "success";
-      } else {
-        return data["message"] ?? "Lỗi tạo lịch hẹn";
-      }
-    } catch (e) {
-      return "Lỗi: $e";
+ static Future<Map<String, dynamic>> addAppointment({
+  required String doctorId,
+  required String departmentId,
+  String? patientName,
+  String? phone,
+  String? cccd,
+  String? birthDate,
+  String? gender,
+  String? address,
+  String? medicalHistory,
+  String? allergies,
+  String? reason,
+  String? date,
+  String? time,
+  String? imageUrl,
+}) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+    if (token == null) {
+      return {"success": false, "message": "Chưa đăng nhập"};
     }
+
+    final Map<String, dynamic> body = {
+      "doctor": doctorId,
+      "department": departmentId,
+    };
+
+    void addIfNotEmpty(String key, String? value) {
+      if (value != null && value.trim().isNotEmpty) {
+        body[key] = value.trim();
+      }
+    }
+
+    addIfNotEmpty("patientName", patientName);
+    addIfNotEmpty("phone", phone);
+    addIfNotEmpty("cccd", cccd);
+    addIfNotEmpty("birthDate", birthDate);
+    addIfNotEmpty("gender", gender);
+    addIfNotEmpty("address", address);
+    addIfNotEmpty("medicalHistory", medicalHistory);
+    addIfNotEmpty("allergies", allergies);
+    addIfNotEmpty("reason", reason);
+    addIfNotEmpty("date", date);
+    addIfNotEmpty("time", time);
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      body["imageUrl"] = imageUrl;
+    }
+
+    final res = await http.post(
+      Uri.parse("$baseUrl/appointments/add"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(res.body);
+
+    return {
+      "success": res.statusCode == 200 || res.statusCode == 201,
+      "message": data["message"] ?? "",
+      "data": data["data"],
+    };
+  } catch (e) {
+    return {
+      "success": false,
+      "message": "Lỗi: $e",
+    };
   }
+}
 
   // ================= GET ALL (ADMIN) =================
   static Future<List<Appointment>> getAllAppointments() async {
@@ -137,7 +158,7 @@ class AppointmentApi {
   }
 
   // ================= UPDATE STATUS =================
-  static Future<String> updateStatus({
+  static Future<Map<String, dynamic>> updateStatus({
     required String id,
     required String status,
   }) async {
@@ -157,13 +178,19 @@ class AppointmentApi {
       print("UPDATE STATUS CALL");
       print("id: $id");
       print("status: $status");
-      if (res.statusCode == 200) {
-        return data["message"] ?? "updated";
-      } else {
-        return "update failed";
-      }
+
+      final success = res.statusCode == 200 && data["success"] == true;
+      return {
+        "success": success,
+        "message": data["message"] ??
+            (success ? "Cập nhật trạng thái thành công" : "Cập nhật thất bại"),
+        "data": data["data"],
+      };
     } catch (e) {
-      return "Lỗi: $e";
+      return {
+        "success": false,
+        "message": "Lỗi: $e",
+      };
     }
   }
 
@@ -186,8 +213,27 @@ class AppointmentApi {
 
     if (res.statusCode != 200) {
       throw Exception("Huỷ lịch thất bại: ${res.body}");
+      
     }
   }
+  static Future<List<dynamic>> getAppointmentsByDate(String date) async {
+  final token = await _getToken();
+
+  final res = await http.get(
+    Uri.parse("$baseUrl/appointments/date?date=$date"),
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    },
+  );
+
+  final data = jsonDecode(res.body);
+   print("DATA FROM API: $data"); 
+  if (res.statusCode == 200 && data["success"] == true) {
+    return data["data"];
+  }
+  return [];
+}
 
   // ================= TOKEN =================
   static Future<String?> _getToken() async {

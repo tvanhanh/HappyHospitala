@@ -3,21 +3,21 @@ import 'package:go_router/go_router.dart';
 import '../../models/appointment.dart';
 import '../../services/api_appointment.dart';
 
-class AppointmentDetailScreen extends StatefulWidget {
+class AppointmentDetailDoctorScreen extends StatefulWidget {
   final Appointment appointment;
 
-  const AppointmentDetailScreen({
+  const AppointmentDetailDoctorScreen({
     super.key,
     required this.appointment,
   });
 
   @override
-  State<AppointmentDetailScreen> createState() =>
+  State<AppointmentDetailDoctorScreen> createState() =>
       _AppointmentDetailScreenState();
 }
 
 class _AppointmentDetailScreenState
-    extends State<AppointmentDetailScreen> {
+    extends State<AppointmentDetailDoctorScreen> {
   final ScrollController _scrollController = ScrollController();
 
   double avatarOpacity = 1;
@@ -794,6 +794,7 @@ class _AppointmentDetailScreenState
         context.push(
           '/doctor/create-medical-record',
           extra: widget.appointment,
+          
         );
       },
       icon: const Icon(Icons.note_alt_outlined),

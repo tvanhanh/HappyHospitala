@@ -14,7 +14,7 @@ class Appointment {
   final String reason;
   final String date;
   final String time;
-
+final String departmentName;
   final String doctorName;
   final String doctorAvatar;
 
@@ -40,10 +40,12 @@ class Appointment {
     required this.imageUrl,
     required this.status,
     required this.doctorSpecialty,
+    required this.departmentName,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     final doctor = json['doctor'];
+    final department = json['departmentId'];
 
     return Appointment(
       id: json['_id']?.toString() ?? '',
@@ -66,7 +68,7 @@ class Appointment {
           (doctor is Map) ? ((doctor['profile'] as Map?)?['avatar'] ?? '') : '',
       // 👇 ảnh bệnh
       imageUrl: json['imageUrl'] ?? '',
-
+     departmentName:  (department is Map) ? (department['departmentName'] ?? '') : '',
       status: json['status'] ?? 'pending',
       doctorSpecialty: (doctor is Map)
           ? ((doctor['profile'] as Map?)?['specialty'] ?? '')
@@ -90,6 +92,7 @@ class Appointment {
       date: date,
       time: time,
       doctorName: doctorName,
+      departmentName: departmentName,
       doctorAvatar: doctorAvatar,
       imageUrl: imageUrl,
       status: status ?? this.status,

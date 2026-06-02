@@ -44,24 +44,6 @@ class DoctorService {
       return "Lỗi kết nối: $e";
     }
   }
-
-  // static Future<List<Map<String, dynamic>>> getDoctors() async {
-  //   try {
-  //     final url = Uri.parse('$baseUrl/api_doctorList');
-
-  //     final response = await http.get(url);
-
-  //     final body = jsonDecode(response.body);
-
-  //     final List data = body['data'];
-
-  //     return List<Map<String, dynamic>>.from(data);
-  //   } catch (e) {
-  //     print("Lỗi mạng: $e");
-  //     return [];
-  //   }
-  // }
-
   static Future<List<Map<String, dynamic>>> getDoctors() async {
     try {
       final url = Uri.parse('$baseUrl/doctors/api_doctorList');
@@ -154,30 +136,6 @@ class DoctorService {
       throw Exception("Update doctor failed: ${response.body}");
     }
   }
-
-  // // Xoá phòng ban
-  // static Future<String> deleteDepartment(String id) async {
-  //   try {
-  //     final url = Uri.parse('$baseUrl/auth/api_deleteDoctor/$id');
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
-  //     if (token == null) {
-  //       return "Chưa đăng nhập. Không có token.";
-  //     }
-  //     final response = await http.delete(
-  //       url,
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'Bearer $token',
-  //       },
-  //     );
-
-  //     if (response.statusCode == 200) return "success";
-  //     final body = jsonDecode(response.body);
-  //     return "Lỗi: ${body['message'] ?? 'Không xác định'}";
-  //   } catch (e) {
-  //     return "Lỗi kết nối: $e";
-  //   }
   static Future<List<Doctor>> getFeaturedDoctors() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -227,4 +185,37 @@ class DoctorService {
       return null;
     }
   }
+ static Future<List<dynamic>> getDoctorsByDepartment(
+  String departmentId,
+) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = prefs.getString("token");
+
+    final url = Uri.parse(
+      "$baseUrl/doctors/api_doctors_by_department/$departmentId",
+    );
+
+    final response = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    print("STATUS = ${response.statusCode}");
+    print("BODY = ${response.body}");
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+
+    return [];
+  } catch (e) {
+    print(e);
+    return [];
+  }
+}
 }

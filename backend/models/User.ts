@@ -9,6 +9,7 @@ export interface IUser extends mongoose.Document {
   status: "activity" | "inactive";
 
   specialization?: string; // doctor
+  departmentId?: mongoose.Types.ObjectId;
 
   profile: {
     phone?: string;
@@ -56,14 +57,18 @@ const userSchema = new mongoose.Schema<IUser>(
       enum: ["patient", "admin", "staff", "doctor"],
       default: "patient",
     },
+    
 
     status: {
       type: String,
       enum: ["activity", "inactive"],
       default: "activity",
     },
-
-    specialization: String,
+       departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
+    },
 
     profile: {
       phone: String,
