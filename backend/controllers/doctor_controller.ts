@@ -136,7 +136,7 @@ export const getDoctorsByDepartment = async (
 ) => {
   try {
     const { departmentId } = req.params;
-    console.log("Department =", req.params.departmentId);
+  git add .console.log("Department =", req.params.departmentId);
     const doctors = await User.find({
       role: "doctor",
       departmentId: departmentId,
