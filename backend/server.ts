@@ -5,6 +5,7 @@ import connectDB from "./config/db";
 import cors from "cors";
 import auth_routes from "./routes/auth_routes";
 import appointments_routes from "./routes/appointment_routes";
+import doctor_routes from "./routes/doctor_routes";
 
 
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
   
   app.use("/auth", auth_routes);
   app.use("/appointments", appointments_routes);
+  app.use("/doctors", doctor_routes);
  
 
 app.listen(5000, () => console.log("Server running on port 5000"));

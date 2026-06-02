@@ -42,34 +42,44 @@ class _AddPatientFormState extends State<AddPatientForm> {
       doctorName: patientData['doctorName'] ?? '',
       departmentName: patientData['departmentName'] ?? '',
       gender: patientData['gender'] ?? '',
-      age: patientData['age'] is String && (patientData['age'] as String).isNotEmpty
+      age: patientData['age'] is String &&
+              (patientData['age'] as String).isNotEmpty
           ? int.tryParse(patientData['age'])
           : patientData['age'] as int?,
-      urea: patientData['urea'] is String && (patientData['urea'] as String).isNotEmpty
+      urea: patientData['urea'] is String &&
+              (patientData['urea'] as String).isNotEmpty
           ? double.tryParse(patientData['urea'])
           : patientData['urea'] as double?,
-      creatinine: patientData['creatinine'] is String && (patientData['creatinine'] as String).isNotEmpty
+      creatinine: patientData['creatinine'] is String &&
+              (patientData['creatinine'] as String).isNotEmpty
           ? double.tryParse(patientData['creatinine'])
           : patientData['creatinine'] as double?,
-      hba1c: patientData['hba1c'] is String && (patientData['hba1c'] as String).isNotEmpty
+      hba1c: patientData['hba1c'] is String &&
+              (patientData['hba1c'] as String).isNotEmpty
           ? double.tryParse(patientData['hba1c'])
           : patientData['hba1c'] as double?,
-      cholesterol: patientData['cholesterol'] is String && (patientData['cholesterol'] as String).isNotEmpty
+      cholesterol: patientData['cholesterol'] is String &&
+              (patientData['cholesterol'] as String).isNotEmpty
           ? double.tryParse(patientData['cholesterol'])
           : patientData['cholesterol'] as double?,
-      triglycerides: patientData['triglycerides'] is String && (patientData['triglycerides'] as String).isNotEmpty
+      triglycerides: patientData['triglycerides'] is String &&
+              (patientData['triglycerides'] as String).isNotEmpty
           ? double.tryParse(patientData['triglycerides'])
           : patientData['triglycerides'] as double?,
-      hdl: patientData['hdl'] is String && (patientData['hdl'] as String).isNotEmpty
+      hdl: patientData['hdl'] is String &&
+              (patientData['hdl'] as String).isNotEmpty
           ? double.tryParse(patientData['hdl'])
           : patientData['hdl'] as double?,
-      ldl: patientData['ldl'] is String && (patientData['ldl'] as String).isNotEmpty
+      ldl: patientData['ldl'] is String &&
+              (patientData['ldl'] as String).isNotEmpty
           ? double.tryParse(patientData['ldl'])
           : patientData['ldl'] as double?,
-      vldl: patientData['vldl'] is String && (patientData['vldl'] as String).isNotEmpty
+      vldl: patientData['vldl'] is String &&
+              (patientData['vldl'] as String).isNotEmpty
           ? double.tryParse(patientData['vldl'])
           : patientData['vldl'] as double?,
-      bmi: patientData['bmi'] is String && (patientData['bmi'] as String).isNotEmpty
+      bmi: patientData['bmi'] is String &&
+              (patientData['bmi'] as String).isNotEmpty
           ? double.tryParse(patientData['bmi'])
           : patientData['bmi'] as double?,
       status: patientData['status'] ?? '',
@@ -184,9 +194,11 @@ class _AddPatientFormState extends State<AddPatientForm> {
       keyboardType: TextInputType.number,
       onSaved: (value) {
         if (key == 'age') {
-          patientData[key] = value != null && value.isNotEmpty ? int.tryParse(value) : null;
+          patientData[key] =
+              value != null && value.isNotEmpty ? int.tryParse(value) : null;
         } else {
-          patientData[key] = value != null && value.isNotEmpty ? double.tryParse(value) : null;
+          patientData[key] =
+              value != null && value.isNotEmpty ? double.tryParse(value) : null;
         }
       },
       validator: (value) {
@@ -247,9 +259,8 @@ class _AddPatientFormState extends State<AddPatientForm> {
           });
         }
       },
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Không được để trống'
-          : null,
+      validator: (value) =>
+          (value == null || value.isEmpty) ? 'Không được để trống' : null,
       onSaved: (value) => patientData[key] = value,
     );
   }
@@ -287,9 +298,8 @@ class _AddPatientFormState extends State<AddPatientForm> {
           });
         }
       },
-      validator: (value) => (value == null || value.isEmpty)
-          ? 'Không được để trống'
-          : null,
+      validator: (value) =>
+          (value == null || value.isEmpty) ? 'Không được để trống' : null,
       onSaved: (value) => patientData[key] = value,
     );
   }

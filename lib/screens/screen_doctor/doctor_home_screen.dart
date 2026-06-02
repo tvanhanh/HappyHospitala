@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
-
 import 'package:go_router/go_router.dart';
-
-import 'package:intl/intl.dart'; // Thêm intl để format ngày tháng
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// Import các màn hình con (Giữ nguyên)
-import 'appointment_page.dart';
-import 'prescription.dart';
-import 'list_medical_record.dart';
-import 'patient_management.dart';
-import 'classification_results.dart';
-import 'consultation.dart';
-import 'progress_tracking.dart';
-import 'statistics.dart';
 
-// --- PALETTE MÀU Y TẾ HIỆN ĐẠI ---
-const Color kPrimaryColor = Color(0xFF009688); // blue đậm
-const Color kSecondaryColor = Color(0xFFB2DFDB); // blue nhạt
+// --- COLOR ---
+const Color kPrimaryColor = Color(0xFF009688);
 const Color kBackgroundColor = Color(0xFFF5F7FA);
 const Color kCardColor = Colors.white;
 const Color kTextDark = Color(0xFF263238);
+
+String doctorName = "";
+String specialty = "";
 
 void main() => runApp(DoctorApp());
 
@@ -27,14 +18,7 @@ class DoctorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Smart Doctor',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: kBackgroundColor,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        fontFamily: 'Roboto', // Font chữ tiêu chuẩn
-      ),
       home: DoctorDashboard(),
     );
   }
@@ -42,127 +26,103 @@ class DoctorApp extends StatelessWidget {
 
 class DoctorDashboard extends StatefulWidget {
   @override
-  _DoctorDashboardState createState() => _DoctorDashboardState();
+  State<DoctorDashboard> createState() => _DoctorDashboardState();
 }
 
 class _DoctorDashboardState extends State<DoctorDashboard> {
   final List<_DashboardItem> items = [
+    _DashboardItem("Hồ sơ", Icons.timeline, Colors.blue, "/home/booking"),
     _DashboardItem(
-      "Hồ sơ bệnh án",
-      Icons.timeline_rounded,
-      Colors.blue,
-      MedicalRecordListPage(),
-    ),
-    _DashboardItem("Lịch Hẹn", Icons.calendar_month_rounded, Colors.blue,
-        AppointmentPage()),
+        "Lịch hẹn", Icons.calendar_month, Colors.blue, "/doctor/appointments"),
     _DashboardItem(
-        "Kê Đơn", Icons.medication_rounded, Colors.green, PrescriptionPage()),
-    _DashboardItem("Bệnh Nhân", Icons.people_alt_rounded, Colors.orange,
-        PatientManagementPage()),
-    _DashboardItem("Kết Quả", Icons.analytics_rounded, Colors.purple,
-        ClassificationResultsPage()),
-    _DashboardItem(
-        "Tư Vấn", Icons.chat_bubble_rounded, Colors.pink, ConsultationPage()),
+        "Kê đơn", Icons.medication, Colors.green, "/doctor/appointments"),
+    _DashboardItem("Bệnh nhân", Icons.people, Colors.orange, "/home/booking"),
+    _DashboardItem("Dự đoán", Icons.analytics, Colors.purple, "/diagnosis"),
+    _DashboardItem("Tư vấn", Icons.chat, Colors.pink, "/home/booking"),
   ];
 
   @override
-  Widget build(BuildContext context) {
-    var now = DateTime.now();
-    var formattedDate = DateFormat('EEEE, d MMMM', 'vi')
-        .format(now); // Cần setup locale tiếng Việt nếu muốn
+  void initState() {
+    super.initState();
+    loadDoctorFromToken();
+  }
 
+  Future<void> loadDoctorFromToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      doctorName = prefs.getString("name") ?? "Bác sĩ";
+      specialty = prefs.getString("specialty") ?? "Chuyên khoa";
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      // AppBar ẩn để tự làm Header đẹp hơn
-
-      drawer: _buildDrawer(context), // Drawer giữ nguyên hoặc tùy chỉnh
-
+      drawer: _buildDrawer(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HEADER CHÀO MỪNG
+              // ===== HEADER =====
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Xin chào,",
-                          style:
-                              TextStyle(fontSize: 16, color: Colors.grey[600])),
-                      Text("Dr. Hanh 👋",
-                          style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: kTextDark)),
+                      Text("Xin chào,", style: TextStyle(color: Colors.grey)),
+                      Text(
+                        doctorName,
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      Text(specialty),
                     ],
                   ),
                   Builder(
-                    // Builder để mở Drawer
-                    builder: (context) => InkWell(
+                    builder: (context) => GestureDetector(
                       onTap: () => Scaffold.of(context).openDrawer(),
                       child: CircleAvatar(
                         radius: 24,
-                        backgroundImage: AssetImage(
-                            'assets/doctor1.jpg'), // Thay bằng ảnh thật
-                        child:
-                            Icon(Icons.person, color: Colors.white), // Fallback
+                        backgroundColor: kPrimaryColor,
+                        child: Icon(Icons.person, color: Colors.white),
                       ),
                     ),
                   )
                 ],
               ),
+
               SizedBox(height: 20),
 
-              // 2. THỐNG KÊ NHANH (STAT CARDS)
-              Container(
-                height: 140,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _buildStatCard("Bệnh nhân chờ", "12", Icons.hourglass_top,
-                        Colors.orange),
-                    _buildStatCard(
-                        "Đã khám xong", "28", Icons.check_circle, Colors.green),
-                    _buildStatCard("Tổng lịch hẹn", "40", Icons.calendar_today,
-                        Colors.blue),
-                  ],
-                ),
+              Text(
+                "Chức năng quản lý",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 25),
 
-              // 3. LỊCH TRÌNH SẮP TỚI (DASHBOARD WIDGET)
-              Text("Lịch Trình Hôm Nay",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kTextDark)),
-              SizedBox(height: 10),
-              _buildUpcomingAppointmentCard(),
-              SizedBox(height: 25),
+              SizedBox(height: 12),
 
-              // 4. MENU CHỨC NĂNG (GRID)
-              Text("Chức Năng Quản Lý",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kTextDark)),
-              SizedBox(height: 15),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: items.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4, // 2 cột
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                  childAspectRatio: 1.1, // Tỉ lệ khung hình thẻ
-                ),
-                itemBuilder: (context, index) {
-                  return _buildMenuCard(items[index]);
+              // ===== GRID FIX RESPONSIVE =====
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  int crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+
+                  return GridView.builder(
+                    itemCount: items.length,
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _buildMenuCard(items[index]);
+                    },
+                  );
                 },
               ),
             ],
@@ -172,165 +132,63 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
     );
   }
 
-  void _handleLogout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    if (mounted) context.go('/login');
-  }
-
-  // --- WIDGET CON: DRAWER ---
-  Widget _buildDrawer(BuildContext context) {
+  // ===== DRAWER =====
+  Widget _buildDrawer() {
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
           UserAccountsDrawerHeader(
-            accountName: Text("Dr. Hạnh",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            accountEmail: Text("Khoa Nội Tổng Quát"),
+            accountName: Text(doctorName),
+            accountEmail: Text("Khoa: $specialty"),
             currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, color: kPrimaryColor)),
+              backgroundColor: Colors.white,
+              child: Icon(Icons.person, color: kPrimaryColor),
+            ),
             decoration: BoxDecoration(color: kPrimaryColor),
           ),
           ListTile(
-              leading: Icon(Icons.settings),
-              title: Text("Cài đặt"),
-              onTap: () {}),
-          ListTile(
-              leading: Icon(Icons.help), title: Text("Trợ giúp"), onTap: () {}),
-          Divider(),
-          ListTile(
-            leading: Icon(Icons.logout, color: Colors.red),
-            title: Text("Đăng xuất", style: TextStyle(color: Colors.red)),
-            onTap: _handleLogout,
+            leading: Icon(Icons.logout),
+            title: Text("Đăng xuất"),
+            onTap: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (mounted) context.go('/login');
+            },
           )
         ],
       ),
     );
   }
 
-  // --- WIDGET CON: THẺ THỐNG KÊ ---
-  // --- WIDGET CON: THẺ THỐNG KÊ (ĐÃ SỬA LỖI OVERFLOW) ---
-  Widget _buildStatCard(
-      String title, String count, IconData icon, Color color) {
-    return Container(
-      width: 140,
-      margin: EdgeInsets.only(right: 15),
-      padding: EdgeInsets.symmetric(
-          vertical: 12,
-          horizontal: 12), // ✅ Giảm padding: all(15) -> vertical(12)
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center, // Căn giữa nội dung
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration:
-                BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          SizedBox(height: 8), // ✅ Giảm khoảng cách: 10 -> 8
-          Text(count,
-              style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-          SizedBox(height: 4), // ✅ Thêm khoảng cách nhỏ
-          // ✅ Sử dụng TextOverflow để tránh tràn chữ nếu tiêu đề quá dài
-          Text(title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET CON: LỊCH HẸN SẮP TỚI ---
-  Widget _buildUpcomingAppointmentCard() {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kPrimaryColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: kPrimaryColor.withOpacity(0.4),
-              blurRadius: 10,
-              offset: Offset(0, 5))
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(15)),
-            child:
-                Icon(Icons.access_time_filled, color: Colors.white, size: 30),
-          ),
-          SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Tiếp theo: 10:30 AM",
-                    style: TextStyle(color: Colors.white70, fontSize: 12)),
-                Text("Nguyễn Văn An",
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold)),
-                Text("Khám tổng quát • P.102",
-                    style: TextStyle(color: Colors.white, fontSize: 13)),
-              ],
-            ),
-          ),
-          Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET CON: THẺ MENU CHỨC NĂNG ---
+  // ===== MENU CARD =====
   Widget _buildMenuCard(_DashboardItem item) {
     return InkWell(
-      onTap: () =>
-          Navigator.push(context, MaterialPageRoute(builder: (_) => item.page)),
-      borderRadius: BorderRadius.circular(20),
+      onTap: () => context.push(item.route),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           color: kCardColor,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: Offset(0, 4))
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            )
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: item.color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(item.icon, size: 32, color: item.color),
+            CircleAvatar(
+              backgroundColor: item.color.withOpacity(0.15),
+              child: Icon(item.icon, color: item.color),
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 10),
             Text(
               item.title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600, color: kTextDark),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -339,12 +197,12 @@ class _DoctorDashboardState extends State<DoctorDashboard> {
   }
 }
 
+// ===== MODEL =====
 class _DashboardItem {
   final String title;
   final IconData icon;
+  final Color color;
+  final String route;
 
-  final Color color; // Thêm màu sắc riêng cho từng item
-  final Widget page;
-
-  _DashboardItem(this.title, this.icon, this.color, this.page);
+  _DashboardItem(this.title, this.icon, this.color, this.route);
 }

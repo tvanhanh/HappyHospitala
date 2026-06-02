@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/screen_authencication/login_screen.dart';
 import '../screens/screen_authencication/register_screen.dart';
-import '../screens/screen_patient/doctors_screen.dart';
 import '../screens/screen_patient/faq_screen.dart';
 import '../screens/screen_patient/medical_facilities_screen.dart';
 import '../screens/screen_patient/specialties_screen.dart';
@@ -47,7 +46,6 @@ class _HeaderState extends State<Header> {
         children: [
           _buildMenuItem(context, 'Chuyên khoa', SpecialtiesScreen()),
           _buildMenuItem(context, 'Cơ sở y tế', MedicalFacilitiesScreen()),
-          _buildMenuItem(context, 'Bác sĩ', DoctorsScreen()),
           _buildMenuItem(context, 'Hỏi đáp', FAQScreen()),
         ],
       ),
@@ -142,16 +140,6 @@ class _HeaderState extends State<Header> {
             foregroundColor: Colors.white,
           ),
           child: Text('Đăng ký'),
-        ),
-        SizedBox(width: 10),
-        ElevatedButton(
-          onPressed: () => Navigator.push(context,
-              MaterialPageRoute(builder: (context) => BookingScreen())),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
-          ),
-          child: Text('Đặt lịch khám'),
         ),
       ],
     );

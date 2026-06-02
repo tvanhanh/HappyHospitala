@@ -1,152 +1,197 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'config.dart'; // file chứa BASE_URL
+import 'package:flutter_application_datlichkham/models/appointment.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config.dart';
 
-
-class AddAppointments {
-  static Future<String> addAppointment(
-    String patientName,
-    String phone,
-    String reason,
-    String date,
-    String time,
-    String departmentId,
-    String doctorId,
-  ) async {
+class AppointmentApi {
+  // ================= CREATE APPOINTMENT =================
+  static Future<String> addAppointment({
+    required String doctorId,
+    required String patientName,
+    required String phone,
+    required String gender,
+    required String address,
+    required String medicalHistory,
+    required String allergies,
+    required String reason,
+    required String date,
+    required String time,
+    String? imageUrl,
+  }) async {
     try {
-      final url = Uri.parse('$baseUrl/appointments/addAppointment');
-
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
+      final token = prefs.getString("token");
       if (token == null) {
-        return "Chưa đăng nhập. Không có token.";
+        return "Chưa đăng nhập";
       }
 
-      final response = await http.post(
-        url,
+      final res = await http.post(
+        Uri.parse("$baseUrl/appointments/add"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
         body: jsonEncode({
+          "doctor": doctorId,
           "patientName": patientName,
           "phone": phone,
+          "gender": gender,
+          "address": address,
+          "medicalHistory": medicalHistory,
+          "allergies": allergies,
           "reason": reason,
           "date": date,
           "time": time,
-          'departmentName': departmentId,
-          'doctorName': doctorId,
+          "imageUrl": imageUrl ?? "",
         }),
       );
 
-      if (response.statusCode == 200) {
-        return "success";
+      final data = jsonDecode(res.body);
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        return data["message"] ?? "success";
       } else {
-        final body = jsonDecode(response.body);
-        return "Lỗi: ${body['message'] ?? 'Không xác định'}";
+        return data["message"] ?? "Lỗi tạo lịch hẹn";
       }
     } catch (e) {
-      return "Lỗi kết nối: $e";
+      return "Lỗi: $e";
     }
   }
 
-  static Future<List<dynamic>> getMonthlyAppointments() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token == null) {
-        throw Exception("Chưa đăng nhập. Không có token.");
-      }
+  // ================= GET ALL (ADMIN) =================
+  static Future<List<Appointment>> getAllAppointments() async {
+    final token = await _getToken();
 
-      final url = Uri.parse('$baseUrl/appointments/monthly');
-      final response = await http.get(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        print('Dữ liệu thống kê lịch hẹn: $data');
-        return data.cast<Map<String, dynamic>>();
-      } else {
-        final body = jsonDecode(response.body);
-        throw Exception(body['message'] ?? 'Không xác định');
-      }
-    } catch (e) {
-      throw Exception('Lỗi kết nối: $e');
-    }
-  }
-
-  static Future<List<Map<String, dynamic>>> getAppoitment() async {
-    try {
-      final url = Uri.parse('$baseUrl/appointments/getAppoitment');
-
-      final prefs = await SharedPreferences.getInstance();
-       final token = prefs.getString('token');
-       if (token == null) {
-        print("Chưa đăng nhập. Không có token.");
-        return [];
-      }
-      final response = await http.get(
-      url,
+    final res = await http.get(
+      Uri.parse("$baseUrl/appointments/"),
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token', 
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
       },
     );
-    print("Status: ${response.statusCode}");
-    print("Body: ${response.body}");
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        return data.map((e) => {
-          'id': e['_id'],
-          'patientName': e['patientName'],
-          'email':e['email'],
-          'reason':e['reason'],
-          'date': e['date'],
-          'time': e['time'],
-          'departmentName': e['departmentName'],
-          'doctorName': e['doctorName'],
-          'status': e['status'],
-        }).toList();
-      } else {
-        print("Lỗi khi lấy danh sách: ${response.body}");
-        return [];
-      }
-    } catch (e) {
-      print("Lỗi mạng: $e");
-      return [];
+
+    final body = jsonDecode(res.body);
+
+    print("RAW RESPONSE = $body");
+
+    if (res.statusCode == 200 && body["success"] == true) {
+      final list = body["data"] as List;
+      print(res.body);
+
+      return list.map((e) => Appointment.fromJson(e)).toList();
     }
+
+    return [];
   }
 
-  static Future<void> updateStatus(String id, String newStatus) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      if (token == null) {
-        throw Exception("Chưa đăng nhập. Không có token.");
-      }
+  // ================= GET BY DOCTOR =================
+  static Future<List<Appointment>> getByDoctor() async {
+    final token = await _getToken();
 
-      final url = Uri.parse('$baseUrl/appointments/status/$id');
-      final response = await http.put(
-        url,
+    final res = await http.get(
+      Uri.parse("$baseUrl/appointments/doctor"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final body = jsonDecode(res.body);
+
+    print("RAW RESPONSE = $body");
+
+    if (res.statusCode == 200 && body["success"] == true) {
+      final list = body["data"] as List;
+      print(res.body);
+
+      return list.map((e) => Appointment.fromJson(e)).toList();
+    }
+
+    return [];
+  }
+
+  static Future<List<Appointment>> getByPatient() async {
+    final token = await _getToken();
+
+    final res = await http.get(
+      Uri.parse("$baseUrl/appointments/patient"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final body = jsonDecode(res.body);
+
+    print("RAW RESPONSE = $body");
+
+    if (res.statusCode == 200 && body["success"] == true) {
+      final list = body["data"] as List;
+      print(res.body);
+
+      return list.map((e) => Appointment.fromJson(e)).toList();
+    }
+
+    return [];
+  }
+
+  // ================= UPDATE STATUS =================
+  static Future<String> updateStatus({
+    required String id,
+    required String status,
+  }) async {
+    try {
+      final token = await _getToken();
+
+      final res = await http.patch(
+        Uri.parse("$baseUrl/appointments/$id/$status"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({'status': newStatus}),
+        body: jsonEncode({"status": status}),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Lỗi khi cập nhật trạng thái: ${response.body}');
+      final data = jsonDecode(res.body);
+      print("UPDATE STATUS CALL");
+      print("id: $id");
+      print("status: $status");
+      if (res.statusCode == 200) {
+        return data["message"] ?? "updated";
+      } else {
+        return "update failed";
       }
     } catch (e) {
-      throw Exception('Lỗi kết nối: $e');
+      return "Lỗi: $e";
     }
   }
-}
 
+  static Future<void> cancelAppointment(String id) async {
+    final token = await _getToken(); // 👈 phải await
+
+    final res = await http.patch(
+      Uri.parse('$baseUrl/appointments/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token', // 👈 đúng
+      },
+      body: jsonEncode({
+        "status": "cancelled",
+      }),
+    );
+
+    print("STATUS: ${res.statusCode}");
+    print("BODY: ${res.body}");
+
+    if (res.statusCode != 200) {
+      throw Exception("Huỷ lịch thất bại: ${res.body}");
+    }
+  }
+
+  // ================= TOKEN =================
+  static Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("token");
+  }
+}

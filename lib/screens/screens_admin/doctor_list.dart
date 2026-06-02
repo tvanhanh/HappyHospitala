@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_datlichkham/screens/screens_admin/add_doctor_info.dart';
+import 'package:flutter_application_datlichkham/screens/screens_common/doctor_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/api_doctors.dart';
 import 'AddDoctorScreen.dart';
@@ -19,7 +21,8 @@ class DoctorListScreen extends StatefulWidget {
 class _DoctorListScreenState extends State<DoctorListScreen> {
   List<Map<String, dynamic>> doctors = [];
   List<Map<String, dynamic>> filteredDoctors = [];
-  bool isLoading = true; // ✅ THÊM: Trạng thái đang tải
+  bool isLoading = true;
+
   TextEditingController _searchController = TextEditingController();
 
   @override
@@ -82,8 +85,6 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Đội Ngũ Bác Sĩ",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
             // Chỉ hiện số lượng khi đã tải xong
             if (!isLoading)
               Text("${doctors.length} chuyên gia hàng đầu",
@@ -159,7 +160,7 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
     // Nếu API trả về 'name' thay vì 'doctorName', hãy sửa ở đây
     String name = doctor['doctorName'] ?? doctor['name'] ?? 'Không rõ tên';
     String department =
-        doctor['departmentName'] ?? doctor['department'] ?? 'Chưa phân khoa';
+        doctor['departmentName'] ?? doctor['department'] ?? 'Da liễu';
     String email = doctor['email'] ?? 'Chưa cập nhật';
 
     Color avatarColor = Colors.primaries[name.length % Colors.primaries.length];
@@ -255,9 +256,71 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.more_vert, color: Colors.grey),
-                  onPressed: () {},
+                PopupMenuButton<String>(
+                  elevation: 12,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.more_horiz,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  onSelected: (value) {
+                    switch (value) {
+                      case "view":
+                        final id = doctor['_id']?.toString();
+
+                        if (id != null && id.isNotEmpty) {
+                          openDoctorDetail(id);
+                        } else {
+                          print("ID bị null hoặc rỗng: ${doctor}");
+                        }
+                        break;
+                      case "edit":
+                        openEditDoctor(doctor['_id']);
+                        break;
+                      case "schedule":
+                        //openDoctorSchedule(doctor['_id']);
+                        break;
+                      case "delete":
+                        //confirmDeleteDoctor(doctor['_id']);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    _buildMenuItem(
+                      value: "view",
+                      icon: Icons.visibility_outlined,
+                      title: "Xem chi tiết",
+                      color: Colors.blue,
+                    ),
+                    _buildMenuItem(
+                      value: "edit",
+                      icon: Icons.edit_outlined,
+                      title: "Cập nhật thông tin",
+                      color: Colors.orange,
+                    ),
+                    _buildMenuItem(
+                      value: "schedule",
+                      icon: Icons.calendar_month_outlined,
+                      title: "Quản lý lịch khám",
+                      color: Colors.green,
+                    ),
+                    _buildMenuItem(
+                      value: "delete",
+                      icon: Icons.delete_outline,
+                      title: "Xoá bác sĩ",
+                      color: Colors.red,
+                    ),
+                  ],
                 )
               ],
             ),
@@ -289,5 +352,45 @@ class _DoctorListScreenState extends State<DoctorListScreen> {
       return "${nameParts[0][0]}${nameParts.last[0]}".toUpperCase();
     }
     return name[0].toUpperCase();
+  }
+
+  void openEditDoctor(String doctorId) {
+    context.push('/doctor/edit/$doctorId');
+  }
+
+  void openDoctorDetail(String doctorId) {
+    print("ID gửi đi: $doctorId"); // debug
+    context.push('/doctor-detail/$doctorId');
+  }
+
+  PopupMenuItem<String> _buildMenuItem({
+    required String value,
+    required IconData icon,
+    required String title,
+    required Color color,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

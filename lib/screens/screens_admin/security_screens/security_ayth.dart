@@ -91,7 +91,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   void _createUser() {
-    context.go('/admin/create_account');
+    context.push('/admin/create_account');
   }
 
   // --- UI CHÍNH ---

@@ -19,7 +19,7 @@ class StateInput(BaseModel):
     emergency_cases: int
 
 # ===== API =====
-@app.post("/predict")
+@app.post("/predictPPO")
 def predict_action(state: StateInput):
     obs = [
         state.doctors,

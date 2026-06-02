@@ -91,34 +91,55 @@ class ClinicResourceEnv(gym.Env):
         obs = self.data[self.current_index].astype(np.float32)
         return obs, {}
 
-    # ================= STEP =================
     def step(self, action):
         row = self.df.iloc[self.current_index]
 
+        # Lấy các giá trị (đã được chuẩn hóa bởi scaler nên thường nằm quanh mức 0)
         queue = row["PatientQueueLength"]
         occupancy = row["BedOccupancy"]
-        los = row["LOS"]
-        er = row["ER_Time"]
-        cost = row["treatemencost"]
+        er_time = row["ER_Time"]
+        utilization = row["EquipmentUtilization"]
 
-        # ================= REWARD FUNCTION =================
-        # reward = minimise queue + los + er + cost
-        # reward = maximise resource utilization
-        reward = (
-            -0.6 * queue
-            - 0.4 * los
-            - 0.3 * er
-            - 0.2 * cost
-            + 0.4 * row["EquipmentUtilization"]
+        # 1. HÀM PHẠT CƠ BẢN (Càng lớn càng bị trừ điểm)
+        # Mục tiêu: Giảm thiểu các chỉ số này
+        penalty = (
+            0.5 * queue + 
+            0.3 * er_time + 
+            0.2 * row["LOS"]
         )
+        
+        reward = -penalty # Khởi đầu là điểm âm
 
-        # Action effect (giả định)
-        if action == 0:  # allocate staff
-            reward += 0.3
-        elif action == 1:  # allocate bed
-            reward += 0.2
-        elif action == 2:  # allocate equipment
-            reward += 0.25
+        # 2. HÀM THƯỞNG CÓ ĐIỀU KIỆN (Chỉ cộng khi cần thiết)
+        # Action 0: Thêm nhân sự - Chỉ thưởng nếu hàng đợi đang dài (> 0 là trên mức trung bình)
+        if action == 0:
+            if queue > 0:
+                reward += 0.5 * queue # Thưởng tỷ lệ thuận với độ dài hàng đợi
+            else:
+                reward -= 0.2 # Phạt nhẹ vì lãng phí nhân sự khi không có hàng đợi
+
+        # Action 1: Thêm giường - Chỉ thưởng khi tỷ lệ chiếm dụng cao
+        elif action == 1:
+            if occupancy > 0.5: # Giả sử trên 50% là cao
+                reward += 0.4
+            else:
+                reward -= 0.1 # Phạt vì cấp giường dư thừa
+
+        # Action 2: Cấp thiết bị - Thưởng khi hiệu suất sử dụng hiện tại thấp (cần đẩy mạnh)
+        elif action == 2:
+            if utilization < 0: # Dưới mức trung bình
+                reward += 0.4 * (1 - utilization)
+            else:
+                reward += 0.1
+
+        # 3. THƯỞNG DỰA TRÊN KẾT QUẢ CUỐI (Rating)
+        if row["Rating"] == 5:
+            reward += 0.5
+
+        # ================= MOVE NEXT STEP =================
+        self.current_index += 1
+        done = self.current_index >= self.total_steps
+        # ... (giữ nguyên phần trả về obs, done như cũ)
 
         # ================= MOVE NEXT STEP =================
         self.current_index += 1

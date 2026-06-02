@@ -1,31 +1,65 @@
 import pandas as pd
 from joblib import load
+import os
 
 def predict_knn(input_data):
     try:
-        # Load model và scaler
-        model = load("app/models/knn_model.pkl")
-        scaler = load("app/models/scaler.pkl")
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-        # Chuẩn bị dữ liệu đầu vào
-        selected_features = ["Gender", "AGE", "Urea", "Cr", "HbA1c", "Chol", "TG", "HDL", "LDL", "VLDL", "BMI"]
-        input_df = pd.DataFrame([input_data], columns=selected_features)
+        # load model + scaler
+        model_path = os.path.join(BASE_DIR, "knn_best.pkl")
+        scaler_path = os.path.join(BASE_DIR, "scaler.pkl")
 
-        # Chuẩn hóa dữ liệu
+        model = load(model_path)
+        scaler = load(scaler_path)
+
+        selected_features = [
+            "Gender", "AGE", "Urea", "Cr", "HbA1c",
+            "Chol", "TG", "HDL", "LDL", "VLDL", "BMI"
+        ]
+
+        # validate input
+        for f in selected_features:
+            if f not in input_data:
+                return {"error": f"Thiếu field: {f}"}
+
+        # tạo dataframe
+        input_df = pd.DataFrame(
+            [[input_data[f] for f in selected_features]],
+            columns=selected_features
+        )
+
+        print("INPUT:", input_df)
+
+        # scale
         input_scaled = scaler.transform(input_df)
 
-        # Dự đoán
+        # predict
         prediction = model.predict(input_scaled)[0]
-        prediction_proba = model.predict_proba(input_scaled)[0]
 
-        # Ánh xạ kết quả
-        class_mapping = {0: "Không mắc bệnh (N)", 1: "Mắc bệnh (Y)", 2: "Tiền tiểu đường (P)"}
-        predicted_class = class_mapping[prediction]
+        if hasattr(model, "predict_proba"):
+            prediction_proba = model.predict_proba(input_scaled)[0]
+        else:
+            prediction_proba = []
 
+        class_mapping = {
+            0: "Không mắc bệnh (N)",
+            1: "Mắc bệnh (Y)",
+            2: "Tiền tiểu đường (P)"
+        }
+
+        predicted_class = class_mapping.get(prediction, "Unknown")
+
+        # ✅ RETURN PHẢI NẰM TRONG TRY
         return {
-            "prediction": predicted_class,
-            "probabilities": {class_mapping[i]: prob for i, prob in enumerate(prediction_proba)}
+            "Dự đoán": predicted_class,
+            "Xác suất": {} if len(prediction_proba) == 0 else {
+    class_mapping.get(i, str(i)): round(float(prob), 2)
+    for i, prob in enumerate(prediction_proba)
+}
         }
 
     except Exception as e:
-        raise Exception(f"Lỗi khi dự đoán: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
