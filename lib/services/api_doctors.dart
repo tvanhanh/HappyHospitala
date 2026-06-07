@@ -12,7 +12,9 @@ class DoctorService {
       String address,
       String departmentName,
       String specialization,
-      String avatar) async {
+      String avatar,
+      [String? specialtyId,
+      String? roomId]) async {
     try {
       final url = Uri.parse('$baseUrl/auth/api_addDoctor');
       final prefs = await SharedPreferences.getInstance();
@@ -34,6 +36,8 @@ class DoctorService {
           "departmentName": departmentName,
           "specialization": specialization,
           "avatar": avatar,
+          "specialtyId": specialtyId,
+          "roomId": roomId,
         }),
       );
 
@@ -44,23 +48,6 @@ class DoctorService {
       return "Lỗi kết nối: $e";
     }
   }
-
-  // static Future<List<Map<String, dynamic>>> getDoctors() async {
-  //   try {
-  //     final url = Uri.parse('$baseUrl/api_doctorList');
-
-  //     final response = await http.get(url);
-
-  //     final body = jsonDecode(response.body);
-
-  //     final List data = body['data'];
-
-  //     return List<Map<String, dynamic>>.from(data);
-  //   } catch (e) {
-  //     print("Lỗi mạng: $e");
-  //     return [];
-  //   }
-  // }
 
   static Future<List<Map<String, dynamic>>> getDoctors() async {
     try {
@@ -88,9 +75,9 @@ class DoctorService {
         return data.map<Map<String, dynamic>>((e) {
           return {
             '_id': e['_id'] ?? '',
-            'name': e['name'] ?? e['doctorName'] ?? '',
+            'name': e['fullName'] ?? '',
             'email': e['email'] ?? '',
-            'profile': e['profile'] ?? {},
+            'profile': {},
           };
         }).toList();
       }
@@ -99,6 +86,220 @@ class DoctorService {
     } catch (e) {
       print("Lỗi mạng: $e");
       return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getPendingDoctors() async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/pending');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final List data = body is List ? body : [];
+        return data.map<Map<String, dynamic>>((e) {
+          return {
+            '_id': e['_id'] ?? '',
+            'name': e['name'] ?? e['fullName'] ?? '',
+            'email': e['email'] ?? '',
+            'phone': e['phone'] ?? '',
+            'avatar': e['avatar'] ?? '',
+            'profile_status': e['profile_status'] ?? '',
+            'specialty': e['specialty'] ?? '',
+            'experience_years': e['experience_years'] ?? 0,
+            'bio': e['bio'] ?? '',
+            'education': e['education'] ?? [],
+            'certifications_urls': e['certifications_urls'] ?? [],
+            'consultationFee': e['consultationFee'] ?? 0,
+          };
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Lỗi mạng: $e");
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getRejectedDoctors() async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/rejected');
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final List data = body is List ? body : [];
+        return data.map<Map<String, dynamic>>((e) {
+          return {
+            '_id': e['_id'] ?? '',
+            'name': e['name'] ?? e['fullName'] ?? '',
+            'email': e['email'] ?? '',
+            'phone': e['phone'] ?? '',
+            'avatar': e['avatar'] ?? '',
+            'profile_status': e['profile_status'] ?? '',
+            'specialty': e['specialty'] ?? '',
+            'experience_years': e['experience_years'] ?? 0,
+            'bio': e['bio'] ?? '',
+            'education': e['education'] ?? [],
+            'certifications_urls': e['certifications_urls'] ?? [],
+            'consultationFee': e['consultationFee'] ?? 0,
+            'rejection_reason': e['rejection_reason'] ?? '',
+          };
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error: $e");
+      return [];
+    }
+  }
+
+  static Future<String> approveDoctor(String userId, String departmentId,
+      String specialtyName, String roomId) async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/approve');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "userId": userId,
+          "departmentId": departmentId,
+          "specialty": specialtyName,
+          "roomId": roomId,
+        }),
+      );
+
+      if (response.statusCode == 200) return "success";
+      final body = jsonDecode(response.body);
+      return "Lỗi: ${body['message'] ?? 'Không xác định'}";
+    } catch (e) {
+      return "Lỗi kết nối: $e";
+    }
+  }
+
+  static Future<String> rejectDoctor(String userId, [String? reason]) async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/reject');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "userId": userId,
+          "reason": reason,
+        }),
+      );
+
+      if (response.statusCode == 200) return "success";
+      final body = jsonDecode(response.body);
+      return "Lỗi: ${body['message'] ?? 'Không xác định'}";
+    } catch (e) {
+      return "Lỗi kết nối: $e";
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getAdminActiveDoctors() async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/active');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.map<Map<String, dynamic>>((e) {
+          final user = e['userId'] is Map ? e['userId'] : {};
+          final dept = e['departmentId'] is Map ? e['departmentId'] : {};
+          final room = e['roomId'] is Map ? e['roomId'] : {};
+          return {
+            '_id': user['_id'] ?? e['_id'] ?? '',
+            'name':
+                user['fullName'] ?? e['doctorName'] ?? e['name'] ?? 'Unknown',
+            'email': user['email'] ?? e['email'] ?? '',
+            'avatar': user['avatar'] ?? e['avatar'] ?? '',
+            'specialty': dept['name'] ??
+                e['specialty'] ??
+                e['specialization'] ??
+                'Chưa phân công',
+            'specialtyId_id':
+                dept['_id'] ?? e['departmentId'] ?? e['specialtyId'],
+            'room': room['roomNumber'] ?? e['room'] ?? 'Chưa phân công',
+            'roomId_id': room['_id'] ?? e['roomId'],
+            'consultationFee': e['consultationFee'] ?? 0,
+            'experience_years': e['experience_years'] ?? 0,
+            'bio': e['bio'] ?? '',
+          };
+        }).toList();
+      } else {
+        throw Exception(
+            'Status code: ${response.statusCode}, Body: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Lỗi getAdminActiveDoctors: $e');
+    }
+  }
+
+  static Future<String> updateDoctorFee(String doctorId, int fee) async {
+    try {
+      final url = Uri.parse('$baseUrl/admin/doctors/$doctorId/fee');
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.patch(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"consultationFee": fee}),
+      );
+
+      if (response.statusCode == 200) {
+        return "Cập nhật giá khám thành công";
+      } else {
+        final body = jsonDecode(response.body);
+        return "Lỗi: ${body['message'] ?? 'Không xác định'}";
+      }
+    } catch (e) {
+      return "Lỗi mạng: $e";
     }
   }
 
@@ -155,29 +356,6 @@ class DoctorService {
     }
   }
 
-  // // Xoá phòng ban
-  // static Future<String> deleteDepartment(String id) async {
-  //   try {
-  //     final url = Uri.parse('$baseUrl/auth/api_deleteDoctor/$id');
-  //     final prefs = await SharedPreferences.getInstance();
-  //     final token = prefs.getString('token');
-  //     if (token == null) {
-  //       return "Chưa đăng nhập. Không có token.";
-  //     }
-  //     final response = await http.delete(
-  //       url,
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': 'Bearer $token',
-  //       },
-  //     );
-
-  //     if (response.statusCode == 200) return "success";
-  //     final body = jsonDecode(response.body);
-  //     return "Lỗi: ${body['message'] ?? 'Không xác định'}";
-  //   } catch (e) {
-  //     return "Lỗi kết nối: $e";
-  //   }
   static Future<List<Doctor>> getFeaturedDoctors() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -185,14 +363,16 @@ class DoctorService {
     final res = await http.get(
       Uri.parse('$baseUrl/doctors/featured'),
       headers: {
-        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
       },
     );
 
     print(res.body);
 
     if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
+      final body = jsonDecode(res.body);
+      final List data = body['data'] ?? [];
       return data.map<Doctor>((e) => Doctor.fromJson(e)).toList();
     } else {
       return [];
@@ -225,6 +405,64 @@ class DoctorService {
     } catch (e) {
       print("Lỗi mạng: $e");
       return null;
+    }
+  }
+
+  static Future<List<dynamic>> getDoctorsByDepartment(
+    String departmentId,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final token = prefs.getString("token");
+
+      final url = Uri.parse(
+        "$baseUrl/doctors/api_doctors_by_department/$departmentId",
+      );
+
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      print("STATUS = ${response.statusCode}");
+      print("BODY = ${response.body}");
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+
+      return [];
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
+
+  static Future<List<Doctor>> getDoctorsBySpecialty(String specialtyId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/specialties/$specialtyId/doctors'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        return data.map<Doctor>((e) => Doctor.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching doctors by specialty: $e");
+      return [];
     }
   }
 }

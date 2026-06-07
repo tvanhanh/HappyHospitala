@@ -4,12 +4,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_medicalRecordBlockchain.dart';
+import '../../models/appointment.dart';
 
 class MedicalRecordForm extends StatefulWidget {
-  const MedicalRecordForm({super.key});
+  const MedicalRecordForm({super.key, required this.appointment});
 
+  final Appointment appointment;
   @override
   State<MedicalRecordForm> createState() => _MedicalRecordFormState();
+  
 }
 
 class _MedicalRecordFormState extends State<MedicalRecordForm> {
@@ -21,6 +24,18 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
   final TextEditingController symptomsController = TextEditingController();
   final TextEditingController diagnosisController = TextEditingController();
   final TextEditingController treatmentController = TextEditingController();
+  final TextEditingController doctorNameController = TextEditingController();
+  final TextEditingController cccdController = TextEditingController();
+  final TextEditingController dobController = TextEditingController();
+final TextEditingController genderController = TextEditingController();
+final TextEditingController phoneController = TextEditingController();
+final TextEditingController addressController = TextEditingController();
+final TextEditingController noteController = TextEditingController();
+final TextEditingController prescriptionController = TextEditingController();
+final TextEditingController testResultController = TextEditingController();
+final TextEditingController followUpController = TextEditingController();
+final TextEditingController blockchainStatusController =TextEditingController();
+final TextEditingController editHistoryController = TextEditingController();
 
   DateTime? visitDate;
   bool _isLoading = false; // Biến theo dõi trạng thái đang gửi dữ liệu
@@ -32,6 +47,10 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
   void initState() {
     super.initState();
     loadDoctorId();
+    patientIdController.text = widget.appointment.id;
+    patientNameController.text = widget.appointment.patientName;
+    phoneController.text = widget.appointment.phone;
+    doctorNameController.text = widget.appointment.doctorName;
   }
 
   Future<void> loadDoctorId() async {
@@ -48,6 +67,27 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
       });
     }
   }
+  Widget buildField({
+  required String label,
+  required TextEditingController controller,
+  int maxLines = 1,
+  bool readOnly = false,
+}) {
+  return TextFormField(
+    controller: controller,
+    maxLines: maxLines,
+    readOnly: readOnly,
+    decoration: InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -62,120 +102,444 @@ class _MedicalRecordFormState extends State<MedicalRecordForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Patient ID
-              TextFormField(
-                controller: patientIdController,
-                decoration: const InputDecoration(
-                  labelText: "Patient ID",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value!.isEmpty ? "Nhập Patient ID" : null,
+
+  // =====================================================
+  // THÔNG TIN BỆNH NHÂN
+  // =====================================================
+
+  const Text(
+    "Thông tin bệnh nhân",
+    style: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
+  const SizedBox(height: 14),
+
+  Wrap(
+    spacing: 12,
+    runSpacing: 12,
+    children: [
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: patientIdController,
+          readOnly: true,
+          decoration: const InputDecoration(
+            labelText: "Patient ID",
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) =>
+              value!.isEmpty
+                  ? "Nhập Patient ID"
+                  : null,
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: patientNameController,
+          decoration: const InputDecoration(
+            labelText: "Tên bệnh nhân",
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) =>
+              value!.isEmpty
+                  ? "Nhập tên bệnh nhân"
+                  : null,
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: cccdController,
+          decoration: const InputDecoration(
+            labelText: "CCCD",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: dobController,
+          decoration: const InputDecoration(
+            labelText: "Ngày sinh",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: genderController,
+          decoration: const InputDecoration(
+            labelText: "Giới tính",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: phoneController,
+          decoration: const InputDecoration(
+            labelText: "Số điện thoại",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 512,
+        child: TextFormField(
+          controller: addressController,
+          decoration: const InputDecoration(
+            labelText: "Địa chỉ",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+    ],
+  ),
+
+  const SizedBox(height: 24),
+
+  // =====================================================
+  // THÔNG TIN BÁC SĨ
+  // =====================================================
+
+  const Text(
+    "Thông tin bác sĩ",
+    style: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
+  const SizedBox(height: 14),
+
+  Wrap(
+    spacing: 12,
+    runSpacing: 12,
+    children: [
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: doctorIdController,
+          readOnly: true,
+          decoration: const InputDecoration(
+            labelText: "Doctor ID",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+
+      SizedBox(
+        width: 250,
+        child: TextFormField(
+          controller: doctorNameController,
+          decoration: const InputDecoration(
+            labelText: "Tên bác sĩ",
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+    ],
+  ),
+
+  const SizedBox(height: 24),
+
+  // =====================================================
+  // NGÀY KHÁM
+  // =====================================================
+
+  Row(
+    mainAxisAlignment:
+        MainAxisAlignment.spaceBetween,
+    children: [
+
+      Text(
+        visitDate != null
+            ? "Ngày khám: ${visitDate.toString().substring(0, 10)}"
+            : "Chưa chọn ngày khám",
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+
+      ElevatedButton.icon(
+        onPressed: () async {
+
+          final date =
+              await showDatePicker(
+            context: context,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+            initialDate: DateTime.now(),
+          );
+
+          if (date != null) {
+            setState(() {
+              visitDate = date;
+            });
+          }
+        },
+
+        icon: const Icon(Icons.calendar_month),
+
+        label: const Text("Chọn ngày"),
+      ),
+    ],
+  ),
+
+  const SizedBox(height: 24),
+
+  // =====================================================
+  // THÔNG TIN KHÁM
+  // =====================================================
+
+  const Text(
+    "Thông tin khám bệnh",
+    style: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+
+  const SizedBox(height: 14),
+
+  Wrap(
+  spacing: 12,
+  runSpacing: 12,
+  children: [
+
+    SizedBox(
+      width: 420,
+      child: TextFormField(
+        controller: symptomsController,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: "Triệu chứng",
+          alignLabelWithHint: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        validator: (value) =>
+            value!.isEmpty
+                ? "Nhập triệu chứng"
+                : null,
+      ),
+    ),
+
+    SizedBox(
+      width: 420,
+      child: TextFormField(
+        controller: diagnosisController,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: "Chẩn đoán",
+          alignLabelWithHint: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        validator: (value) =>
+            value!.isEmpty
+                ? "Nhập chẩn đoán"
+                : null,
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 14),
+
+// ================= ĐIỀU TRỊ + ĐƠN THUỐC =================
+
+Wrap(
+  spacing: 12,
+  runSpacing: 12,
+  children: [
+
+    SizedBox(
+      width: 420,
+      child: TextFormField(
+        controller: treatmentController,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: "Phương pháp điều trị",
+          alignLabelWithHint: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        validator: (value) =>
+            value!.isEmpty
+                ? "Nhập điều trị"
+                : null,
+      ),
+    ),
+
+    SizedBox(
+      width: 420,
+      child: TextFormField(
+        controller: prescriptionController,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: "Đơn thuốc",
+          alignLabelWithHint: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    ),
+  ],
+),
+
+const SizedBox(height: 14),
+
+// ================= XÉT NGHIỆM + TÁI KHÁM =================
+
+Wrap(
+  spacing: 12,
+  runSpacing: 12,
+  children: [
+
+    SizedBox(
+      width: 420,
+      child: TextFormField(
+        controller: testResultController,
+        maxLines: 4,
+        decoration: InputDecoration(
+          labelText: "Kết quả xét nghiệm",
+          alignLabelWithHint: true,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    ),
+
+    SizedBox(
+      width: 420,
+      child: Column(
+        children: [
+
+          TextFormField(
+            controller: followUpController,
+            decoration: InputDecoration(
+              labelText: "Hẹn tái khám",
+              border: OutlineInputBorder(
+                borderRadius:
+                    BorderRadius.circular(14),
               ),
-              const SizedBox(height: 14),
+            ),
+          ),
 
-              // Doctor ID
-              TextFormField(
-                controller: doctorIdController,
-                decoration: const InputDecoration(
-                  labelText: "Doctor ID",
-                  border: OutlineInputBorder(),
-                ),
-                //  validator: (value) => value!.isEmpty ? "Nhập Doctor ID" : null,
-                readOnly: true,
+          const SizedBox(height: 12),
+
+          TextFormField(
+            controller: blockchainStatusController,
+            decoration: InputDecoration(
+              labelText: "Trạng thái hồ sơ",
+              border: OutlineInputBorder(
+                borderRadius:
+                    BorderRadius.circular(14),
               ),
-              const SizedBox(height: 14),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ],
+),
 
-              TextFormField(
-                controller: patientNameController,
-                decoration: const InputDecoration(
-                  labelText: "Patient Name",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Nhập PatientName" : null,
-              ),
-              const SizedBox(height: 14),
+const SizedBox(height: 14),
 
-              // Visit Date
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Ngày khám: ${visitDate != null ? visitDate.toString().substring(0, 10) : 'Chưa chọn'}",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                        initialDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setState(() => visitDate = date);
-                      }
-                    },
-                    child: const Text("Chọn ngày"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+// ================= GHI CHÚ =================
 
-              // Symptoms
-              TextFormField(
-                controller: symptomsController,
-                decoration: const InputDecoration(
-                  labelText: "Triệu chứng",
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) =>
-                    value!.isEmpty ? "Nhập triệu chứng" : null,
-              ),
-              const SizedBox(height: 14),
+TextFormField(
+  controller: noteController,
+  maxLines: 3,
+  decoration: InputDecoration(
+    labelText: "Ghi chú bác sĩ",
+    alignLabelWithHint: true,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+  ),
+),
 
-              // Diagnosis
-              TextFormField(
-                controller: diagnosisController,
-                decoration: const InputDecoration(
-                  labelText: "Chẩn đoán",
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) => value!.isEmpty ? "Nhập chẩn đoán" : null,
-              ),
-              const SizedBox(height: 14),
+const SizedBox(height: 14),
 
-              // Treatment
-              TextFormField(
-                controller: treatmentController,
-                decoration: const InputDecoration(
-                  labelText: "Điều trị",
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-                validator: (value) =>
-                    value!.isEmpty ? "Nhập phương pháp điều trị" : null,
-              ),
-              const SizedBox(height: 20),
+// ================= LỊCH SỬ BLOCKCHAIN =================
 
-              // Upload attachments
-              const Text("Tệp đính kèm (ảnh/X-ray):"),
-              const SizedBox(height: 8),
+TextFormField(
+  controller: editHistoryController,
+  maxLines: 3,
+  decoration: InputDecoration(
+    labelText: "Lịch sử chỉnh sửa Blockchain",
+    alignLabelWithHint: true,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+    ),
+  ),
+),
+  const SizedBox(height: 24),
+  const Text(
+    "Tệp đính kèm (ảnh/X-ray)",
+    style: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  const SizedBox(height: 12),
 
-              ElevatedButton(
-                onPressed: pickAttachments,
-                child: const Text("Chọn tệp"),
-              ),
-              const SizedBox(height: 10),
+  Row(
+    children: [
 
-              // Show selected files
-              ...attachments.map(
-                (x) => Text("• ${p.basename(x.path)}"),
-              ),
+      ElevatedButton.icon(
+        onPressed: pickAttachments,
+        icon: const Icon(Icons.upload),
+        label: const Text("Chọn tệp"),
+      ),
 
-              const SizedBox(height: 20),
+      const SizedBox(width: 14),
+
+      Text(
+        "${attachments.length} tệp đã chọn",
+      ),
+    ],
+  ),
+
+  const SizedBox(height: 12),
+
+  Wrap(
+    spacing: 10,
+    runSpacing: 10,
+    children: attachments.map((x) {
+
+      return Chip(
+        label: Text(
+          p.basename(x.path),
+        ),
+      );
+    }).toList(),
+  ),
+
+  const SizedBox(height: 30),
 
               // Submit button
               SizedBox(

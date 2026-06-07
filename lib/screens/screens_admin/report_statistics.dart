@@ -328,7 +328,7 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              tooltipBgColor: kPrimaryColor,
+              getTooltipColor: (group) => kPrimaryColor,
               getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                   BarTooltipItem(
                       '${rod.toY.toInt()} người',

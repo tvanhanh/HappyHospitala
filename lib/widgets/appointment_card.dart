@@ -21,10 +21,17 @@ class AppointmentCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        context.push(
-          '/home/appointments/appointment-detail',
-          extra: appointment,
-        );
+        if (role == 'doctor') {
+          context.push(
+            '/doctor/appointments/appointment-detail',
+            extra: appointment,
+          );
+        } else {
+          context.push(
+            '/home/appointments/appointment-detail',
+            extra: appointment,
+          );
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),

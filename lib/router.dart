@@ -1,12 +1,15 @@
+// ignore_for_file: duplicate_import
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/models/appointment.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/splash_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_doctor/medical_record_detail_page.dart';
+import 'package:flutter_application_datlichkham/screens/screen_doctor/appointment_detail_screen_doctor.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/appointment_detail_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/booking_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/discussion_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/doctor_list_patient.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/patient_appointments_screen.dart';
+import 'package:flutter_application_datlichkham/models/patient.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/update_profile_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screens_admin/AddDoctorScreen.dart';
 import 'package:flutter_application_datlichkham/screens/screens_admin/add_doctor_info.dart';
@@ -14,8 +17,10 @@ import 'package:flutter_application_datlichkham/screens/screens_admin/doctor_lis
 import 'package:flutter_application_datlichkham/screens/screens_admin/manage_price.dart';
 import 'package:flutter_application_datlichkham/screens/screens_admin/security_screens/security_ayth.dart';
 import 'package:flutter_application_datlichkham/screens/screens_common/doctor_detail_screen.dart';
+import 'package:flutter_application_datlichkham/screens/screen_doctor/medical_record_page.dart';
 import 'package:go_router/go_router.dart';
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
 import 'screens/screen_authencication/login_screen.dart';
 import 'screens/screen_authencication/change_password_screen.dart';
 import 'screens/screen_authencication/change_password_page.dart';
@@ -23,14 +28,34 @@ import 'screens/screen_authencication/confirmation_screen.dart';
 import 'screens/screen_authencication/forgot_password_screen.dart';
 import 'screens/screen_authencication/register_screen.dart';
 
+// ── Patient ───────────────────────────────────────────────────────────────────
 import 'screens/screen_patient/home_screen.dart';
 import 'screens/screen_patient/home_shell.dart';
+import 'screens/screen_patient/chat_screen.dart';
 import 'screens/screen_patient/thank_screen.dart';
-import 'screens/screens_admin/home.dart';
+import 'screens/screen_patient/profile_screen.dart';
+import 'screens/screen_patient/diagnosis_result_screen.dart';
+import 'screens/screen_patient/specialties_screen.dart';
+import 'screens/screen_patient/medical_facilities_screen.dart';
+import 'screens/screen_patient/faq_screen.dart';
+import 'screens/screen_patient/medical_records.dart';
+import 'screens/screen_patient/book_appointment_screen.dart';
+import 'screens/screen_patient/select_room_screen.dart';
+import 'screens/screen_patient/select_doctor_screen.dart';
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+import 'screens/screens_admin/admin_dashboard.dart';
 import 'screens/screens_admin/patient_detail.dart';
 import 'screens/screens_admin/security_screens/create_account_screen.dart';
-import 'screens/screen_staff/home.dart';
 
+// ── Receptionist ──────────────────────────────────────────────────────
+import 'screens/screen_receptionist/appointment_management_screen.dart';
+import 'screens/screen_receptionist/dashboard.dart';
+import 'screens/screen_receptionist/patient_management_screen.dart';
+import 'screens/screen_receptionist/notificationScreen.dart';
+import 'screens/screen_receptionist/medical_records_screen.dart';
+
+// ── Doctor ────────────────────────────────────────────────────────────────────
 import 'screens/screen_doctor/doctor_home_screen.dart';
 import 'screens/screen_doctor/appointment_page.dart';
 import 'screens/screen_doctor/patient_management.dart';
@@ -39,274 +64,328 @@ import 'screens/screen_doctor/classification_results.dart';
 import 'screens/screen_doctor/consultation.dart';
 import 'screens/screen_doctor/progress_tracking.dart';
 import 'screens/screen_doctor/chatAI_screen.dart';
-
-import 'screens/screen_patient/profile_screen.dart';
-import 'screens/screen_patient/diagnosis_result_screen.dart';
-import 'screens/screen_patient/specialties_screen.dart';
-
-import 'screens/screen_patient/medical_facilities_screen.dart';
-import 'screens/screen_patient/faq_screen.dart';
-import 'screens/screen_patient/medical_records.dart';
 import 'screens/screen_doctor/medical_record_formblockchain.dart';
 import 'screens/screen_doctor/list_medical_record.dart';
+import 'screens/screen_doctor/appointment_detail_screen_doctor.dart';
+import 'screens/screen_doctor/doctor_profile_screen.dart';
 
-// Thay bằng đường dẫn thực tế đến file model của bạn
+// ── Cashier ────────────────────────────────────────────────────────────────
+import 'screens/screen_cashier/cashier_dashboard.dart';
 
+// ── Pharmacy ───────────────────────────────────────────────────────────────
+import 'screens/screen_pharmacy/pharmacy_dashboard.dart';
+
+/// The application's top-level [GoRouter] configuration.
+///
+/// Navigation is role-based:
+/// - `/` → Splash (auto-redirects based on stored JWT role)
+/// - `/home/**` and `/patient/**` → Patient shell with bottom navigation
+/// - `/doctor/**` → Doctor dashboard
+/// - `/admin/**` → Admin dashboard
+/// - `/receptionist/**` → Receptionist dashboard
 final GoRouter router = GoRouter(
   initialLocation: '/',
   routes: [
+    // ── PUBLIC & AUTH ──────────────────────────────────────────
     GoRoute(
       path: '/',
       builder: (context, state) => SplashScreen(),
     ),
-    //Authentication
     GoRoute(
-      path: '/login',
+      path: '/auth',
       builder: (context, state) => LoginScreen(),
-    ),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => RegisterScreen(),
-    ),
-
-    // 3. Màn hình Quên mật khẩu
-    GoRoute(
-      path: '/forgot-password',
-      builder: (context, state) => ForgotPasswordScreen(),
-    ),
-
-    // 4. Màn hình Xác nhận (OTP hoặc link xác nhận)
-
-    // 5. Màn hình Đổi mật khẩu (Sau khi quên mật khẩu)
-    GoRoute(
-      path: '/change-password-reset',
-      builder: (context, state) => const ChangePasswordScreen(),
-    ),
-
-    // 6. Trang Đổi mật khẩu (Thường dùng trong mục Profile/Cài đặt)
-    GoRoute(
-      path: '/change-password-page',
-      builder: (context, state) {
-        // Lấy email từ state.extra và ép kiểu về String
-        final email = state.extra as String;
-        return ChangePasswordPage(email: email);
-      },
-    ),
-    GoRoute(
-      path: '/update_profile',
-      builder: (context, state) => UpdateProfileScreen(),
-    ),
-
-    //Patient
-    GoRoute(
-      path: '/doctor_list',
-      builder: (context, state) => PatientDoctorListScreen(),
-    ),
-    GoRoute(
-      path: '/thankyou',
-      builder: (context, state) => ThankYouScreen(),
-    ),
-
-    ShellRoute(
-      builder: (context, state, child) {
-        return HomeShell(child: child);
-      },
       routes: [
+        GoRoute(path: 'login', builder: (context, state) => LoginScreen()),
         GoRoute(
-          path: '/home',
-          builder: (context, state) => HomeScreen(),
-        ),
+            path: 'register', builder: (context, state) => RegisterScreen()),
         GoRoute(
-          path: '/home/profile',
-          builder: (context, state) => ProfileScreen(),
-        ),
+            path: 'forgot_password',
+            builder: (context, state) => ForgotPasswordScreen()),
         GoRoute(
-          path: '/home/discussion',
-          builder: (context, state) => DiscussionScreen(),
-        ),
+            path: 'change_password_reset',
+            builder: (context, state) => const ChangePasswordScreen()),
         GoRoute(
-          path: '/home/appointments',
-          builder: (context, state) => PatientAppointmentsScreen(),
-        ),
-        GoRoute(
-          path: '/home/results',
-          builder: (context, state) => DiagnosisResultScreen(),
-        ),
-        GoRoute(
-          path: '/home/appointments/appointment-detail',
+          path: 'change_password_page',
           builder: (context, state) {
-            final appointment = state.extra as Appointment;
-
-            return AppointmentDetailScreen(
-              appointment: appointment,
-            );
+            final email = state.extra as String? ?? '';
+            return ChangePasswordPage(email: email);
           },
-        ),
-        GoRoute(
-          path: '/booking/:doctorId',
-          builder: (context, state) => PatientAppointmentsScreen(),
         ),
       ],
     ),
     GoRoute(
-      path: '/patient/profile-screen',
-      builder: (context, state) => ProfileScreen(),
-    ),
+        path: '/update_profile',
+        builder: (context, state) => UpdateProfileScreen()),
+
+    // ── PATIENT ───────────────────────────────────────────────────
+    GoRoute(path: '/thankyou', builder: (context, state) => ThankYouScreen()),
     GoRoute(
-        path: '/patient/diagnosis_result_screen',
-        builder: (context, state) => DiagnosisResultScreen()),
-    GoRoute(
-        path: '/patient/specialties_screen',
-        builder: (context, state) => SpecialtiesScreen()),
-    GoRoute(
-        path: '/patient/medical_facilities_screen',
-        builder: (context, state) => MedicalFacilitiesScreen()),
-    GoRoute(
-        path: '/patient/medical-records',
-        builder: (context, state) => MedicalRecordsPage()),
-    GoRoute(path: '/patient/faq', builder: (context, state) => FAQScreen()),
+        path: '/patient_apointment',
+        builder: (context, state) => PatientAppointmentsScreen()),
     GoRoute(
       path: '/patient-detail',
       builder: (context, state) {
-        // Ép kiểu state.extra về Map<String, dynamic>
-        // Nếu state.extra bị null (do F5), ta tạo một Map trống để tránh lỗi crash
         final patientData = (state.extra as Map<String, dynamic>?) ?? {};
-
         return PatientDetailScreen(patient: patientData);
       },
     ),
-    //Admin
-    GoRoute(
-      path: '/admin/user_management',
-      builder: (context, state) => UserManagementScreen(),
+    ShellRoute(
+      builder: (context, state, child) => HomeShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => const HomeScreen(),
+          routes: [
+            GoRoute(
+                path: 'profile', builder: (context, state) => ProfileScreen()),
+            GoRoute(
+                path: 'discussion',
+                builder: (context, state) => DiscussionScreen()),
+            GoRoute(
+              path: 'appointments',
+              builder: (context, state) => PatientAppointmentsScreen(),
+              routes: [
+                GoRoute(
+                  path: 'appointment-detail',
+                  builder: (context, state) {
+                    final appointment = state.extra as Appointment?;
+                    if (appointment == null) {
+                      return Scaffold(
+                        body: Center(
+                            child: Text(
+                                'Appointment data missing for appointment detail.')),
+                      );
+                    }
+                    return AppointmentDetailScreen(appointment: appointment);
+                  },
+                ),
+              ],
+            ),
+            GoRoute(
+                path: 'results',
+                builder: (context, state) => DiagnosisResultScreen()),
+          ],
+        ),
+        GoRoute(
+          path: '/patient',
+          builder: (context, state) => const HomeScreen(),
+          routes: [
+            GoRoute(
+                path: 'doctor_list',
+                builder: (context, state) => PatientDoctorListScreen()),
+            GoRoute(
+                path: 'book-appointment',
+                builder: (context, state) => const BookAppointmentScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'rooms/:specialtyId',
+                    builder: (context, state) {
+                      final specialtyId = state.pathParameters['specialtyId']!;
+                      return SelectRoomScreen(specialtyId: specialtyId);
+                    },
+                    routes: [
+                      GoRoute(
+                        path: 'doctors/:roomId',
+                        builder: (context, state) {
+                          final roomId = state.pathParameters['roomId']!;
+                          return SelectDoctorScreen(roomId: roomId);
+                        },
+                      ),
+                    ],
+                  ),
+                ]),
+            GoRoute(
+                path: 'specialties_screen',
+                builder: (context, state) => SpecialtiesScreen()),
+            GoRoute(
+                path: 'medical_facilities_screen',
+                builder: (context, state) => MedicalFacilitiesScreen()),
+            GoRoute(
+                path: 'medical-records',
+                builder: (context, state) => MedicalRecordsPage()),
+            GoRoute(
+                path: 'appointments',
+                builder: (context, state) => PatientAppointmentsScreen()),
+            GoRoute(
+                path: 'profile-screen',
+                builder: (context, state) => ProfileScreen()),
+            GoRoute(
+                path: 'diagnosis_result_screen',
+                builder: (context, state) => DiagnosisResultScreen()),
+            GoRoute(path: 'faq', builder: (context, state) => FAQScreen()),
+            GoRoute(
+                path: 'chat',
+                builder: (context, state) => const ChatListScreen()),
+          ],
+        ),
+      ],
     ),
+
     GoRoute(
-      path: '/admin/add-doctor',
-      builder: (context, state) => AddDoctorScreen(),
+      path: '/medical-record',
+      builder: (context, state) {
+        final patient = state.extra as Patient?;
+        if (patient == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Bệnh án không tìm thấy'),
+            ),
+            body: const Center(
+              child: Text(
+                  'Không tìm thấy thông tin bệnh nhân để hiển thị bệnh án.'),
+            ),
+          );
+        }
+        return MedicalRecordPage(patient: patient);
+      },
     ),
-    GoRoute(
-      path: '/admin/create_account',
-      builder: (context, state) => CreateUserScreenState(),
-    ),
+
+    // ── ADMIN ─────────────────────────────────────────────────────
     GoRoute(
       path: '/admin',
       builder: (context, state) => AdminDashboard(),
+      routes: [
+        GoRoute(
+            path: 'user_management',
+            builder: (context, state) => UserManagementScreen()),
+        GoRoute(
+            path: 'create_account',
+            builder: (context, state) => CreateUserScreenState()),
+        GoRoute(
+            path: 'add-doctor', builder: (context, state) => AddDoctorScreen()),
+        GoRoute(
+            path: 'doctor-list',
+            builder: (context, state) => DoctorListScreen()),
+        GoRoute(
+            path: 'manage-price',
+            builder: (context, state) => ManagePriceScreen()),
+      ],
     ),
 
-    //Staff
-    GoRoute(
-      path: '/staff',
-      builder: (context, state) => StaffDashboard(),
-    ),
-    //Doctor
+    // ── DOCTOR ────────────────────────────────────────────────────
     GoRoute(
       path: '/doctor',
       builder: (context, state) => DoctorDashboard(),
+      routes: [
+        GoRoute(
+          path: 'appointments',
+          builder: (context, state) => DoctorAppointmentsScreen(),
+          routes: [
+            GoRoute(
+              path: 'appointment-detail',
+              builder: (context, state) {
+                final appointment = state.extra as Appointment?;
+                if (appointment == null) {
+                  return Scaffold(
+                    body: Center(
+                        child: Text(
+                            'Appointment data missing for doctor appointment detail.')),
+                  );
+                }
+                return AppointmentDetailDoctorScreen(appointment: appointment);
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+            path: 'profile',
+            builder: (context, state) => DoctorProfileScreen()),
+        GoRoute(
+            path: 'edit/:doctorId',
+            builder: (context, state) => AddDoctorInfoScreen(
+                doctorId: state.pathParameters['doctorId']!)),
+        GoRoute(
+          path: 'create-medical-record',
+          builder: (context, state) {
+            final appointment = state.extra as Appointment?;
+            if (appointment == null) {
+              return Scaffold(
+                body: Center(
+                    child: Text(
+                        'Appointment is required to create a medical record.')),
+              );
+            }
+            return MedicalRecordForm(appointment: appointment);
+          },
+        ),
+        GoRoute(
+            path: 'list-medical',
+            builder: (context, state) => MedicalRecordListPage()),
+        GoRoute(
+            path: 'addMedicalRecord',
+            builder: (context, state) => MedicalRecordsPage()),
+        GoRoute(
+            path: 'medical-records',
+            builder: (context, state) => const MedicalRecordsScreen(showAppBar: true, showDrawer: false)),
+      ],
     ),
-    // GoRoute(
-    //   path: '/doctor/addPatient',
-    //   builder: (context, state) {
-    //     // Ép kiểu state.extra về Map<String, dynamic>
-    //     // Nếu state.extra bị null (do F5), ta tạo một Map trống để tránh lỗi crash
-    //     final appData = (state.extra as Map<String, dynamic>?) ?? {};
-
-    //     return AppointmentDetailPage(appointment: appData);
-    //   },
-    // ),
     GoRoute(
         path: '/diagnosis', builder: (context, state) => DiagnosisFormScreen()),
-    // GoRoute(
-    //   path: '/medical-record',
-    //   builder: (context, state) {
-    //     // Lấy dữ liệu bệnh nhân từ state.extra
-    //     // Ép kiểu (cast) về Map hoặc PatientModel tùy vào cấu trúc của bạn
-    //     final patientData = state.extra as Patient;
 
-    //     return MedicalRecordsPage(patient : patientData);
-    //   },
-    //),
+    // ── RECEPTIONIST & STAFF ─────────────────────────────────────
+    GoRoute(
+      path: '/receptionist',
+      builder: (context, state) => const ReceptionistDashboard(),
+      routes: [
+        GoRoute(
+            path: 'dashboard',
+            builder: (context, state) => const ReceptionistDashboard()),
+        GoRoute(
+            path: 'patient-management',
+            builder: (context, state) => const PatientManagementScreen()),
+        GoRoute(
+            path: 'appointment-management',
+            builder: (context, state) =>
+                const ReceptionistDashboardScreen()),
+        GoRoute(
+            path: 'notification',
+            builder: (context, state) => const NotificationScreen()),
+        GoRoute(
+            path: 'medical-records',
+            builder: (context, state) => const MedicalRecordsScreen()),
+      ],
+    ),
+    GoRoute(
+        path: '/staff',
+        builder: (context, state) => const ReceptionistDashboard()),
 
+    // ── CASHIER & PHARMACY ─────────────────────────────────────
     GoRoute(
-      path: '/doctor/edit/:doctorId',
-      builder: (context, state) {
-        final doctorId = state.pathParameters['doctorId']!;
-        return AddDoctorInfoScreen(doctorId: doctorId);
-      },
-    ),
+        path: '/cashier',
+        builder: (context, state) => const CashierDashboard()),
+    GoRoute(
+        path: '/pharmacy',
+        builder: (context, state) => const PharmacyDashboard()),
 
+    // ── SHARED ───────────────────────────────────────────────────
     GoRoute(
-      path: '/patient_apointment',
-      builder: (context, state) => PatientAppointmentsScreen(),
-    ),
-
+        path: '/medical-record-detail/:recordId',
+        builder: (context, state) => MedicalRecordDetailPage(
+            recordId: state.pathParameters['recordId']!)),
     GoRoute(
-      path: '/doctor/appointments',
-      builder: (context, state) => DoctorAppointmentsScreen(),
-    ),
+        path: '/prescription', builder: (context, state) => PrescriptionPage()),
     GoRoute(
-      // :recordId là biến số, nó sẽ thay đổi tùy theo bệnh án bạn chọn
-      path: '/medical-record-detail/:recordId',
-      builder: (context, state) {
-        // Lấy recordId từ URL thanh địa chỉ
-        final recordId = state.pathParameters['recordId']!;
-
-        return MedicalRecordDetailPage(recordId: recordId);
-      },
-    ),
+        path: '/patient-management',
+        builder: (context, state) => PatientManagementPage()),
     GoRoute(
-      path: '/doctor/create-medical-record',
-      builder: (context, state) => const MedicalRecordForm(),
-    ),
-
+        path: '/classification-results',
+        builder: (context, state) => ClassificationResultsPage()),
     GoRoute(
-      path: '/prescription',
-      builder: (context, state) => PrescriptionPage(),
-    ),
+        path: '/consultation', builder: (context, state) => ConsultationPage()),
     GoRoute(
-      path: '/patient-management',
-      builder: (context, state) => PatientManagementPage(),
-    ),
-    GoRoute(
-      path: '/classification-results',
-      builder: (context, state) => ClassificationResultsPage(),
-    ),
-    GoRoute(
-      path: '/consultation',
-      builder: (context, state) => ConsultationPage(),
-    ),
-    GoRoute(
-      path: '/progress-tracking',
-      builder: (context, state) => ProgressTrackingPage(),
-    ),
-    GoRoute(
-      path: '/doctor/create-medical-record',
-      builder: (context, state) => MedicalRecordForm(),
-    ),
-
-    GoRoute(
-      path: '/doctor/list-medical',
-      builder: (context, state) => MedicalRecordListPage(),
-    ),
-    GoRoute(
-      path: '/doctor/addMedicalRecord',
-      builder: (context, state) => MedicalRecordsPage(),
-    ),
-
+        path: '/progress-tracking',
+        builder: (context, state) => ProgressTrackingPage()),
     GoRoute(
       path: '/doctor-detail/:id',
-      builder: (context, state) {
-        final doctorId = state.pathParameters['id']!;
-
-        return DoctorDetailScreen(
-          doctorId: doctorId,
-          role: "patient", // hoặc lấy từ auth
-        );
-      },
+      builder: (context, state) => DoctorDetailScreen(
+        doctorId: state.pathParameters['id']!,
+        role: 'patient',
+      ),
     ),
-    // Department
-    // GoRoute(
-    //   path: '/admin/manage-price',
-    //   builder: (context, state) => const ManagePriceScreen(),
-    // ),
+    GoRoute(
+      path: '/booking/:doctorId',
+      builder: (context, state) =>
+          BookingScreen(doctorId: state.pathParameters['doctorId']!),
+    ),
   ],
 );

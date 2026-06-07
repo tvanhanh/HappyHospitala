@@ -121,7 +121,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       });
 
       if (isValid) {
-        context.go('/change-password-reset');
+        context.go('/auth/change_password_reset');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

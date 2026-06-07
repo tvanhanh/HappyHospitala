@@ -14,7 +14,7 @@ class _CreateUserScreenStateState extends State<CreateUserScreenState> {
   final _formKey = GlobalKey<FormState>();
   final logger = Logger();
   String name = '', email = '', password = '', confirmPassword = '';
-  String selectedRole = 'staff'; // Role mặc định
+  String selectedRole = 'receptionist'; // Default role (mapped from deprecated 'staff')
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
 
@@ -260,7 +260,9 @@ class _CreateUserScreenStateState extends State<CreateUserScreenState> {
       items: [
         {'val': 'admin', 'label': 'Quản Trị Viên', 'icon': Icons.security},
         {'val': 'doctor', 'label': 'Bác Sĩ', 'icon': Icons.medical_services},
-        {'val': 'staff', 'label': 'Nhân Viên', 'icon': Icons.badge},
+        {'val': 'receptionist', 'label': 'Lễ Tân', 'icon': Icons.badge},
+        {'val': 'cashier', 'label': 'Thu Ngân', 'icon': Icons.payments_outlined},
+        {'val': 'pharmacy', 'label': 'Dược Sĩ', 'icon': Icons.local_pharmacy_outlined},
       ].map((item) {
         return DropdownMenuItem(
           value: item['val'] as String,

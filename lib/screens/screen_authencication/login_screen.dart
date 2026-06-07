@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/home_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:go_router/go_router.dart';
@@ -8,17 +9,20 @@ import 'forgot_password_screen.dart';
 import 'change_password_screen.dart';
 
 import '../screen_doctor/doctor_home_screen.dart';
-import '../screen_staff/home.dart';
-import '../screens_admin/home.dart';
+import '../screens_admin/admin_dashboard.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   String email = '', password = '';
   bool isPasswordVisible = false;
 
@@ -92,10 +96,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // --- INPUT FIELDS ---
                         _buildTextField("Email", Icons.email, false,
-                            (value) => email = value!),
+                            (value) => email = value!, controller: _emailController),
                         SizedBox(height: 15), // ✅ Giảm khoảng cách
                         _buildTextField("Mật khẩu", Icons.lock, true,
-                            (value) => password = value!),
+                            (value) => password = value!, controller: _passwordController),
                         SizedBox(height: 10), // ✅ Giữ khoảng cách vừa phải
 
                         // --- NÚT ĐĂNG NHẬP CHÍNH ---
@@ -104,13 +108,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 45, // ✅ Giảm chiều cao nút
                           child: ElevatedButton(
                             onPressed: () async {
-                              if (_formKey.currentState!.validate()) {
-                                final result =
-                                    await ApiService.loginUser(email, password);
+                              if (_formKey.currentState!.validate() || kDebugMode) {
+                                final loginEmail = kDebugMode && _emailController.text.isNotEmpty ? _emailController.text : email;
+                                final loginPass = kDebugMode && _passwordController.text.isNotEmpty ? _passwordController.text : password;
+                                final errorMsg = await ref.read(authProvider.notifier).login(loginEmail, loginPass);
                                 if (!context.mounted) return;
                                 // [Logic chuyển hướng]
-                                if (result != null && result['error'] == null) {
-                                  final role = result['role'];
+                                if (errorMsg == null) {
+                                  final role = ref.read(authProvider).role.value;
 
                                   if (role == 'admin') {
                                     context.go('/admin');
@@ -118,13 +123,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                     context.go('/home');
                                   } else if (role == 'doctor') {
                                     context.go('/doctor');
-                                  } else if (role == 'staff') {
-                                    context.go('/staff');
+                                  } else if (role == 'receptionist') {
+                                    context.go('/receptionist/dashboard');
+                                  } else if (role == 'cashier') {
+                                    context.go('/cashier');
+                                  } else if (role == 'pharmacy') {
+                                    context.go('/pharmacy');
+                                  } else {
+                                    context.go('/home'); // Fallback
                                   }
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text(result?['error'] ??
+                                        content: Text(errorMsg ??
                                             'Đăng nhập thất bại')),
                                   );
                                 }
@@ -144,13 +155,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         SizedBox(height: 15), // ✅ Giảm khoảng cách
 
+                        if (kDebugMode) _buildDevQuickLogin(),
+
                         // --- QUÊN MẬT KHẨU & ĐỔI MẬT KHẨU ---
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             TextButton(
                               onPressed: () {
-                                context.go('/change-password-page');
+                                context.go('/auth/change_password_page');
                               },
                               child: Text("Quên mật khẩu?",
                                   style: TextStyle(
@@ -159,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                context.go('/change-password-reset');
+                                context.go('/auth/change_password_reset');
                               },
                               child: Text("Đổi mật khẩu",
                                   style: TextStyle(
@@ -207,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: Colors.grey.shade700, fontSize: 14)),
                             TextButton(
                               onPressed: () {
-                                context.go('/register');
+                                context.go('/auth/register');
                               },
                               child: Text("Đăng ký ngay",
                                   style: TextStyle(
@@ -234,10 +247,75 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- HÀM HỖ TRỢ DYNAMICALLY BUILT ---
 
+  Widget _buildDevQuickLogin() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.shade700),
+      ),
+      child: Column(
+        children: [
+          Text("🛠️ DEV QUICK LOGIN", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              _devLoginBtn("Admin", "admin@gmail.com"),
+              _devLoginBtn("Bác Sĩ", "phino18@gmail.com"),
+              _devLoginBtn("Bệnh Nhân", "patient1@gmail.com"),
+              _devLoginBtn("Lễ Tân", "receptionist@gmail.com"),
+              _devLoginBtn("Thu Ngân", "cashier@gmail.com"),
+              _devLoginBtn("Dược Sĩ", "pharmacist@gmail.com"),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _devLoginBtn(String title, String devEmail) {
+    return ActionChip(
+      label: Text(title, style: const TextStyle(fontSize: 12)),
+      backgroundColor: Colors.amber.shade300,
+      onPressed: () {
+        _emailController.text = devEmail;
+        _passwordController.text = "123456";
+        email = devEmail;
+        password = "123456";
+        // Trigger login
+        if (_formKey.currentState != null) {
+          _formKey.currentState!.validate();
+        }
+        // Gọi thẳng loginUser logic để nó tự đăng nhập
+        ref.read(authProvider.notifier).login(email, password).then((errorMsg) {
+          if (!mounted) return;
+          if (errorMsg == null) {
+            final role = ref.read(authProvider).role.value;
+            if (role == 'admin') context.go('/admin');
+            else if (role == 'patient') context.go('/home');
+            else if (role == 'doctor') context.go('/doctor');
+            else if (role == 'receptionist') context.go('/receptionist/dashboard');
+            else if (role == 'cashier') context.go('/cashier');
+            else if (role == 'pharmacy') context.go('/pharmacy');
+            else context.go('/home');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+          }
+        });
+      },
+    );
+  }
+
   /// ✅ Widget tạo TextField
   Widget _buildTextField(String label, IconData icon, bool isPassword,
-      Function(String) onChanged) {
+      Function(String) onChanged, {TextEditingController? controller}) {
     return TextFormField(
+      controller: controller,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.blue.shade700),

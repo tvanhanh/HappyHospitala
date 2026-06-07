@@ -7,9 +7,19 @@ export interface IAppointment extends Document {
 
   patientName: string;
   phone: string;
+
+  cccd: String,
   gender?: string;
   address?: string;
-
+  birthDate: Date,
+  departmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Departments",
+  },
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
   medicalHistory?: string;
   allergies?: string;
 
@@ -19,7 +29,16 @@ export interface IAppointment extends Document {
 
   imageUrl?: string;
 
-  status: "pending" | "confirmed" | "cancelled" | "completed";
+  status: "pending" | "confirmed" | "checked_in" | "in_progress" | "cancelled" | "completed";
+  // Fee & Payment
+  originalFee?: number;       // Phí khám gốc (từ Doctor.consultationFee)
+  discountAmount?: number;    // Số tiền giảm
+  insuranceCoverage?: number; // % BHYT (mặc định 80 = 80%)
+  insuranceNumber?: string;   // Số thẻ BHYT
+  finalFee?: number;          // Phí thực tế bệnh nhân phải trả
+  promotionCode?: string;     // Mã khuyến mãi đã áp dụng
+  paymentMethod?: "cash" | "insurance" | "vnpay" | "momo" | "banking";
+  isPaid?: boolean;
 }
 
 // ================= SCHEMA =================
@@ -34,42 +53,80 @@ const appointmentSchema = new Schema<IAppointment>(
 
     doctor: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Doctor",
       required: true,
     },
 
     // ===== PATIENT INFO SNAPSHOT =====
     patientName: { type: String, required: true },
-    phone: { type: String, required: true },
-    gender: { type: String },
-    address: { type: String },
-
-    medicalHistory: { type: String },
-    allergies: { type: String },
+    phone: { type: String, default: null },
+    cccd: { type: String, default: null },
+    birthDate: { type: Date, default: null },
+    gender: { type: String, default: null },
+    address: { type: String, default: null },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Departments",
+    },
+    medicalHistory: { type: String, default: null },
+    allergies: { type: String, default: null },
 
     // ===== APPOINTMENT INFO =====
-    reason: { type: String, required: true },
-    date: { type: String, required: true }, // YYYY-MM-DD
-    time: { type: String, required: true }, // HH:mm
+    reason: { type: String, default: null },
+    date: { type: String, default: null }, // YYYY-MM-DD
+    time: { type: String, default: null }, // HH:mm
 
     // ===== IMAGE =====
-    imageUrl: { type: String }, // ảnh bệnh (Cloudinary)
+    imageUrl: { type: String, default: null },
+
+    // ===== FEE & PAYMENT =====
+    originalFee: { type: Number, default: 0 },
+    discountAmount: { type: Number, default: 0 },
+    insuranceCoverage: { type: Number, default: 0 },  // % BHYT thanh toán
+    insuranceNumber: { type: String, default: null },
+    finalFee: { type: Number, default: 0 },
+    promotionCode: { type: String, default: null },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "insurance", "vnpay", "momo", "banking"],
+      default: "cash",
+    },
+    isPaid: { type: Boolean, default: false },
 
     // ===== STATUS =====
-  status: {
-  type: String,
-  enum: [
-    "pending",
-    "confirmed",
-    "in_progress", // 🔥 thêm cái này
-    "cancelled",
-    "completed"
-  ],
-  default: "pending",
-}
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "checked_in",   // Bệnh nhân đã đến phòng khám
+        "in_progress",  // Đang khám
+        "cancelled",
+        "completed"
+      ],
+      default: "pending",
+    }
   },
   {
-    timestamps: true, // createdAt + updatedAt
+    timestamps: true,
+  }
+);
+
+
+/**
+ * [RACE CONDITION GUARD] — Compound unique index trên (doctor, date, time)
+ * để MongoDB tự động từ chối duplicate slot ngay cả khi 2 request đến đồng thời.
+ * Chỉ áp dụng khi status KHÔNG phải 'cancelled'.
+ * Sử dụng partial filter expression để cho phép nhiều cancelled records.
+ */
+appointmentSchema.index(
+  { doctor: 1, date: 1, time: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      status: { $in: ["pending", "confirmed", "checked_in", "in_progress", "completed"] }
+    },
+    name: "unique_active_slot"
   }
 );
 

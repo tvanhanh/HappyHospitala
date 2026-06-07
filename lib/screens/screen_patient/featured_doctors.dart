@@ -34,7 +34,8 @@ class FeaturedDoctors extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: () {
-                    context.push('/doctor_list'); // 👈 route danh sách bác sĩ
+                    context.push(
+                        '/patient/doctor_list'); // 👈 route danh sách bác sĩ
                   },
                   child: const Text(
                     "Xem tất cả",

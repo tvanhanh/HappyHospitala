@@ -1,71 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-// --- PALETTE MÀU (Đồng bộ với PatientListScreen) ---
-const Color kPrimaryColor = Color(0xFF1565C0);
-const Color kBackgroundColor = Color(0xFFF5F7FA);
-const Color kCardColor = Colors.white;
+const Color _kPrimary = Color(0xFF1565C0);
+const Color _kBackground = Color(0xFFF5F7FA);
 
 class PatientDetailScreen extends StatelessWidget {
-  final Map<String, dynamic> patient; // Đổi thành dynamic để linh hoạt hơn
+  final Map<String, dynamic> patient;
 
-  const PatientDetailScreen({Key? key, required this.patient})
-      : super(key: key);
+  const PatientDetailScreen({super.key, required this.patient});
 
   @override
   Widget build(BuildContext context) {
-    // Giả lập dữ liệu nếu thiếu
-    final String name = patient['name'] ?? 'Chưa cập nhật';
-    final String id = patient['id'] ??
-        'BN-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-    final String gender = patient['gender'] ?? 'Khác';
-    final bool isMale = gender == 'Nam';
+    final user = patient['userId'] ?? {};
+    final profile = user['profile'] ?? {};
+    
+    final avatar = profile['avatar']?.toString() ?? '';
+    final name = user['name']?.toString() ?? 'Chưa cập nhật';
+    final email = user['email']?.toString() ?? 'Chưa cập nhật';
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
-      // AppBar trong suốt để hiển thị Header đẹp hơn
-      extendBodyBehindAppBar: true,
+      backgroundColor: _kBackground,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.edit_note_rounded, color: Colors.white),
-            onPressed: () {
-              // TODO: Chuyển sang màn sửa
-            },
-          ),
-        ],
+        title: const Text('Chi tiết Bệnh Nhân', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: _kPrimary,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- 1. HEADER PROFILE ---
-            _buildProfileHeader(name, id, isMale),
-
-            // --- 2. NỘI DUNG CHI TIẾT ---
+            _buildProfileHeader(avatar, name, email),
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  // Thẻ chỉ số nhanh
-                  _buildQuickStatsCard(patient),
-                  SizedBox(height: 20),
-
-                  // Thẻ thông tin cá nhân
-                  _buildInfoCard(patient),
-                  SizedBox(height: 20),
-
-                  // Thẻ lịch sử khám (Demo)
-                  _buildHistoryCard(),
-                  SizedBox(height: 30),
-
-                  // Nút Xóa (Nguy hiểm nên để riêng)
-                  _buildDeleteButton(context),
-                  SizedBox(height: 30),
+                  _buildCard1_PersonalContact(patient, profile),
+                  const SizedBox(height: 16),
+                  _buildCard2_ClinicalInfo(patient),
+                  const SizedBox(height: 16),
+                  _buildCard3_Administrative(patient),
+                  const SizedBox(height: 16),
+                  _buildCard4_Security(patient, context),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -75,299 +50,164 @@ class PatientDetailScreen extends StatelessWidget {
     );
   }
 
-  // --- WIDGET CON: HEADER ---
-  Widget _buildProfileHeader(String name, String id, bool isMale) {
+  Widget _buildProfileHeader(String avatar, String name, String email) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(top: 100, bottom: 30, left: 20, right: 20),
-      decoration: BoxDecoration(
-        color: kPrimaryColor,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-        boxShadow: [
-          BoxShadow(
-              color: kPrimaryColor.withOpacity(0.4),
-              blurRadius: 20,
-              offset: Offset(0, 10)),
-        ],
-      ),
+      color: _kPrimary,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       child: Column(
         children: [
-          // Avatar lớn có viền
-          Container(
-            padding: EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: CircleAvatar(
-              radius: 50,
-              backgroundColor: Colors.white,
-              child: Icon(
-                isMale ? Icons.face_rounded : Icons.face_3_rounded,
-                size: 60,
-                color: isMale ? Colors.blue : Colors.pink,
-              ),
-            ),
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.white24,
+            backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+            child: avatar.isEmpty ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
           ),
-          SizedBox(height: 15),
-          // Tên
-          Text(
-            name,
-            style: TextStyle(
-                fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 5),
-          // Mã BN
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              "Mã hồ sơ: $id",
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500),
-            ),
-          ),
+          const SizedBox(height: 16),
+          Text(name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+          const SizedBox(height: 4),
+          Text(email, style: const TextStyle(fontSize: 16, color: Colors.white70)),
         ],
       ),
     );
   }
 
-  // --- WIDGET CON: CHỈ SỐ NHANH ---
-  Widget _buildQuickStatsCard(Map<String, dynamic> data) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: Offset(0, 5))
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(Icons.bloodtype, "Nhóm máu", data['bloodType'] ?? "O+",
-              Colors.red),
-          _buildVerticalDivider(),
-          _buildStatItem(Icons.monitor_weight, "Cân nặng", "65 kg",
-              Colors.blue), // Demo data
-          _buildVerticalDivider(),
-          _buildStatItem(
-              Icons.height, "Chiều cao", "170 cm", Colors.blue), // Demo data
-        ],
-      ),
-    );
-  }
+  Widget _buildCard1_PersonalContact(Map<String, dynamic> patientData, Map<String, dynamic> profile) {
+    final dateOfBirth = patientData['dateOfBirth']?.toString() ?? profile['dateOfBirth']?.toString() ?? 'Chưa cập nhật';
+    final gender = patientData['gender']?.toString() ?? profile['gender']?.toString() ?? 'Chưa cập nhật';
+    final address = profile['address']?.toString() ?? 'Chưa cập nhật';
+    final phone = profile['phone']?.toString() ?? 'Chưa cập nhật';
+    
+    final emContact = patientData['emergencyContact'] ?? {};
+    final emName = emContact['name']?.toString() ?? 'Không có';
+    final emPhone = emContact['phone']?.toString() ?? 'Không có';
+    final emRelation = emContact['relationship']?.toString() ?? 'Không có';
 
-  Widget _buildVerticalDivider() {
-    return Container(height: 30, width: 1, color: Colors.grey.shade300);
-  }
-
-  Widget _buildStatItem(
-      IconData icon, String label, String value, Color color) {
-    return Column(
+    return _buildSectionCard(
+      title: 'Thông tin Cá nhân & Liên hệ',
+      icon: Icons.person_outline,
       children: [
-        Icon(icon, color: color, size: 28),
-        SizedBox(height: 5),
-        Text(value,
-            style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87)),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey)),
+        _buildInfoRow('Ngày sinh', dateOfBirth),
+        _buildInfoRow('Giới tính', gender),
+        _buildInfoRow('Điện thoại', phone),
+        _buildInfoRow('Địa chỉ', address),
+        const Divider(height: 24),
+        const Text('Liên hệ Khẩn cấp', style: TextStyle(fontWeight: FontWeight.bold, color: _kPrimary)),
+        const SizedBox(height: 8),
+        _buildInfoRow('Họ tên', emName),
+        _buildInfoRow('Điện thoại', emPhone),
+        _buildInfoRow('Quan hệ', emRelation),
       ],
     );
   }
 
-  // --- WIDGET CON: THÔNG TIN CHI TIẾT ---
-  Widget _buildInfoCard(Map<String, dynamic> data) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: Offset(0, 5))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Thông tin liên hệ",
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: kPrimaryColor)),
-          Divider(height: 25),
-          _buildInfoRow(Icons.cake_rounded, "Ngày sinh", data['dob']),
-          _buildInfoRow(Icons.transgender_rounded, "Giới tính", data['gender']),
-          _buildInfoRow(Icons.phone_rounded, "Điện thoại", data['phone']),
-          _buildInfoRow(Icons.location_on_rounded, "Địa chỉ", data['address']),
-        ],
-      ),
+  Widget _buildCard2_ClinicalInfo(Map<String, dynamic> patientData) {
+    final bloodType = patientData['bloodType']?.toString() ?? 'Chưa cập nhật';
+    final allergies = (patientData['allergies'] as List?)?.join(', ') ?? 'Không có';
+    final chronicDiseases = (patientData['chronicDiseases'] as List?)?.join(', ') ?? 'Không có';
+
+    return _buildSectionCard(
+      title: 'Thông tin Lâm sàng',
+      icon: Icons.medical_services_outlined,
+      children: [
+        _buildInfoRow('Nhóm máu', bloodType),
+        _buildInfoRow('Dị ứng', allergies.isEmpty ? 'Không có' : allergies),
+        _buildInfoRow('Bệnh mãn tính', chronicDiseases.isEmpty ? 'Không có' : chronicDiseases),
+      ],
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String? value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: Colors.grey.shade400),
-          SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style:
-                        TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                SizedBox(height: 2),
-                Text(value ?? '---',
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87)),
-              ],
+  Widget _buildCard3_Administrative(Map<String, dynamic> patientData) {
+    final identityCard = patientData['identityCard']?.toString() ?? 'Chưa cập nhật';
+    final healthInsurance = patientData['healthInsurance']?.toString() ?? 'Chưa cập nhật';
+
+    return _buildSectionCard(
+      title: 'Hành chính',
+      icon: Icons.badge_outlined,
+      children: [
+        _buildInfoRow('CCCD/CMND', identityCard),
+        _buildInfoRow('BHYT', healthInsurance),
+      ],
+    );
+  }
+
+  Widget _buildCard4_Security(Map<String, dynamic> patientData, BuildContext context) {
+    final walletAddress = patientData['walletAddress']?.toString() ?? 'Chưa thiết lập';
+
+    return _buildSectionCard(
+      title: 'Bảo mật (Blockchain)',
+      icon: Icons.security,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Địa chỉ Ví (Wallet)', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    walletAddress,
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          )
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET CON: LỊCH SỬ KHÁM (DEMO) ---
-  Widget _buildHistoryCard() {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kCardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: Offset(0, 5))
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Lịch sử khám gần đây",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kPrimaryColor)),
-              Icon(Icons.history, color: Colors.grey),
-            ],
-          ),
-          Divider(height: 25),
-          _buildHistoryItem("10/10/2023", "Khám tổng quát", "Bs. Lê Minh"),
-          _buildHistoryItem("15/05/2023", "Xét nghiệm máu", "Bs. Trần Hà"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem(String date, String reason, String doctor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8)),
-            child: Text(date,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade800,
-                    fontWeight: FontWeight.bold)),
-          ),
-          SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(reason,
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                Text(doctor,
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  // --- WIDGET CON: NÚT XÓA ---
-  Widget _buildDeleteButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          // Logic xóa giữ nguyên
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text("Xác nhận xóa"),
-              content: Text(
-                  "Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa hồ sơ này?"),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text("Hủy", style: TextStyle(color: Colors.grey))),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Đóng dialog
-                    Navigator.pop(context); // Quay về danh sách
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text("Đã xóa hồ sơ bệnh nhân"),
-                        backgroundColor: Colors.red));
-                  },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8))),
-                  child: Text("Xóa vĩnh viễn"),
-                ),
-              ],
-            ),
-          );
-        },
-        icon: Icon(Icons.delete_forever, color: Colors.red),
-        label: Text("Xóa Hồ Sơ Bệnh Nhân",
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-        style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.symmetric(vertical: 15),
-          side: BorderSide(color: Colors.red.withOpacity(0.5)),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            if (walletAddress != 'Chưa thiết lập')
+              IconButton(
+                icon: const Icon(Icons.copy, color: _kPrimary, size: 20),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: walletAddress));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã sao chép địa chỉ ví')),
+                  );
+                },
+              )
+          ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildSectionCard({required String title, required IconData icon, required List<Widget> children}) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: _kPrimary, size: 22),
+                const SizedBox(width: 8),
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _kPrimary)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+          ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+          ),
+        ],
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_medicalRecordBlockchain.dart';
+import '../../services/api_medicalRecord.dart';
 import 'medical_record_formblockchain.dart';
 import 'medical_record_detail_page.dart';
 
@@ -66,7 +67,8 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
       }
 
       if (_selectedDate != null && r['visitDate'] != null) {
-        final d = DateTime.parse(r['visitDate']);
+        final d = MedicalRecordService.tryParseDateTime(r['visitDate']);
+        if (d == null) return false;
         if (d.year != _selectedDate!.year ||
             d.month != _selectedDate!.month ||
             d.day != _selectedDate!.day) {
@@ -193,12 +195,15 @@ class _MedicalRecordListPageState extends State<MedicalRecordListPage> {
   ) {
     final patientName = (r['patientName'] ?? '').toString();
     final patientId = (r['patientId'] ?? '').toString();
-    final visitDate = r['visitDate'] != null
-        ? fmt.format(DateTime.parse(r['visitDate']))
-        : '-';
-    final createdAt = r['createdAt'] != null
-        ? fmt.format(DateTime.parse(r['createdAt']))
-        : '-';
+    final parsedVisit = r['visitDate'] != null
+        ? MedicalRecordService.tryParseDateTime(r['visitDate'])
+        : null;
+    final visitDate = parsedVisit != null ? fmt.format(parsedVisit) : '-';
+
+    final parsedCreated = r['createdAt'] != null
+        ? MedicalRecordService.tryParseDateTime(r['createdAt'])
+        : null;
+    final createdAt = parsedCreated != null ? fmt.format(parsedCreated) : '-';
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

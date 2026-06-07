@@ -4,10 +4,12 @@ import DiabetesRecord, { IDiabetesRecord } from '../models/medicl_record_infor';
 // Thêm mới bệnh án
 export const createMedicalRecord = async (req: Request, res: Response) => {
   try {
-    const { patientName,email, examinationDate, examinationTime,doctorName,departmentName, gender, age, urea, creatinine, hba1c, cholesterol,triglycerides, hdl, ldl, vldl, bmi, status } = req.body;
+    const { patientId, doctorId, patientName,email, examinationDate, examinationTime,doctorName,departmentName, gender, age, urea, creatinine, hba1c, cholesterol,triglycerides, hdl, ldl, vldl, bmi, status } = req.body;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
     const newRecord = new DiabetesRecord ({
+        patientId,
+        doctorId,
         patientName,
         email,
         examinationDate,
@@ -44,8 +46,21 @@ export const getMedicalRecord = async (req: Request, res: Response) => {
     }
 
     const email = req.user.email;
+    const role = req.user.role;
 
-    const medicalRecords = await DiabetesRecord.find({ email }); // 👈 lọc theo email người dùng
+    let medicalRecords;
+    if (role === 'admin' || role === 'doctor') {
+      medicalRecords = await DiabetesRecord.find({}).populate('patientId').populate({
+        path: 'doctorId',
+        populate: { path: 'userId' }
+      });
+    } else {
+      medicalRecords = await DiabetesRecord.find({ email }).populate('patientId').populate({
+        path: 'doctorId',
+        populate: { path: 'userId' }
+      });
+    }
+    
     res.status(200).json(medicalRecords);
   } catch (error) {
     console.error("Lỗi khi lấy dữ liệu bệnh án", error);

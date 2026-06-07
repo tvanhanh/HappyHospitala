@@ -54,6 +54,7 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.get("/api_getMedicalRecord",verifyToken, getMedicalRecord);
   // medical record with block chain 
   router.post("/api/medicalrecord-blockchain", upload.array("attachments", 10),addMedicalRecord);
+  router.post("/api/medical-records", verifyToken, addMedicalRecord);
   router.get("/api/medical-records/:id",verifyToken, getMedicalRecordDetail);
   router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
   router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
