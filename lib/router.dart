@@ -58,6 +58,13 @@ import 'screens/screen_receptionist/patient_management_screen.dart';
 import 'screens/screen_receptionist/notificationScreen.dart';
 import 'screens/screen_receptionist/medical_records_screen.dart';
 import 'screens/screen_receptionist/dashboard.dart';
+import 'screens/screen_receptionist/list_waiting.dart';
+import 'screens/cashier_screen/CashierDashboard.dart';
+import 'screens/pharmacy_screen/dashboard.dart';
+import 'screens/pharmacy_screen/medicine_stock_screen.dart';
+import 'screens/pharmacy_screen/pending_prescriptions_screen.dart';
+import 'screens/pharmacy_screen/pharmacist_profile_screen.dart';
+import 'screens/pharmacy_screen/pharmacist_settings_page.dart';
 final GoRouter router = GoRouter(
   initialLocation: '/',
   routes: [
@@ -219,11 +226,43 @@ final GoRouter router = GoRouter(
     
     ),
     GoRoute(
+      path: '/receptionist/waiting-list',
+      builder: (context, state) => const ListWaitingScreen(),
+    
+    ),
+    GoRoute(
   path: '/receptionist/medical-records',
   builder: (context, state) =>
       const MedicalRecordsScreen(),
 ),
 // 
+// Cashier 
+ GoRoute(
+      path: '/cashier/dashboard',
+      builder: (context, state) => const CashierScreen(),
+    ),
+// Pharamy
+GoRoute(
+      path: '/pharmacy/dashboard',
+      builder: (context, state) => const PharmaCareDashboardScreen(),
+    ),
+GoRoute(
+  path: '/pharma-case/medicine-stock',
+  builder: (context, state) => const MedicineStockScreen(),
+),
+GoRoute(
+  path: '/pharma-case/pendin-prescriptions',
+  builder: (context, state) => const PendingPrescriptionsScreen(),
+),
+GoRoute(
+  path: '/pharma-case/settings',
+  builder: (context, state) => const PharmacistSettingsPage(),
+),
+GoRoute(
+  path: '/pharma-case/profile', // Tương thích chuẩn xác với route của file Drawer
+  builder: (context, state) => const PharmacistProfileScreen(),
+),
+
     //Doctor
     GoRoute(
       path: '/doctor',

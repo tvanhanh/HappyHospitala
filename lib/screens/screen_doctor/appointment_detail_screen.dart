@@ -10,38 +10,29 @@ class AppointmentDetailDoctorScreen extends StatefulWidget {
     super.key,
     required this.appointment,
   });
-
   @override
   State<AppointmentDetailDoctorScreen> createState() =>
       _AppointmentDetailScreenState();
 }
-
 class _AppointmentDetailScreenState
     extends State<AppointmentDetailDoctorScreen> {
   final ScrollController _scrollController = ScrollController();
-
   double avatarOpacity = 1;
-
   @override
   void initState() {
     super.initState();
-
     _scrollController.addListener(() {
       final offset = _scrollController.offset;
-
       double newOpacity = 1 - (offset / 120);
       newOpacity = newOpacity.clamp(0.0, 1.0);
-
       setState(() {
         avatarOpacity = newOpacity;
       });
     });
   }
-
   @override
   Widget build(BuildContext context) {
     final appointment = widget.appointment;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F5FA),
       body: Stack(
@@ -55,12 +46,10 @@ class _AppointmentDetailScreenState
               fit: BoxFit.cover,
             ),
           ),
-
           Container(
             height: 240,
             color: Colors.indigo.withOpacity(.55),
           ),
-
           // ================= CONTENT =================
           SingleChildScrollView(
             controller: _scrollController,
@@ -110,9 +99,7 @@ class _AppointmentDetailScreenState
                                       : null,
                             ),
                           ),
-
                           const SizedBox(width: 14),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
@@ -125,9 +112,7 @@ class _AppointmentDetailScreenState
                                     fontSize: 12,
                                   ),
                                 ),
-
                                 const SizedBox(height: 2),
-
                                 Text(
                                   appointment.patientName,
                                   style: const TextStyle(
@@ -136,9 +121,7 @@ class _AppointmentDetailScreenState
                                     color: Color(0xFF00A86B),
                                   ),
                                 ),
-
                                 const SizedBox(height: 3),
-
                                 Text(
                                   appointment.phone,
                                   style: const TextStyle(
@@ -149,7 +132,6 @@ class _AppointmentDetailScreenState
                               ],
                             ),
                           ),
-
                           Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment.end,
@@ -161,18 +143,14 @@ class _AppointmentDetailScreenState
                                   color: Colors.grey,
                                 ),
                               ),
-
                               const SizedBox(height: 3),
-
                               Text(
                                 appointment.date,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-
                               const SizedBox(height: 10),
-
                               const Text(
                                 "Giờ hẹn",
                                 style: TextStyle(
@@ -180,9 +158,7 @@ class _AppointmentDetailScreenState
                                   color: Colors.grey,
                                 ),
                               ),
-
                               const SizedBox(height: 3),
-
                               Text(
                                 appointment.time,
                                 style: const TextStyle(
@@ -193,26 +169,17 @@ class _AppointmentDetailScreenState
                           )
                         ],
                       ),
-
                       const SizedBox(height: 20),
-
                       _medicalAlertCard(),
-
                       const SizedBox(height: 16),
-
                       _infoSection(),
-
                       const SizedBox(height: 16),
-
                       _imageSection(
                         context,
                         appointment.imageUrl,
                       ),
-
                       const SizedBox(height: 16),
-
                       _historySection(),
-
                       const SizedBox(height: 20),
 
                       _medicalRecordButton(context),
@@ -705,7 +672,6 @@ class _AppointmentDetailScreenState
       ),
     );
   }
-
   Widget _infoRow(
     IconData icon,
     String title,

@@ -64,14 +64,12 @@ class ReceptionistDrawer extends StatelessWidget {
                   "Quản lý lịch hẹn",
                   "/receptionist/appointment-management",
                 ),
-
                 _item(
                   context,
                   Icons.access_time,
                   "Danh sách chờ khám",
                   "/receptionist/waiting-list",
                 ),
-
                 _item(
                   context,
                   Icons.payment,
