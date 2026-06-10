@@ -34,7 +34,9 @@ export const toggleUserActive = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { role } = req.body;
-      const validRoles = ['patient', 'staff', 'doctor', 'admin'];
+      const validRoles = ['patient', 'doctor', 'admin', 'receptionist', 'cashier', 'pharmacy'];
+      console.log("DEBUG: Role nhận được là:", role); // 👈 THÊM DÒNG NÀY
+      console.log("DEBUG: So sánh:", validRoles.includes(role)); // 👈 THÊM DÒNG NÀY
       if (!role || !validRoles.includes(role)) {
          res.status(400).json({ message: "Vai trò không hợp lệ" });
          return;

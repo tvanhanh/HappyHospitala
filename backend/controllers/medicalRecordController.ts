@@ -7,6 +7,7 @@ import { generateMedicalPDF } from "../services/pdf.service";
 import { calculateHash } from "../services/hash.service";
 import { uploadHashToBlockchain } from "../services/blockchain.service";
 import fs from "fs";
+import { emitToUser } from "../services/socket.service";
 import pinataSDK from "@pinata/sdk";
 import { getGridFSBucket } from "../config/db";
 import { ethers } from "ethers";
@@ -202,6 +203,16 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     await record.save();
 
     try { fs.unlinkSync(pdfPath); } catch {}
+
+    // Notify Patient about new medical records / examination result
+    if (patientId) {
+      emitToUser(patientId.toString(), "new_notification", {
+        type: "medical_record_ready",
+        title: "Có kết quả khám mới",
+        body: `Kết quả khám bệnh của bạn đã sẵn sàng. Bác sĩ điều trị: ${doctorName}. Bạn có thể xem chi tiết trong mục Kết quả.`,
+        data: record,
+      });
+    }
 
     res.status(201).json({
       ok: true,

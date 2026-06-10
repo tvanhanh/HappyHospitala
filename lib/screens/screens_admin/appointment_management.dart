@@ -22,13 +22,23 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
 
   late TabController tabController;
 
-  final tabs = ["pending", "confirmed", "completed", "cancelled"];
+  // 1. CẬP NHẬT ĐẦY ĐỦ 7 TRẠNG THÁI THEO LUỒNG DIỄN TIẾN Y TẾ
+  final tabs = [
+    "pending",
+    "confirmed",
+    "checked_in",
+    "in_progress",
+    "completed",
+    "cancelled",
+    "missed"
+  ];
 
   final searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    // Khởi tạo TabController tự động khớp với độ dài mảng mới (7 tabs)
     tabController = TabController(length: tabs.length, vsync: this);
     fetchData();
   }
@@ -93,7 +103,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
         children: [
           // ================= HEADER =================
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
@@ -114,11 +124,17 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white70,
                   isScrollable: true,
+                  // Tối ưu căn chỉnh sát lề trái, xóa bỏ khoảng trống thừa ở đầu tab
+                  tabAlignment: TabAlignment.start,
+                  // 2. CẬP NHẬT ĐỦ 7 DANH MỤC TIẾNG VIỆT TƯƠNG ỨNG
                   tabs: const [
                     Tab(text: "Chờ duyệt"),
                     Tab(text: "Đã xác nhận"),
+                    Tab(text: "Đã đến (Check-in)"),
+                    Tab(text: "Đang khám"),
                     Tab(text: "Hoàn thành"),
                     Tab(text: "Đã hủy"),
+                    Tab(text: "Trễ hẹn / Vắng"),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -127,10 +143,12 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
                   onChanged: searchAppointments,
                   decoration: InputDecoration(
                     hintText: "Tìm bệnh nhân, SĐT, lý do...",
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1E88E5)),
+                    prefixIcon:
+                        const Icon(Icons.search, color: Color(0xFF1E88E5)),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -140,7 +158,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
               ],
             ),
           ),
-          
+
           // ================= TABS CONTENT =================
           Expanded(
             child: loading
@@ -168,7 +186,7 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
             Icon(Icons.event_busy, size: 80, color: Colors.grey),
             SizedBox(height: 10),
             Text(
-              "Không có lịch hẹn",
+              "Không có lịch hẹn trong mục này",
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],

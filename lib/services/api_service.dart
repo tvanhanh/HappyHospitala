@@ -192,7 +192,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> updateDoctorProfile(Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> updateDoctorProfile(
+      Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
 
@@ -239,7 +240,8 @@ class ApiService {
         await prefs.setString("role", data['user']?['role'] ?? '');
         await prefs.setString('doctorId', data['user']?['_id'] ?? '');
         await prefs.setString('userId', data['user']?['_id'] ?? '');
-        await prefs.setString("name", data['user']?['name'] ?? data['user']?['fullName'] ?? '');
+        await prefs.setString(
+            "name", data['user']?['name'] ?? data['user']?['fullName'] ?? '');
         await prefs.setString(
           "specialty",
           data['user']?['profile']?['specialty'] ?? '',
@@ -289,7 +291,7 @@ class ApiService {
         return data
             .map((e) => {
                   '_id': e['_id'] ?? '',
-                  'name': e['name'] ?? '',
+                  'name': e['fullName'] ?? '',
                   'email': e['email'] ?? '',
                   'role': e['role'] ?? '',
                   'status': e['status'] ?? '',
@@ -601,7 +603,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> createBaseAccount(String name, String email, String password, String role) async {
+  static Future<Map<String, dynamic>> createBaseAccount(
+      String name, String email, String password, String role) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -624,7 +627,10 @@ class ApiService {
         return {'success': true, 'message': 'Tạo tài khoản thành công'};
       } else {
         final data = jsonDecode(response.body);
-        return {'success': false, 'message': data['message'] ?? 'Tạo tài khoản thất bại'};
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Tạo tài khoản thất bại'
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Lỗi kết nối: $e'};
@@ -646,10 +652,16 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return {'success': true, 'message': data['message'] ?? 'Đã cập nhật trạng thái'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Đã cập nhật trạng thái'
+        };
       } else {
         final data = jsonDecode(response.body);
-        return {'success': false, 'message': data['message'] ?? 'Cập nhật thất bại'};
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Cập nhật thất bại'
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Lỗi kết nối: $e'};

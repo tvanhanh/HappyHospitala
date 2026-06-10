@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IUser extends Document {
   email: string;
   password?: string;
-  role: 'admin' | 'doctor' | 'patient' | 'receptionist' | 'cashier' | 'pharmacy_manager';
+  role: 'admin' | 'doctor' | 'patient' | 'receptionist' | 'cashier' | 'pharmacy';
   status: string;
   isDeleted: boolean;
   fullName?: string;
@@ -23,7 +23,7 @@ const userSchema = new Schema<IUser>(
     password: { type: String }, // Optional if using OAuth/SSO
     role: { 
       type: String, 
-      enum: ['admin', 'doctor', 'patient', 'receptionist', 'cashier', 'pharmacy_manager'], 
+      enum: ['admin', 'doctor', 'patient', 'receptionist', 'cashier', 'pharmacy'], 
       required: true 
     },
     status: { type: String, default: 'activity' },

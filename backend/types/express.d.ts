@@ -6,7 +6,7 @@ declare global {
       user?:{
         _id: string,
         email: string,
-        role: string,
+        role: "patient" | "doctor" | "receptionist" | "admin" | "cashier" |"pharmacy";
       }
     }
   }

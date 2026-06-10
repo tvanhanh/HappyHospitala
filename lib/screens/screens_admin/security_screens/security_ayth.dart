@@ -1,26 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
-import 'package:go_router/go_router.dart';
-import 'create_account_screen.dart';
 
-// --- PALETTE MÀU (AI & Blockchain Theme) ---
-const Color kPrimaryColor = Color(0xFF1565C0); // Xanh Admin
+// --- PALETTE MÀU ---
+const Color kPrimaryColor = Color(0xFF1565C0);
 const Color kBackgroundColor = Color(0xFFF5F7FA);
 const Color kActiveColor = Color(0xFF4CAF50);
 const Color kInactiveColor = Color(0xFFE57373);
-const Color kAdminColor = Color(0xFF673AB7); // Tím (Quyền lực/Blockchain)
-const Color kDoctorColor = Color(0xFF00ACC1); // Cyan (Y tế)
+const Color kAdminColor = Color(0xFF673AB7);
+const Color kDoctorColor = Color(0xFF00ACC1);
 
 class UserManagementScreen extends StatefulWidget {
+  const UserManagementScreen({super.key});
+
   @override
-  _UserManagementScreenState createState() => _UserManagementScreenState();
+  State<UserManagementScreen> createState() => _UserManagementScreenState();
 }
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
   List<dynamic> users = [];
-  List<dynamic> filteredUsers = []; // Danh sách để search
+  List<dynamic> filteredUsers = [];
   bool isLoading = false;
-  TextEditingController searchController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
+
+  // --- CONTROLLERS CHO FORM TẠO TÀI KHOẢN ---
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  String _selectedRole = 'patient';
 
   @override
   void initState() {
@@ -28,14 +34,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     fetchUsers();
   }
 
-  // --- LOGIC API (Giữ nguyên) ---
+  @override
+  void dispose() {
+    searchController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  // --- LOGIC API ---
   Future<void> fetchUsers() async {
     setState(() => isLoading = true);
     try {
       final data = await ApiService.getUsers();
       setState(() {
         users = data;
-        filteredUsers = data; // Khởi tạo danh sách lọc
+        filteredUsers = data;
       });
     } catch (e) {
       showSnackbar("Lỗi tải dữ liệu: $e", isError: true);
@@ -67,16 +82,47 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  Future<void> _toggleUserActive(String id, String currentStatus) async {
-    if (id == null) return;
-    final newStatus = currentStatus == "activity" ? "inactive" : "activity";
-    final result = await ApiService.toggleUserStatus(id, newStatus);
-    if (result) {
-      showSnackbar(
-          "Đã cập nhật trạng thái: ${newStatus == 'activity' ? 'Hoạt động' : 'Đã khóa'}");
+  // 1. TÍCH HỢP LOGIC KHÓA TÀI KHOẢN TỪ ACCOUNT MANAGER
+  Future<void> _toggleUserActive(String id) async {
+    if (id.isEmpty) return;
+
+    // Sử dụng hàm toggleAdminUserStatus lấy từ AccountManagerScreen
+    final result = await ApiService.toggleAdminUserStatus(id);
+
+    if (result['success'] == true) {
+      showSnackbar(result['message'] ?? "Đã cập nhật trạng thái thành công");
       fetchUsers();
     } else {
-      showSnackbar("Lỗi cập nhật trạng thái", isError: true);
+      showSnackbar("Lỗi: ${result['message']}", isError: true);
+    }
+  }
+
+  // 2. TÍCH HỢP LOGIC TẠO TÀI KHOẢN TỪ ACCOUNT MANAGER
+  Future<void> _createBaseAccount() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      showSnackbar("Vui lòng điền đủ thông tin: Tên, Email, Mật khẩu",
+          isError: true);
+      return;
+    }
+
+    final result = await ApiService.createBaseAccount(
+        name, email, password, _selectedRole);
+
+    if (result['success'] == true) {
+      _nameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      fetchUsers();
+      if (mounted) {
+        Navigator.pop(context); // Đóng Dialog
+        showSnackbar(result['message'] ?? "Tạo tài khoản thành công");
+      }
+    } else {
+      showSnackbar("Lỗi: ${result['message']}", isError: true);
     }
   }
 
@@ -90,8 +136,143 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  void _createUser() {
-    context.push('/admin/create_account');
+  // 3. DIALOG TẠO TÀI KHOẢN (THAY THẾ CHUYỂN TRANG)
+  void _showAddDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.person_add_alt_1,
+                  size: 50, color: kPrimaryColor),
+              const SizedBox(height: 16),
+              const Text(
+                'Tạo Tài Khoản Mới',
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A2E)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Thêm nhân sự mới vào hệ thống',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 24),
+              _buildTextField(_nameController, 'Họ và tên', Icons.person),
+              const SizedBox(height: 16),
+              _buildTextField(_emailController, 'Email', Icons.email,
+                  isEmail: true),
+              const SizedBox(height: 16),
+              _buildTextField(_passwordController, 'Mật khẩu', Icons.lock,
+                  isPassword: true),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedRole,
+                decoration: InputDecoration(
+                  labelText: 'Vai trò (Role)',
+                  prefixIcon: const Icon(Icons.security, color: kPrimaryColor),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: kPrimaryColor, width: 2),
+                  ),
+                ),
+                items: [
+                  'admin',
+                  'doctor',
+                  'patient',
+                  'receptionist',
+                  'cashier',
+                  'pharmacy'
+                ]
+                    .map((e) => DropdownMenuItem(
+                        value: e, child: Text(e.toUpperCase())))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedRole = val);
+                },
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Hủy'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _createBaseAccount,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Tạo Mới',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+      TextEditingController controller, String label, IconData icon,
+      {bool isPassword = false, bool isEmail = false}) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: kPrimaryColor),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+        ),
+      ),
+    );
   }
 
   // --- UI CHÍNH ---
@@ -99,38 +280,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Quản Lý Người Dùng",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            Text("Phân quyền & Bảo mật Blockchain",
-                style: TextStyle(fontSize: 12, color: Colors.white70)),
-          ],
-        ),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        actions: [
-          IconButton(onPressed: fetchUsers, icon: Icon(Icons.refresh)),
-        ],
-      ),
+      appBar: AppBar(),
       body: Column(
         children: [
-          // 1. THANH TÌM KIẾM & THỐNG KÊ
           _buildTopBar(),
-
-          // 2. DANH SÁCH NGƯỜI DÙNG
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : filteredUsers.isEmpty
                     ? _buildEmptyState()
                     : Center(
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 800),
                           child: ListView.builder(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             itemCount: filteredUsers.length,
                             itemBuilder: (context, index) {
                               return _buildUserCard(filteredUsers[index]);
@@ -142,20 +305,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createUser,
+        onPressed: _showAddDialog, // Gọi Dialog thay vì chuyển trang
         backgroundColor: kPrimaryColor,
         foregroundColor: Colors.white,
-        icon: Icon(Icons.person_add_alt_1),
-        label: Text("Tạo Tài Khoản"),
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text("Tạo Tài Khoản",
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  // --- WIDGET CON: THANH TÌM KIẾM ---
   Widget _buildTopBar() {
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      decoration: const BoxDecoration(
         color: kPrimaryColor,
         borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
@@ -165,22 +328,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           constraints: const BoxConstraints(maxWidth: 800),
           child: Column(
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: searchController,
                 onChanged: _filterUsers,
                 decoration: InputDecoration(
                   hintText: "Tìm theo tên, email...",
-                  prefixIcon: Icon(Icons.search, color: kPrimaryColor),
+                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(15),
                       borderSide: BorderSide.none),
-                  contentPadding: EdgeInsets.symmetric(vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 8,
@@ -204,23 +367,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildStatBadge(String text, Color color) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration:
           BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Text(text,
-          style: TextStyle(
+          style: const TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
     );
   }
 
-  // --- WIDGET CON: USER CARD ---
+  // --- WIDGET CON: USER CARD CHUYÊN NGHIỆP HƠN ---
   Widget _buildUserCard(dynamic user) {
     String role = user['role'] ?? 'guest';
     String status = user['status'] ?? 'unknown';
     bool isActive = status == 'activity';
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -228,115 +391,105 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
-              offset: Offset(0, 4))
+              offset: const Offset(0, 4))
         ],
+        border: Border.all(
+            color: isActive ? Colors.transparent : Colors.red.withOpacity(0.3),
+            width: 1.5),
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         leading: Stack(
           children: [
             CircleAvatar(
-              radius: 28,
-              backgroundColor: _getRoleColor(role).withOpacity(0.1),
+              radius: 26,
+              backgroundColor: isActive
+                  ? _getRoleColor(role).withOpacity(0.1)
+                  : Colors.red.withOpacity(0.1),
               child: Icon(_getRoleIcon(role),
-                  color: _getRoleColor(role), size: 28),
+                  color: isActive ? _getRoleColor(role) : Colors.red, size: 28),
             ),
-            Positioned(
-              right: 0,
-              bottom: 0,
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                    color: isActive ? kActiveColor : kInactiveColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2)),
+            if (!isActive)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                      color: Colors.red, shape: BoxShape.circle),
+                  child: const Icon(Icons.lock, size: 12, color: Colors.white),
+                ),
               ),
-            )
           ],
         ),
-        title: Text(user['name'] ?? 'Chưa đặt tên',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Text(
+          user['name'] ?? 'Chưa đặt tên',
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: isActive ? Colors.black87 : Colors.red.shade900),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6.0),
+          child: Row(
+            children: [
+              Icon(Icons.email, size: 14, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Text(user['email'] ?? '',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+            ],
+          ),
+        ),
+        // HIỂN THỊ NÚT TRỰC QUAN THAY VÌ GIẤU TRONG 3 CHẤM
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(user['email'] ?? '',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-            SizedBox(height: 8),
-            Row(
-              children: [
-                _buildRoleChip(role),
-                SizedBox(width: 8),
-                if (!isActive)
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: kInactiveColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4)),
-                    child: Text("Đã khóa",
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: kInactiveColor,
-                            fontWeight: FontWeight.bold)),
-                  )
-              ],
-            )
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _showRoleSelectionMenu(user['_id'], role),
+              child: _buildRoleChip(role),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: isActive ? 'Khóa tài khoản' : 'Mở khóa',
+              icon: Icon(
+                isActive ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                color: isActive ? Colors.green : Colors.red,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor:
+                    (isActive ? Colors.green : Colors.red).withOpacity(0.1),
+              ),
+              onPressed: () => _toggleUserActive(user['_id']),
+            ),
           ],
         ),
-        trailing: _buildActionMenu(user),
       ),
     );
   }
 
-  // --- WIDGET CON: ACTION MENU (3 CHẤM) ---
-  Widget _buildActionMenu(dynamic user) {
-    bool isActive = user['status'] == 'activity';
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: Colors.grey),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) {
-        if (value == 'toggle') {
-          _toggleUserActive(user['_id'], user['status']);
-        } else if (value == 'role') {
-          _showRoleSelectionMenu(user['_id'], user['role']);
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'role',
-          child: Row(children: [
-            Icon(Icons.security, color: Colors.blue, size: 20),
-            SizedBox(width: 10),
-            Text("Phân quyền")
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'toggle',
-          child: Row(children: [
-            Icon(isActive ? Icons.block : Icons.check_circle,
-                color: isActive ? kInactiveColor : kActiveColor, size: 20),
-            SizedBox(width: 10),
-            Text(isActive ? "Khóa tài khoản" : "Kích hoạt lại")
-          ]),
-        ),
-      ],
-    );
-  }
-
-  // --- HELPER: CHIPS & ICONS ---
   Widget _buildRoleChip(String role) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-          color: _getRoleColor(role).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: _getRoleColor(role).withOpacity(0.3))),
-      child: Text(
-        role.toUpperCase(),
-        style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: _getRoleColor(role)),
+        color: _getRoleColor(role).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _getRoleColor(role).withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            role.toUpperCase(),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: _getRoleColor(role)),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.edit, size: 12, color: _getRoleColor(role)),
+        ],
       ),
     );
   }
@@ -347,8 +500,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return kAdminColor;
       case 'doctor':
         return kDoctorColor;
-      case 'staff':
+      case 'receptionist':
+        return Colors.teal;
+      case 'cashier':
         return Colors.orange;
+      case 'pharmacy':
+        return Colors.purple;
+      case 'patient':
+        return Colors.cyan;
       default:
         return Colors.blueGrey;
     }
@@ -357,13 +516,19 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   IconData _getRoleIcon(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
-        return Icons.verified_user; // Khiên bảo mật
+        return Icons.admin_panel_settings;
       case 'doctor':
-        return Icons.medical_services; // Y tế
-      case 'staff':
-        return Icons.badge; // Thẻ nhân viên
-      default:
+        return Icons.medical_services;
+      case 'receptionist':
+        return Icons.support_agent;
+      case 'cashier':
+        return Icons.point_of_sale;
+      case 'pharmacy':
+        return Icons.local_pharmacy;
+      case 'patient':
         return Icons.person;
+      default:
+        return Icons.person_outline;
     }
   }
 
@@ -373,8 +538,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.search_off, size: 60, color: Colors.grey.shade300),
-          SizedBox(height: 10),
-          Text("Không tìm thấy người dùng",
+          const SizedBox(height: 10),
+          const Text("Không tìm thấy người dùng",
               style: TextStyle(color: Colors.grey)),
         ],
       ),
@@ -385,23 +550,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void _showRoleSelectionMenu(String userId, String currentRole) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Cấp quyền truy cập (Blockchain Roles)",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: kPrimaryColor)),
-            SizedBox(height: 10),
+            const Text(
+              "Cấp quyền truy cập (Blockchain Roles)",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryColor),
+            ),
+            const SizedBox(height: 10),
             _buildRoleOption(userId, 'admin', "Quản trị viên (Toàn quyền)"),
             _buildRoleOption(userId, 'doctor', "Bác sĩ (Xem/Sửa bệnh án)"),
-            _buildRoleOption(userId, 'staff', "Nhân viên (Quản lý lịch hẹn)"),
+            _buildRoleOption(userId, 'receptionist', "Lễ tân"),
+            _buildRoleOption(userId, 'cashier', "Thu ngân"),
+            _buildRoleOption(userId, 'pharmacy', "Quản lý dược phẩm, vật tư"),
             _buildRoleOption(
                 userId, 'patient', "Bệnh nhân (Xem hồ sơ cá nhân)"),
           ],
@@ -413,15 +582,15 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Widget _buildRoleOption(String userId, String role, String desc) {
     return ListTile(
       leading: Container(
-        padding: EdgeInsets.all(8),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
             color: _getRoleColor(role).withOpacity(0.1),
             shape: BoxShape.circle),
         child: Icon(_getRoleIcon(role), color: _getRoleColor(role), size: 20),
       ),
       title: Text(role.toUpperCase(),
-          style: TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text(desc, style: TextStyle(fontSize: 12)),
+          style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(desc, style: const TextStyle(fontSize: 12)),
       onTap: () {
         Navigator.pop(context);
         _changeUserRole(userId, role);

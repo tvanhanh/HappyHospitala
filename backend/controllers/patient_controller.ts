@@ -1,38 +1,32 @@
 import { Request, Response } from 'express';
-import Patient from '../models/Patient';
 import User from '../models/User';
 
 export const getPatients = async (req: Request, res: Response) => {
   try {
     const { search } = req.query;
 
-    let query: any = {};
+    // Chỉ lấy những user có role là patient và chưa bị xóa mềm
+    let query: any = { 
+      role: 'patient',
+      isDeleted: false 
+    };
     
-    // Find matching users first if search is provided
+    // Nếu có từ khóa tìm kiếm
     if (search && typeof search === 'string') {
-      const searchRegex = new RegExp(search, 'i');
+      const searchRegex = new RegExp(search, 'i'); // 'i' để không phân biệt hoa thường
       
-      // Match by User fields
-      const matchingUsers = await User.find({
-        role: 'patient',
-        $or: [
-          { name: searchRegex },
-          { 'profile.phone': searchRegex }
-        ]
-      }).select('_id');
-      const userIds = matchingUsers.map(u => u._id);
-
-      // Match by Patient fields
-      query = {
-        $or: [
-          { userId: { $in: userIds } },
-          { identityCard: searchRegex }
-        ]
-      };
+      // Tìm kiếm trên các trường đã được "phẳng hóa"
+      query.$or = [
+        { fullName: searchRegex },
+        { phoneNumber: searchRegex },
+        { cccd: searchRegex },
+        { email: searchRegex }
+      ];
     }
 
-    const patients = await Patient.find(query)
-      .populate('userId', 'name email profile.phone profile.avatar profile.address')
+    // Không cần populate nữa, lấy thẳng dữ liệu
+    const patients = await User.find(query)
+      .select('-password') // Bỏ đi trường password cho bảo mật
       .sort({ createdAt: -1 });
 
     res.status(200).json(patients);

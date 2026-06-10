@@ -1,9 +1,10 @@
+
 import { Request, Response } from "express";
 import Appointment from "../models/Appointment";
 import Doctor from "../models/Doctor";
 import Promotion from "../models/Promotion";
 import mongoose from "mongoose";
-
+import { emitToRole, emitToUser } from "../services/socket.service";
 /**
  * ================= CREATE APPOINTMENT =================
  * patient lấy từ JWT
@@ -17,7 +18,7 @@ import mongoose from "mongoose";
 export const addAppointment = async (req: any, res: Response): Promise<void> => {
   try {
     const patientId = req.user.id;
-
+const ACTIVE_STATUSES = ["confirmed", "checked_in", "in_progress"];
     const {
       doctor,
       department,
@@ -52,7 +53,7 @@ export const addAppointment = async (req: any, res: Response): Promise<void> => 
       doctor,
       date,
       time,
-      status: { $in: ["pending", "confirmed", "checked_in", "completed"] }
+      status: { $in: ACTIVE_STATUSES }
     });
 
     if (existingSlot) {
@@ -139,6 +140,24 @@ export const addAppointment = async (req: any, res: Response): Promise<void> => 
         return;
       }
       throw createErr;
+    }
+
+    // Notify Receptionists
+    emitToRole("receptionist", "new_notification", {
+      type: "new_appointment",
+      title: "Lịch hẹn mới",
+      body: `Bệnh nhân ${patientName} đã gửi yêu cầu đặt lịch khám mới lúc ${time} ngày ${date}.`,
+      data: appointment,
+    });
+
+    // Notify assigned Doctor
+    if (doctorRecord && doctorRecord.userId) {
+      emitToUser(doctorRecord.userId.toString(), "new_notification", {
+        type: "new_appointment",
+        title: "Lịch hẹn mới",
+        body: `Bạn có lịch hẹn mới từ bệnh nhân ${patientName} lúc ${time} ngày ${date}.`,
+        data: appointment,
+      });
     }
 
     res.status(201).json({
@@ -265,53 +284,172 @@ export const getMyAppointments = async (req: any, res: Response): Promise<void> 
 /**
  * ================= UPDATE STATUS =================
  */
-export const updateStatus = async (req: Request, res: Response) => {
+export const updateStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    const updated = await Appointment.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
+    // ✅ Check auth
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
 
-    res.json({
-      success: true,
-      message: "Update status success",
-      data: updated,
-    });
-    console.log("UPDATE STATUS HIT");
-console.log(req.params);
-console.log(req.body);
-  } catch (err) {
-    res.status(500).json({ message: "Error" });
-  }
-};
+    const user = req.user;
 
-/**
- * ================= DELETE APPOINTMENT =================
- */
-export const cancelAppointment = async (req: Request, res: Response) => {
-  try {
-    const appointment = await Appointment.findByIdAndUpdate(
-      req.params.id,
-      { status: "cancelled" },
-      { new: true }
-    );
+    const validStatus = ["pending", "confirmed", "checked_in", "completed", "cancelled"];
 
-    res.json({
-      success: true,
+    // ❌ Không cho set missed
+    if (status === "missed") {
+      res.status(400).json({ message: "Không thể set missed thủ công" });
+      return;
+    }
+
+    // ❌ Validate status
+    if (!validStatus.includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: "Trạng thái không hợp lệ",
+      });
+      return;
+    }
+
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lịch hẹn",
+      });
+      return;
+    }
+
+    // ❌ Không update nếu đã kết thúc
+    if (["completed", "cancelled", "missed"].includes(appointment.status)) {
+      res.status(400).json({
+        success: false,
+        message: "Lịch đã kết thúc",
+      });
+      return;
+    }
+
+    // ❌ Không update cùng trạng thái
+    if (appointment.status === status) {
+      res.status(400).json({
+        success: false,
+        message: "Trạng thái đã là hiện tại",
+      });
+      return;
+    }
+
+    // 🔒 RBAC
+    if (status === "confirmed" && user.role !== "receptionist") {
+      res.status(403).json({ message: "Chỉ lễ tân được xác nhận" });
+      return;
+    }
+
+    if (status === "checked_in" && user.role !== "receptionist") {
+      res.status(403).json({ message: "Chỉ lễ tân được check-in" });
+      return;
+    }
+
+    if (status === "completed" && user.role !== "doctor") {
+      res.status(403).json({ message: "Chỉ bác sĩ được hoàn thành" });
+      return;
+    }
+
+    const canCancelRoles = ["receptionist", "patient"];
+
+    if (status === "cancelled" && !canCancelRoles.includes(user.role!)){
+      res.status(403).json({ message: "Không có quyền hủy lịch" });
+      return;
+    }
+
+    // 🔒 Flow
+    const validTransitions: Record<string, string[]> = {
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["checked_in", "cancelled"],
+      checked_in: ["completed"],
+    };
+
+    if (!validTransitions[appointment.status]?.includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: "Chuyển trạng thái không hợp lệ",
+      });
+      return;
+    }
+
+    // ⏰ Check-in sớm 15p
+    if (status === "checked_in") {
+      const now = new Date();
+      const appointmentTime = new Date(`${appointment.date}T${appointment.time}`);
+
+      const early = new Date(appointmentTime.getTime() - 15 * 60 * 1000);
+
+      if (now < early) {
+        res.status(400).json({
+          success: false,
+          message: "Chỉ được check-in trước 15 phút",
+        });
+        return;
+      }
+    }
+
+    // ❌ Không cancel sau check-in
+    if (appointment.status === "checked_in" && status === "cancelled") {
+      res.status(400).json({
+        success: false,
+        message: "Không thể hủy sau khi check-in",
+      });
+      return;
+    }
+
+    // ✅ Update
+    appointment.status = status;
+    await appointment.save();
+
+    // ===== Translate =====
+    const statusMap: Record<string, string> = {
+      confirmed: "Đã xác nhận",
+      cancelled: "Đã hủy",
+      completed: "Đã hoàn thành",
+      checked_in: "Đã check-in",
+      pending: "Chờ xác nhận",
+    };
+
+    const statusVietnamese = statusMap[status] || status;
+
+    // ===== Notify Patient =====
+    if (appointment.patient) {
+      emitToUser(appointment.patient.toString(), "new_notification", {
+        type: "appointment_status_changed",
+        title: "Trạng thái thay đổi",
+        body: `Lịch hẹn ${appointment.time} ${appointment.date}: ${statusVietnamese}`,
+        data: appointment,
+      });
+    }
+
+    // ===== Notify lễ tân =====
+    emitToRole("receptionist", "new_notification", {
+      type: "appointment_status_changed",
+      title: "Cập nhật trạng thái",
+      body: `${appointment.patientName} → ${statusVietnamese}`,
       data: appointment,
     });
+
+    res.json({
+      success: true,
+      message: "Cập nhật thành công",
+      data: appointment,
+    });
+
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: "Huỷ lịch thất bại",
+      message: "Lỗi server",
     });
   }
-
-  
 };
 // Lấy theo Ngày
 export const getAppointmentsByDate = async (req: Request, res: Response) => {
@@ -352,7 +490,101 @@ export const getAppointmentsByDate = async (req: Request, res: Response) => {
     return;
   }
 };
+export const cancelAppointment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
 
+    // ✅ Check login
+    if (!req.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const user = req.user;
+
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      res.status(404).json({
+        success: false,
+        message: "Không tìm thấy lịch hẹn",
+      });
+      return;
+    }
+
+    // ❌ Không cho hủy nếu đã kết thúc
+    if (["completed", "cancelled", "missed"].includes(appointment.status)) {
+      res.status(400).json({
+        success: false,
+        message: "Lịch đã kết thúc, không thể hủy",
+      });
+      return;
+    }
+
+    // 🔒 Phân quyền
+    const canCancelRoles = ["receptionist", "patient"];
+
+    if (!canCancelRoles.includes(user.role!)){
+      res.status(403).json({
+        message: "Không có quyền hủy lịch",
+      });
+      return;
+    }
+
+    // 👤 Nếu là patient → chỉ được hủy lịch của mình
+    if (user.role === "patient") {
+      if (appointment.patient?.toString() !== user.id){
+        res.status(403).json({
+          message: "Bạn chỉ được hủy lịch của chính mình",
+        });
+        return;
+      }
+    }
+
+    // ❌ Không cho hủy sau khi đã check-in
+    if (appointment.status === "checked_in") {
+      res.status(400).json({
+        success: false,
+        message: "Không thể hủy sau khi đã check-in",
+      });
+      return;
+    }
+
+    // ✅ Update
+    appointment.status = "cancelled";
+    await appointment.save();
+
+    // 🔔 Notify patient
+    if (appointment.patient) {
+      emitToUser(appointment.patient.toString(), "new_notification", {
+        type: "appointment_cancelled",
+        title: "Lịch hẹn đã bị hủy",
+        body: `Lịch hẹn lúc ${appointment.time} ngày ${appointment.date} đã bị hủy.`,
+        data: appointment,
+      });
+    }
+
+    // 🔔 Notify lễ tân
+    emitToRole("receptionist", "new_notification", {
+      type: "appointment_cancelled",
+      title: "Hủy lịch hẹn",
+      body: `${appointment.patientName} đã hủy lịch`,
+      data: appointment,
+    });
+
+    res.json({
+      success: true,
+      message: "Hủy lịch thành công",
+      data: appointment,
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server",
+    });
+  }
+};
 // Lấy danh sách giờ đã đặt — dùng để ẩn slot đã book khỏi UI
 export const getBookedSlots = async (req: Request, res: Response) => {
   try {
@@ -431,8 +663,61 @@ export const checkInAppointment = async (req: Request, res: Response) => {
     }
     appointment.status = "checked_in";
     await appointment.save();
+
+    // Notify Patient
+    if (appointment.patient) {
+      emitToUser(appointment.patient.toString(), "new_notification", {
+        type: "appointment_status_changed",
+        title: "Đã Check-in thành công",
+        body: `Lịch hẹn khám lúc ${appointment.time} của bạn đã được Check-in. Vui lòng đợi đến lượt gọi khám.`,
+        data: appointment,
+      });
+    }
+
+    // Notify Doctor
+    if (appointment.doctor) {
+      const doctorRec = await Doctor.findById(appointment.doctor);
+      if (doctorRec && doctorRec.userId) {
+        emitToUser(doctorRec.userId.toString(), "new_notification", {
+          type: "appointment_status_changed",
+          title: "Bệnh nhân đã Check-in",
+          body: `Bệnh nhân ${appointment.patientName} (#${(appointment._id as any).toString().slice(-6).toUpperCase()}) đã check-in thành công và đang chờ ở phòng khám.`,
+          data: appointment,
+        });
+      }
+    }
+
     res.json({ success: true, message: "Check-in thành công", data: appointment });
   } catch (err) {
     res.status(500).json({ success: false, message: "Lỗi check-in", error: err });
+  }
+};
+export const getAppointmentStatusChart = async (req: Request, res: Response) =>{
+  try {
+    // Sử dụng Aggregation Pipeline của MongoDB
+    const statusData = await Appointment.aggregate([
+      {
+        // Bước 1: Nhóm các lịch hẹn lại theo trường 'status'
+        $group: {
+          _id: "$status", // Lấy giá trị của trường status làm key gom nhóm
+          count: { $sum: 1 } // Mỗi lần gặp 1 bản ghi cùng status, cộng thêm 1
+        }
+      },
+      {
+        // Bước 2: Đổi tên trường để trả về đúng định dạng Flutter cần
+        $project: {
+          _id: 0, // 0 nghĩa là KHÔNG trả về trường _id (mặc định của MongoDB)
+          name: "$_id", // Gán giá trị _id (chính là tên status) vào trường mới tên là 'name'
+          count: 1 // 1 nghĩa là CÓ trả về trường count
+        }
+      }
+    ]);
+
+    // statusData lúc này sẽ có dạng: [ { name: 'pending', count: 5 }, { name: 'completed', count: 10 } ]
+    res.status(200).json(statusData);
+    
+  } catch (error) {
+    console.error("Lỗi khi gom nhóm trạng thái lịch hẹn:", error);
+    res.status(500).json({ message: "Lỗi Server khi tải dữ liệu biểu đồ" });
   }
 };

@@ -177,11 +177,16 @@ static Future<List<Map<String, dynamic>>> searchMedicalRecordsByPatientId(
           'patientId': e['patientId'],
           'patientName': e['patientName'],
           'doctorId': e['doctorId'],
+          'doctorName': e['doctorName'],
+          'symptoms': e['symptoms'],
+          'diagnosis': e['diagnosis'],
+          'treatment': e['treatment'],
           'visitDate': e['visitDate'],
           'pdfUrl': e['pdfUrl'],
           'blockchainTx': e['blockchainTx'],
           'blockchainNetwork': e['blockchainNetwork'],
           'blockNumber': e['blockNumber'],
+          'isTampered': e['isTampered'],
         };
       }).toList();
     } else {

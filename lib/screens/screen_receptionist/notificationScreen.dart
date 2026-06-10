@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/receptionist_drawer.dart';
 import '../../providers/receptionist_provider.dart';
+import '../../services/socket_service.dart';
 
 class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
@@ -16,6 +17,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   static const Color kPrimaryColor = Color(0xFF0D47A1);
   static const Color kSecondaryColor = Color(0xFF1976D2);
   bool _showOnlyUnread = false;
+  Function(dynamic)? _notificationCallback;
 
   @override
   void initState() {
@@ -25,6 +27,57 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
       final selectedDate = ref.read(receptionistProvider).selectedDate;
       ref.read(receptionistProvider.notifier).fetchAppointments(selectedDate);
     });
+
+    _notificationCallback = (data) {
+      if (mounted) {
+        final Map<String, dynamic> notification = Map<String, dynamic>.from(data);
+        final title = notification['title'] ?? 'Thông báo';
+        final body = notification['body'] ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.notifications_active, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        body,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: kPrimaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        final selectedDate = ref.read(receptionistProvider).selectedDate;
+        ref.read(receptionistProvider.notifier).fetchAppointments(selectedDate);
+      }
+    };
+    SocketService.instance.on(SocketEvents.newNotification, _notificationCallback!);
+  }
+
+  @override
+  void dispose() {
+    if (_notificationCallback != null) {
+      SocketService.instance.off(SocketEvents.newNotification, _notificationCallback);
+    }
+    super.dispose();
   }
 
   @override

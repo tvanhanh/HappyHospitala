@@ -1,22 +1,76 @@
-/// Patient Home Shell — bottom navigation wrapper.
-///
-/// [Core-4] UI/UX Polish:
-/// - Modern bottom navigation bar with Primary Blue selected color
-/// - Smooth page transitions via GoRouter
-/// - Responsive: on wide screens (tablet/web), navigation moves to sidebar
-/// - [Core-3] Added 'Chat' tab to navigate to ChatScreen
-library;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/socket_service.dart';
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF1565C0);
 const Color _kGrey = Color(0xFF9E9E9E);
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends ConsumerStatefulWidget {
   final Widget child;
   const HomeShell({super.key, required this.child});
+
+  @override
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initSocketListener();
+    });
+  }
+
+  void _initSocketListener() {
+    SocketService.instance.on(SocketEvents.newNotification, (data) {
+      if (mounted) {
+        final Map<String, dynamic> notification = Map<String, dynamic>.from(data);
+        final title = notification['title'] ?? 'Thông báo';
+        final body = notification['body'] ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.notifications_active, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        body,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1976D2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    SocketService.instance.off(SocketEvents.newNotification);
+    super.dispose();
+  }
 
   int _getIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
@@ -85,7 +139,7 @@ class HomeShell extends StatelessWidget {
               ),
             ),
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: child),
+            Expanded(child: widget.child),
           ],
         ),
       );
@@ -93,7 +147,7 @@ class HomeShell extends StatelessWidget {
 
     // ── Mobile: Modern bottom navigation ──────────────────────────────────────
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -160,7 +214,7 @@ class HomeShell extends StatelessWidget {
       '/home/profile',
       '/home/discussion',
       '/home/appointments',
-      '/home/results',
+      '/patient/medical-records',
     ];
     if (index >= 0 && index < routes.length) {
       context.go(routes[index]);
@@ -216,13 +270,12 @@ class _BottomNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate using GoRouter
         final routes = [
           '/home',
           '/home/profile',
           '/home/discussion',
           '/home/appointments',
-          '/home/results',
+          '/patient/medical-records',
         ];
         final labels = [
           'Trang chủ',

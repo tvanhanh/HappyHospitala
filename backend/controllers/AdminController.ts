@@ -101,7 +101,7 @@ export const createBaseAccount = async (req: Request, res: Response) => {
           break;
         case 'receptionist':
         case 'cashier':
-        case 'pharmacy_manager':
+        case 'pharmacy':
           profile = new Staff({ 
             userId: newUser._id, 
             position: role 

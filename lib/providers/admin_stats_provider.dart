@@ -10,6 +10,7 @@ class AdminStats {
   final int totalAppointments;
   final int totalSpecialties;
   final int totalRooms;
+  final int totalStaffs;
 
   AdminStats({
     required this.totalDoctors,
@@ -17,6 +18,7 @@ class AdminStats {
     required this.totalAppointments,
     required this.totalSpecialties,
     required this.totalRooms,
+    required this.totalStaffs,
   });
 
   factory AdminStats.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class AdminStats {
       totalAppointments: json['totalAppointments'] ?? 0,
       totalSpecialties: json['totalSpecialties'] ?? 0,
       totalRooms: json['totalRooms'] ?? 0,
+      totalStaffs: json['totalStaffs'] ?? 0,
     );
   }
 }
@@ -103,7 +106,7 @@ class AppUser {
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
       id: json['_id'] ?? '',
-      name: json['name'] ?? 'Chưa cập nhật',
+      name: json['fullName'] ?? 'Chưa cập nhật',
       email: json['email'] ?? '',
       role: json['role'] ?? 'patient',
       status: json['status'] ?? 'activity',
@@ -129,5 +132,25 @@ final usersProvider = FutureProvider<List<AppUser>>((ref) async {
     return body.map((e) => AppUser.fromJson(e)).toList();
   } else {
     throw Exception('Failed to load users: ${res.body}');
+  }
+});
+final appointmentStatusProvider = FutureProvider<List<ChartData>>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  // Gọi API lấy thống kê trạng thái lịch hẹn (VD: pending, confirmed, completed, cancelled)
+  final res = await http.get(
+    Uri.parse('$baseUrl/appointments/appointment-status'),
+    headers: {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    },
+  );
+
+  if (res.statusCode == 200) {
+    final List body = jsonDecode(res.body);
+    return body.map((e) => ChartData.fromJson(e)).toList();
+  } else {
+    throw Exception('Lỗi tải dữ liệu trạng thái: ${res.body}');
   }
 });

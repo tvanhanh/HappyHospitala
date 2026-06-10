@@ -4,7 +4,7 @@ export interface IMedicine extends Document {
   medicineCode: string;
   name: string;
   activeIngredient: string;
-  category: string;
+  categoryId: mongoose.Types.ObjectId | string;
   routeOfAdministration: string;
   unit: string;
   stockLevel: number;
@@ -21,7 +21,7 @@ const medicineSchema = new Schema<IMedicine>(
     medicineCode: { type: String, required: true, unique: true, uppercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     activeIngredient: { type: String, required: true, trim: true },
-    category: { type: String, required: true, trim: true },
+    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     routeOfAdministration: { type: String, required: true, trim: true },
     unit: { type: String, required: true, trim: true },
     stockLevel: { type: Number, required: true, default: 0 },

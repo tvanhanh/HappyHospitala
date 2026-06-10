@@ -4,7 +4,7 @@
 ///
 /// ERD Relationships:
 /// - Prescriptions --[belongs_to]--> MedicalRecords (via [recordId])
-/// - Prescriptions --[processed_by]--> PharmacyManager
+/// - Prescriptions --[processed_by]--> pharmacy
 /// - Prescriptions --[checks_stock]--> Inventories
 ///
 /// Blockchain Anchor:

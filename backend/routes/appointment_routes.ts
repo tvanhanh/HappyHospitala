@@ -1,4 +1,4 @@
-import { getAllAppointments } from './../controllers/appointment_controller';
+import { getAllAppointments, getAppointmentStatusChart } from './../controllers/appointment_controller';
 import express from "express";
 import {
   addAppointment,
@@ -11,7 +11,7 @@ import {
   checkSlotAvailability,
   checkInAppointment,
 } from '../controllers/appointment_controller';
-import { verifyToken } from "../middleware/auth";
+import { isAdmin, verifyToken } from "../middleware/auth";
 
 
 const router = express.Router();
@@ -25,5 +25,6 @@ router.get("/check-slot", verifyToken, checkSlotAvailability);   // Pre-submit s
 router.patch("/:id/check-in", verifyToken, checkInAppointment);  // Receptionist check-in
 router.patch("/:id/:status", verifyToken, updateStatus);
 router.patch("/:id", verifyToken, cancelAppointment);
+router.get('/appointment-status', verifyToken, isAdmin, getAppointmentStatusChart);
 
-export default router;
+export default router;
