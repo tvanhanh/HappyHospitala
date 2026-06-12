@@ -4,11 +4,13 @@ import 'dispense_medicine_dialog.dart'; // Import để dùng chung hệ màu h�
 class Step1Page extends StatelessWidget {
   final Map<String, dynamic> prescription;
   final List medicines;
+  final String dateDisplay;
 
-  const Step1Page({super.key, required this.prescription, required this.medicines});
+  const Step1Page({super.key, required this.prescription, required this.medicines, required this.dateDisplay,});
 
   @override
   Widget build(BuildContext context) {
+    print("DỮ LIỆU ĐƠN THUỐC THỰC TẾ: ${prescription.toString()}");
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -43,11 +45,11 @@ class Step1Page extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMetaRow('Họ tên:', prescription['patient'] ?? 'N/A', isBoldValue: true),
+              _buildMetaRow('Họ tên:', prescription['patientName'] ?? 'N/A', isBoldValue: true),
               const SizedBox(height: 10),
-              _buildMetaRow('Bác sĩ:', prescription['doctor'] ?? 'N/A'),
+              _buildMetaRow('Bác sĩ:', prescription['doctorName'] ?? 'N/A'),
               const SizedBox(height: 10),
-              _buildMetaRow('Ngày kê đơn:', prescription['date'] ?? 'N/A'),
+             _buildMetaRow('Ngày kê đơn:', dateDisplay),
             ],
           ),
         ),
@@ -86,7 +88,7 @@ class Step1Page extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
-                          labelText: 'Số lượng cấp',
+                          labelText: med['quantity'],
                           labelStyle: TextStyle(color: isOutOfStock ? kDangerRed : const Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.w600),
                           floatingLabelBehavior: FloatingLabelBehavior.always,
                           contentPadding: const EdgeInsets.symmetric(vertical: 8),

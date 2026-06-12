@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_medicalRecord.dart'; // Đảm bảo đường dẫn đúng
+import 'package:intl/intl.dart';
 import 'dart:async';
 
 class DiagnosisResultScreen extends StatefulWidget {
@@ -68,7 +69,15 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                             ),
                             SizedBox(height: 5),
                             Text(
-                              'Ngày khám: ${record['createdAt']?.split('T')[0] ?? ''}',
+                              'Ngày khám: ${() {
+                                final createdVal = record['createdAt']?.toString() ?? '';
+                                if (createdVal.isEmpty) return '';
+                                final parsed = MedicalRecordService.tryParseDateTime(createdVal);
+                                if (parsed != null) {
+                                  return DateFormat('dd/MM/yyyy HH:mm').format(parsed);
+                                }
+                                return createdVal.split('T')[0];
+                              }()}',
                               style: TextStyle(color: Colors.grey[600]),
                             ),
                             SizedBox(height: 5),

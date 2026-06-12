@@ -4,9 +4,10 @@
   "description": "",
   "main": "server.ts",
   "scripts": {
-    "dev": "ts-node server.ts",
+    "dev": "nodemon --exec ts-node server.ts",
     "build": "tsc",
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed": "ts-node seeder.ts"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +19,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.7",
@@ -29,8 +31,10 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "node-fs": "^0.1.7",
-    "pdfkit": "^0.17.2"
+    "pdfkit": "^0.17.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
@@ -40,9 +44,10 @@
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/mongoose": "^5.11.97",
-    "@types/multer": "^2.0.0",
+    "@types/multer": "^2.1.0",
     "@types/node": "^22.14.0",
     "@types/pdfkit": "^0.17.3",
+    "@types/socket.io": "^3.0.2",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

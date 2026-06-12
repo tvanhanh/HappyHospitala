@@ -22,20 +22,32 @@ class _SplashScreenState extends State<SplashScreen> {
 
     await Future.delayed(Duration(seconds: 1));
 
-    if (token != null && token.isNotEmpty) {
-      if (role == 'admin') {
-        context.go('/admin');
-      } else if (role == 'patient') {
-        context.go('/home');
-      } else if (role == 'doctor') {
-        context.go('/doctor');
-      } else if (role == 'staff') {
-        context.go('/staff');
-      } else {
-        context.go('/login'); // fallback
+    if (token != null && token.isNotEmpty && role != null) {
+      switch (role) {
+        case 'admin':
+          context.go('/admin');
+          break;
+        case 'doctor':
+          context.go('/doctor');
+          break;
+        case 'receptionist':
+        case 'staff': // backward compat
+          context.go('/receptionist/dashboard');
+          break;
+        case 'cashier':
+          context.go('/cashier');
+          break;
+        case 'pharmacy':
+          context.go('/pharmacy');
+          break;
+        case 'patient':
+        default:
+          context.go('/home'); // Auth patient or unknown
+          break;
       }
     } else {
-      context.go('/login');
+      // Default to Login Screen instead of guest Mode
+      context.go('/auth/login');
     }
   }
 

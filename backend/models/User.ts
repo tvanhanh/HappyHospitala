@@ -1,104 +1,43 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from 'mongoose';
 
-export interface IUser extends mongoose.Document {
-  name: string;
+export interface IUser extends Document {
   email: string;
-  password: string;
-
-  role: "patient" | "admin" | "staff" | "doctor";
-  status: "activity" | "inactive";
-
-  specialization?: string; // doctor
-  departmentId?: mongoose.Types.ObjectId;
-
-  profile: {
-    phone?: string;
-    gender?: string;
-    address?: string;
-    avatar?: string;
-    healthInsurance?: string;
-
-    medicalHistory?: string;
-    allergies?: string;
-    chronicDiseases?: string;
-
-    skinType?: string;
-    skinCondition?: string;
-    skincareRoutine?: string;
-
-    specialty?: String;
-
-    experience?: String;
-    degree?: String;
-    description?: String;
-    workShift?: String;
-    price?: String;
-  };
-
+  password?: string;
+  role: 'admin' | 'doctor' | 'patient' | 'receptionist' | 'cashier' | 'pharmacy_manager';
+  status: string;
   isDeleted: boolean;
+  fullName?: string;
+  phoneNumber?: string;
+  cccd?: string;
+  dateOfBirth?: Date;
+  gender?: 'male' | 'female' | 'other';
+  address?: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const userSchema = new mongoose.Schema<IUser>(
+const userSchema = new Schema<IUser>(
   {
-    name: { type: String, required: true },
-
-    email: {
-      type: String,
-      unique: true,
-      required: true,
-      lowercase: true,
-      trim: true,
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String }, // Optional if using OAuth/SSO
+    role: { 
+      type: String, 
+      enum: ['admin', 'doctor', 'patient', 'receptionist', 'cashier', 'pharmacy_manager'], 
+      required: true 
     },
-
-    password: { type: String, required: true },
-
-    role: {
-      type: String,
-      enum: ["patient", "admin", "staff", "doctor"],
-      default: "patient",
-    },
-    
-
-    status: {
-      type: String,
-      enum: ["activity", "inactive"],
-      default: "activity",
-    },
-       departmentId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-      default: null,
-    },
-
-    profile: {
-      phone: String,
-      gender: String,
-      address: String,
-      avatar: { type: String, default: "" },
-      healthInsurance: String,
-
-      medicalHistory: String,
-      allergies: String,
-      chronicDiseases: String,
-
-      skinType: String,
-      skinCondition: String,
-      skincareRoutine: String,
-      specialty: String,
-      experience: String,
-      degree: String,
-      description: String,
-      workShift: String,
-      price: String,
-    },
-
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
+    status: { type: String, default: 'activity' },
+    isDeleted: { type: Boolean, default: false },
+    fullName: { type: String, trim: true },
+    phoneNumber: { type: String, trim: true },
+    cccd: { type: String, trim: true },
+    dateOfBirth: { type: Date },
+    gender: { type: String, enum: ['male', 'female', 'other'] },
+    address: { type: String, trim: true },
+    avatar: { type: String }
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-const User = mongoose.model<IUser>("User", userSchema);
+const User = mongoose.model<IUser>('User', userSchema);
 export default User;

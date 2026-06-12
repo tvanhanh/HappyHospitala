@@ -1,6 +1,8 @@
-
 import { Request, Response } from "express";
 import MedicalRecord from "../models/medicalRecord";
+import User from "../models/User";
+import Doctor from "../models/Doctor";
+import DiabetesRecord from "../models/medicl_record_infor";
 import { generateMedicalPDF } from "../services/pdf.service";
 import { calculateHash } from "../services/hash.service";
 import { uploadHashToBlockchain } from "../services/blockchain.service";
@@ -12,8 +14,14 @@ import { Contract } from "ethers";
 import { getRecordFromBlockchain } from "../services/blockchain.service";
 import { wallet } from "../../blockchain/provider";
 
-
 const pinata = new pinataSDK({ pinataJWTKey: process.env.PINATA_JWT! });
+
+function calculateAge(dob: Date | undefined): number {
+  if (!dob) return 30;
+  const diff = Date.now() - dob.getTime();
+  const ageDate = new Date(diff);
+  return Math.abs(ageDate.getUTCFullYear() - 1970);
+}
 
 export const uploadPDFToIPFS = async (pdfPath: string) => {
   const fileStream = fs.createReadStream(pdfPath);
@@ -31,23 +39,17 @@ export const uploadPDFToIPFS = async (pdfPath: string) => {
 
 export const addMedicalRecord = async (req: Request, res: Response) => {
   try {
-    const gridFSBucket = getGridFSBucket();
-    const files = req.files as Express.Multer.File[];
-    console.log("req.files:", req.files);
-
     const {
       patientId,
       doctorId,
-      patientName,
-      visitDate,
       symptoms,
       diagnosis,
       treatment,
-    
+      metrics,
+      visitDate,
     } = req.body ?? {};
 
     console.log("Dữ liệu nhận từ frontend:", req.body);
-    console.log("Số file:", files?.length);
 
     if (!patientId || !doctorId) {
       res.status(400).json({ error: "Missing patientId or doctorId" });
@@ -55,76 +57,139 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     }
 
     // ------------------------------
-    // 1. UPLOAD FILES TO GRIDFS
+    // 1. RESOLVE USER & DOCTOR METADATA
     // ------------------------------
-    const attachmentsId: string[] = [];
+    const patientUser = await User.findById(patientId);
+    const patientName = patientUser?.fullName || "Bệnh nhân";
+    const patientEmail = patientUser?.email || "";
+    const gender = patientUser?.gender === "female" ? "Nữ" : "Nam";
+    const age = calculateAge(patientUser?.dateOfBirth);
 
-    for (const file of files || []) {
-      const uploadStream = gridFSBucket.openUploadStream(
-        file.originalname,
-        {
-          contentType: file.mimetype,
-          metadata: {
-            patientId,
-            doctorId,
-          },
-        }
-      );
-
-      uploadStream.end(file.buffer);
-
-      await new Promise((resolve, reject) => {
-        uploadStream.on("finish", () => {
-          attachmentsId.push(uploadStream.id.toString());
-          resolve(true);
-        });
-        uploadStream.on("error", reject);
-      });
+    let doctorName = "Bác sĩ";
+    let doctorDoc = await Doctor.findOne({ userId: doctorId });
+    if (!doctorDoc) {
+      doctorDoc = await Doctor.findById(doctorId);
+    }
+    if (doctorDoc) {
+      const docUser = await User.findById(doctorDoc.userId);
+      doctorName = docUser?.fullName || "Bác sĩ";
+    } else {
+      const docUser = await User.findById(doctorId);
+      doctorName = docUser?.fullName || "Bác sĩ";
     }
 
     // ------------------------------
-    // 2. CREATE DATABASE RECORD
+    // 2. UPLOAD FILES TO GRIDFS (IF PROVIDED VIA MULTIPART)
+    // ------------------------------
+    const attachmentsId: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      const files = req.files as Express.Multer.File[];
+      const gridFSBucket = getGridFSBucket();
+      for (const file of files) {
+        const uploadStream = gridFSBucket.openUploadStream(
+          file.originalname,
+          {
+            contentType: file.mimetype,
+            metadata: {
+              patientId,
+              doctorId,
+            },
+          }
+        );
+
+        uploadStream.end(file.buffer);
+
+        await new Promise((resolve, reject) => {
+          uploadStream.on("finish", () => {
+            attachmentsId.push(uploadStream.id.toString());
+            resolve(true);
+          });
+          uploadStream.on("error", reject);
+        });
+      }
+    }
+
+    // ------------------------------
+    // 3. CREATE DATABASE RECORD
     // ------------------------------
     const record = await MedicalRecord.create({
       patientId,
       doctorId,
       patientName,
+      doctorName,
+      patientEmail,
       visitDate: visitDate ? new Date(visitDate) : new Date(),
-      symptoms,
-      diagnosis,
-      treatment,
+      symptoms: symptoms || "Không ghi nhận triệu chứng",
+      diagnosis: diagnosis || "Không mắc bệnh",
+      treatment: treatment || "Theo dõi định kỳ, điều chỉnh chế độ ăn uống và sinh hoạt.",
+      metrics: metrics || {},
       attachments: attachmentsId, 
     });
 
     // ------------------------------
-    // 3. GENERATE PDF
+    // 4. SYNC TO DIABETES RECORD FOR BACKWARD COMPATIBILITY
+    // ------------------------------
+    try {
+      const d = visitDate ? new Date(visitDate) : new Date();
+      const examDateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      const examTimeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+      await DiabetesRecord.create({
+        patientId,
+        doctorId: doctorDoc?._id || doctorId,
+        patientName,
+        email: patientEmail,
+        examinationDate: examDateStr,
+        examinationTime: examTimeStr,
+        doctorName,
+        departmentName: "Nội tiết",
+        gender,
+        age: age.toString(),
+        urea: metrics?.urea?.toString() || "",
+        creatinine: metrics?.creatinine?.toString() || "",
+        hba1c: metrics?.hba1c?.toString() || "",
+        cholesterol: metrics?.cholesterol?.toString() || "",
+        triglycerides: metrics?.triglycerides?.toString() || "",
+        hdl: metrics?.hdl?.toString() || "",
+        ldl: metrics?.ldl?.toString() || "",
+        vldl: metrics?.vldl?.toString() || "",
+        bmi: metrics?.bmi?.toString() || "",
+        status: diagnosis || "Không mắc bệnh",
+      });
+      console.log("DiabetesRecord synced successfully");
+    } catch (syncErr) {
+      console.error("Failed to sync to DiabetesRecord:", syncErr);
+    }
+
+    // ------------------------------
+    // 5. GENERATE PDF
     // ------------------------------
     const pdfPath = await generateMedicalPDF(record.toObject());
 
     // ------------------------------
-    // 4. UPLOAD PDF TO IPFS
+    // 6. UPLOAD PDF TO IPFS
     // ------------------------------
     const ipfsCID  = await uploadPDFToIPFS(pdfPath);
     const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCID }`;
 
     // ------------------------------
-    // 5. HASH + BLOCKCHAIN
+    // 7. HASH + BLOCKCHAIN
     // ------------------------------
     const pdfHash = await calculateHash(pdfPath);
-    const { txHash, network, blockNumber,  blockchainIndex } = await uploadHashToBlockchain(
+    const { txHash, network, blockNumber, blockchainIndex } = await uploadHashToBlockchain(
       patientId,
       ipfsCID,
       pdfHash
     );
    
-console.log("🔥 Blockchain result:", {
-  txHash,
-  network,
-  blockNumber,
-});
+    console.log("🔥 Blockchain result:", {
+      txHash,
+      network,
+      blockNumber,
+    });
 
     // ------------------------------
-    // 6. UPDATE RECORD
+    // 8. UPDATE RECORD
     // ------------------------------
     record.pdfUrl = ipfsUrl;
     record.pdfHash = pdfHash;

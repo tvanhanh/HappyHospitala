@@ -126,12 +126,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                 ? Center(child: CircularProgressIndicator())
                 : filteredUsers.isEmpty
                     ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: EdgeInsets.all(16),
-                        itemCount: filteredUsers.length,
-                        itemBuilder: (context, index) {
-                          return _buildUserCard(filteredUsers[index]);
-                        },
+                    : Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: ListView.builder(
+                            padding: EdgeInsets.all(16),
+                            itemCount: filteredUsers.length,
+                            itemBuilder: (context, index) {
+                              return _buildUserCard(filteredUsers[index]);
+                            },
+                          ),
+                        ),
                       ),
           ),
         ],
@@ -155,37 +160,44 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
-      child: Column(
-        children: [
-          SizedBox(height: 10),
-          TextField(
-            controller: searchController,
-            onChanged: _filterUsers,
-            decoration: InputDecoration(
-              hintText: "Tìm theo tên, email...",
-              prefixIcon: Icon(Icons.search, color: kPrimaryColor),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none),
-              contentPadding: EdgeInsets.symmetric(vertical: 0),
-            ),
-          ),
-          SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
             children: [
-              _buildStatBadge("Tổng: ${users.length}", Colors.white24),
-              _buildStatBadge(
-                  "Admin: ${users.where((u) => u['role'] == 'admin').length}",
-                  kAdminColor),
-              _buildStatBadge(
-                  "Active: ${users.where((u) => u['status'] == 'activity').length}",
-                  kActiveColor),
+              SizedBox(height: 10),
+              TextField(
+                controller: searchController,
+                onChanged: _filterUsers,
+                decoration: InputDecoration(
+                  hintText: "Tìm theo tên, email...",
+                  prefixIcon: Icon(Icons.search, color: kPrimaryColor),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none),
+                  contentPadding: EdgeInsets.symmetric(vertical: 0),
+                ),
+              ),
+              SizedBox(height: 10),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildStatBadge("Tổng: ${users.length}", Colors.white24),
+                  _buildStatBadge(
+                      "Admin: ${users.where((u) => u['role'] == 'admin').length}",
+                      kAdminColor),
+                  _buildStatBadge(
+                      "Active: ${users.where((u) => u['status'] == 'activity').length}",
+                      kActiveColor),
+                ],
+              )
             ],
-          )
-        ],
+          ),
+        ),
       ),
     );
   }

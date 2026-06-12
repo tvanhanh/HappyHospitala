@@ -1,43 +1,29 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/api_doctors.dart';
-import '../../services/api_department.dart';
+import '../../providers/specialty_provider.dart';
+import '../../providers/room_provider.dart';
+import '../../models/room.dart';
 
-class AddDoctorScreen extends StatefulWidget {
+class AddDoctorScreen extends ConsumerStatefulWidget {
+  const AddDoctorScreen({super.key});
+
   @override
-  _AddDoctorScreenState createState() => _AddDoctorScreenState();
+  ConsumerState<AddDoctorScreen> createState() => _AddDoctorScreenState();
 }
 
-class _AddDoctorScreenState extends State<AddDoctorScreen> {
+class _AddDoctorScreenState extends ConsumerState<AddDoctorScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-  final TextEditingController specializationController =
-      TextEditingController();
+  final TextEditingController specializationController = TextEditingController();
 
-  List<Map<String, dynamic>> departments = [];
-  String? selectedDepartmentId;
+  String? selectedSpecialtyId;
+  String? selectedRoomId;
   File? _image;
-  Map<String, dynamic>? doctor;
-
-  @override
-  void initState() {
-    super.initState();
-    fetchDepartments();
-  }
-
-  Future<void> fetchDepartments() async {
-    try {
-      final data = await DepartmentService.getDepartments();
-      setState(() {
-        departments = data;
-      });
-    } catch (e) {
-      print('Lỗi khi lấy phòng ban: $e');
-    }
-  }
 
   Future<void> pickImage() async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -55,23 +41,33 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
     final address = addressController.text.trim();
     final specialization = specializationController.text.trim();
 
-    if (doctorName.isEmpty || selectedDepartmentId == null) {
+    if (doctorName.isEmpty || selectedRoomId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Vui lòng nhập tên và chọn phòng ban")),
+        const SnackBar(content: Text("Vui lòng nhập tên và phòng làm việc")),
       );
       return;
     }
 
-    final avatar = _image?.path ?? "";
+    final roomsList = ref.read(roomProvider(null)).value ?? [];
+    final roomObj = roomsList.firstWhere(
+      (r) => r.id == selectedRoomId,
+      orElse: () => const Room(id: '', roomNumber: '', floor: 1, status: 'Available'),
+    );
 
+    final finalSpecialtyId = selectedSpecialtyId ?? roomObj.specialtyId ?? '';
+
+    final avatar = _image?.path ?? "";
+    
     final result = await DoctorService.addDoctor(
       doctorName,
       email,
       phone,
       address,
-      selectedDepartmentId!,
+      finalSpecialtyId, // Using specialty as department fallback
       specialization,
       avatar,
+      finalSpecialtyId.isNotEmpty ? finalSpecialtyId : null,
+      selectedRoomId,
     );
 
     if (!context.mounted) return;
@@ -86,16 +82,19 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final asyncSpecialties = ref.watch(specialtyProvider);
+    final asyncRooms = ref.watch(roomProvider(null));
+
     return Scaffold(
-      appBar: AppBar(title: Text('Thêm bác sĩ')),
+      appBar: AppBar(title: const Text('Thêm Bác Sĩ')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             GestureDetector(
               onTap: pickImage,
               child: _image == null
-                  ? CircleAvatar(
+                  ? const CircleAvatar(
                       radius: 40,
                       child: Icon(Icons.camera_alt, size: 30),
                     )
@@ -104,53 +103,80 @@ class _AddDoctorScreenState extends State<AddDoctorScreen> {
                       backgroundImage: FileImage(_image!),
                     ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: 'Tên bác sĩ'),
+              decoration: const InputDecoration(labelText: 'Tên bác sĩ'),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: emailController,
-              decoration: InputDecoration(labelText: 'Email'),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: phoneController,
-              decoration: InputDecoration(labelText: 'Số điện thoại'),
+              decoration: const InputDecoration(labelText: 'Số điện thoại'),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: addressController,
-              decoration: InputDecoration(labelText: 'Địa chỉ'),
+              decoration: const InputDecoration(labelText: 'Địa chỉ'),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: specializationController,
-              decoration: InputDecoration(labelText: 'Chuyên khoa'),
+              decoration: const InputDecoration(labelText: 'Chuyên môn (Ví dụ: Thạc sĩ)'),
             ),
-            SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(labelText: 'Phòng ban'),
-              value: selectedDepartmentId,
-              items: departments.map((dept) {
-                final id = dept['id']?.toString() ?? '';
-                return DropdownMenuItem<String>(
-                  value: id,
-                  child: Text(dept['departmentName']?.toString() ??
-                      'Không rõ tên phòng ban'),
+            const SizedBox(height: 16),
+            
+            // Dropdown Specialty
+            asyncSpecialties.when(
+              loading: () => const CircularProgressIndicator(),
+              error: (err, _) => Text('Lỗi tải Chuyên khoa: $err'),
+              data: (specialties) {
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Chuyên Khoa'),
+                  value: selectedSpecialtyId,
+                  items: specialties.map((spec) {
+                    return DropdownMenuItem<String>(
+                      value: spec.id,
+                      child: Text(spec.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setState(() => selectedSpecialtyId = value),
                 );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedDepartmentId = value;
-                });
               },
             ),
-            SizedBox(height: 20),
+            
+            const SizedBox(height: 16),
+            
+            // Dropdown Room
+            asyncRooms.when(
+              loading: () => const CircularProgressIndicator(),
+              error: (err, _) => Text('Lỗi tải Phòng: $err'),
+              data: (rooms) {
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Phòng Làm Việc'),
+                  value: selectedRoomId,
+                  items: rooms.map((room) {
+                    return DropdownMenuItem<String>(
+                      value: room.id,
+                      child: Text('Phòng ${room.roomNumber} - Tầng ${room.floor}'),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setState(() => selectedRoomId = value),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: saveDoctor,
-              child: Text('Lưu'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: const Text('Lưu Bác Sĩ'),
             )
           ],
         ),

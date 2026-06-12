@@ -15,9 +15,29 @@ const MedicalRecordSchema = new mongoose.Schema({
     required: true,
   },
 
+  doctorName: {
+    type: String,
+  },
+
+  patientEmail: {
+    type: String,
+  },
+
   visitDate: {
     type: Date,
     required: true,
+  },
+
+  metrics: {
+    urea: { type: Number },
+    creatinine: { type: Number },
+    hba1c: { type: Number },
+    cholesterol: { type: Number },
+    triglycerides: { type: Number },
+    hdl: { type: Number },
+    ldl: { type: Number },
+    vldl: { type: Number },
+    bmi: { type: Number },
   },
 
   symptoms: {

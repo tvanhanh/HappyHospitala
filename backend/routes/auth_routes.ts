@@ -13,7 +13,13 @@ import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../cont
 import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
 import { predictDiabetes, predictResourcePPO } from '../controllers/predictController';
-
+import { getAllMedicineCategories, createMedicineCategory } from "../controllers/categoryOfMedicineController";
+import { createSupplier ,deleteSupplier,updateSupplier,getAllSuppliers} from '../controllers/supplier_controller';
+import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine } from '../controllers/medicineController';
+import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescriptionStatus} from '../controllers/prescriptionController';
+import { createImportMedicne, getImportRecords } from '../controllers/importMedicneController';
+import { createBill, getBills, getBillById } from '../controllers/billController';
+import { controllers } from 'chart.js';
 
 const router = Router();
 
@@ -54,9 +60,38 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.get("/api_getMedicalRecord",verifyToken, getMedicalRecord);
   // medical record with block chain 
   router.post("/api/medicalrecord-blockchain", upload.array("attachments", 10),addMedicalRecord);
+  router.post("/api/medical-records", verifyToken, addMedicalRecord);
   router.get("/api/medical-records/:id",verifyToken, getMedicalRecordDetail);
   router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
   router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
  // router.get("/api/medical-records/:id/verify",verifyToken,verifyMedicalRecord);
-  
+
+ // category of medicine
+ router.get("/get_category",verifyToken, getAllMedicineCategories);
+ router.post("/create_category", verifyToken, createMedicineCategory);
+ // medicine
+ router.post("/create_medicine", verifyToken, createMedicine);
+ router.get("/get_medicines", verifyToken, getAllMedicines);
+ router.delete("/delete_medicine/:id", verifyToken, deleteMedicine);
+ router.put("/update_medicine/:id", verifyToken, updateMedicine);
+ // prescrition
+ router.post("/create_prescription", verifyToken, createPrescription);
+ router.get('/get_prescriptions',verifyToken, getPrescriptions);
+ router.get('/get_prescriptionsDetail/:id',verifyToken, getPrescriptionById);
+ router.put('/update_status_prescriptions/:id/status',verifyToken, updatePrescriptionStatus);
+ // supplier 
+router.post('/create_supplier',verifyToken,createSupplier);
+router.get('/get_suppliers', verifyToken,getAllSuppliers);
+// importMedicine
+ router.post("/create_importmedicine", verifyToken, createImportMedicne);
+ router.get('/get_importmedicine',verifyToken, getImportRecords);
+ //bill
+ router.post("/create_bill", verifyToken, createBill);
+ router.get('/get_bills',verifyToken, getBills);
+ router.get('/get_bill/:id',verifyToken, getBillById);
+
+
+// Endpoint truyền ID tham số: /api/suppliers/:id
+router.put('/update_supplier/:id', verifyToken, updateSupplier);
+router.delete('/delete_supplier/:id', verifyToken, deleteSupplier);
 export default router;

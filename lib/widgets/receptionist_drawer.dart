@@ -72,13 +72,6 @@ class ReceptionistDrawer extends StatelessWidget {
                 ),
                 _item(
                   context,
-                  Icons.payment,
-                  "Thanh toán",
-                  "/receptionist/payments",
-                ),
-
-                _item(
-                  context,
                   Icons.folder_shared,
                   "Hồ sơ bệnh án",
                   "/receptionist/medical-records",

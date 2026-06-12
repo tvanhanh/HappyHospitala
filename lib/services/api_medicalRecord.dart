@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 class MedicalRecordService {
   static Future<String> addMedicalRecord({
+    String? patientId,
+    String? doctorId,
     required String patientName,
     required String email,
     required String examinationDate,
@@ -24,12 +26,12 @@ class MedicalRecordService {
     double? vldl,
     double? bmi,
     required String status,
-
+    String? symptoms,
+    String? treatment,
   }) async {
     try {
-      // Kiểm tra các trường bắt buộc
-      if (patientName.isEmpty || status.isEmpty) {
-        return "Vui lòng điền đầy đủ các trường bắt buộc (Tên bệnh nhân, Chẩn đoán, Trạng thái).";
+      if (status.isEmpty) {
+        return "Vui lòng điền đầy đủ Chẩn đoán / Trạng thái.";
       }
       String? isoDateTime;
       try {
@@ -46,35 +48,36 @@ class MedicalRecordService {
         );
         isoDateTime = combinedDateTime.toIso8601String(); // Chuyển thành ISO 8601
       } catch (e) {
-        return "Lỗi định dạng ngày hoặc giờ: $e";
+        try {
+          isoDateTime = DateTime.parse(examinationDate).toIso8601String();
+        } catch (_) {
+          return "Lỗi định dạng ngày hoặc giờ: $e";
+        }
       }
-     
 
-      final url = Uri.parse('$baseUrl/auth/api_addMedicalRecord');
+      final url = Uri.parse('$baseUrl/api/auth/api/medical-records');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) return "Chưa đăng nhập. Không có token.";
 
-      // Chuẩn bị dữ liệu gửi đi, thay null bằng chuỗi rỗng
       final body = {
-        'patientName': patientName,
-        'email': email,
-        'examinationDate': isoDateTime,
-        'examinationTime': examinationTime,
-        'doctorName': doctorName ?? '', 
-        'departmentName': departmentName ?? '', 
-        'gender': gender ?? '', 
-        'age': age?.toString() ?? '', 
-        'urea': urea?.toString() ?? '',
-        'creatinine': creatinine?.toString() ?? '',
-        'hba1c': hba1c?.toString() ?? '',
-        'cholesterol': cholesterol?.toString() ?? '',
-        'triglycerides': triglycerides?.toString() ?? '',
-        'hdl': hdl?.toString() ?? '',
-        'ldl': ldl?.toString() ?? '',
-        'vldl': vldl?.toString() ?? '',
-        'bmi': bmi?.toString() ?? '',
-        'status': status,
+        'patientId': patientId ?? '',
+        'doctorId': doctorId ?? '',
+        'symptoms': symptoms ?? 'Không ghi nhận triệu chứng',
+        'diagnosis': status,
+        'treatment': treatment ?? 'Theo dõi định kỳ, điều chỉnh chế độ ăn uống và sinh hoạt.',
+        'visitDate': isoDateTime,
+        'metrics': {
+          'urea': urea,
+          'creatinine': creatinine,
+          'hba1c': hba1c,
+          'cholesterol': cholesterol,
+          'triglycerides': triglycerides,
+          'hdl': hdl,
+          'ldl': ldl,
+          'vldl': vldl,
+          'bmi': bmi,
+        }
       };
 
       final response = await http.post(
@@ -86,17 +89,16 @@ class MedicalRecordService {
         body: jsonEncode(body),
       );
 
-     
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return "success";
       } else if (response.statusCode == 400) {
-        final body = jsonDecode(response.body);
-        return "Lỗi dữ liệu: ${body['message'] ?? 'Dữ liệu không hợp lệ'}";
+        final bodyData = jsonDecode(response.body);
+        return "Lỗi dữ liệu: ${bodyData['message'] ?? bodyData['error'] ?? 'Dữ liệu không hợp lệ'}";
       } else if (response.statusCode == 401) {
         return "Không được phép. Vui lòng đăng nhập lại.";
       } else {
-        final body = jsonDecode(response.body);
-        return "Lỗi: ${body['message'] ?? 'Máy chủ gặp sự cố'}";
+        final bodyData = jsonDecode(response.body);
+        return "Lỗi: ${bodyData['message'] ?? bodyData['error'] ?? 'Máy chủ gặp sự cố'}";
       }
     } catch (e) {
       return "Lỗi kết nối: $e";
@@ -105,7 +107,7 @@ class MedicalRecordService {
 
   static Future<List<Map<String, dynamic>>> getMedicalRecord() async {
   try {
-    final url = Uri.parse('$baseUrl/auth/api_getMedicalRecord');
+    final url = Uri.parse('$baseUrl/api/auth/api_getMedicalRecord');
 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -125,22 +127,48 @@ class MedicalRecordService {
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => {
-        'patientName': e['patientName'] ?? '',
-        'examinationDate': e['examinationDate'] ?? '',
-        'diagnosis': 'Tiểu đường',
-        'gender': e['gender'] ?? '',
-        'age': e['age'] ?? '',
-        'urea': e['urea'] ?? '',
-        'creatinine': e['creatinine'] ?? '',
-        'hba1c': e['hba1c'] ?? '',
-        'cholesterol': e['cholesterol'] ?? '',
-        'triglycerides': e['triglycerides'] ?? '',
-        'hdl': e['hdl'] ?? '',
-        'ldl': e['ldl'] ?? '',
-        'vldl': e['vldl'] ?? '',
-        'bmi': e['bmi'] ?? '',
-        'status': e['status'] ?? '',
-        'id': e['_id'] ?? '',
+        // Identity
+        'id': e['_id']?.toString() ?? '',
+        'patientId': e['patientId'] is Map
+            ? (e['patientId']['_id']?.toString() ?? '')
+            : (e['patientId']?.toString() ?? ''),
+        'doctorId': e['doctorId'] is Map
+            ? (e['doctorId']['_id']?.toString() ?? '')
+            : (e['doctorId']?.toString() ?? ''),
+        'patientName': e['patientName']?.toString() ?? '',
+        'email': e['patientId'] is Map
+            ? (e['patientId']['email']?.toString() ?? e['email']?.toString() ?? '')
+            : (e['email']?.toString() ?? ''),
+        'patientEmail': e['patientId'] is Map
+            ? (e['patientId']['email']?.toString() ?? e['email']?.toString() ?? '')
+            : (e['email']?.toString() ?? ''),
+        'patientAvatar': e['patientId'] is Map
+            ? (e['patientId']['avatar']?.toString() ?? '')
+            : '',
+        // Clinical data — read actual values from API, never hardcode
+        'visitDate': e['visitDate']?.toString() ?? e['examinationDate']?.toString() ?? '',
+        'symptoms': e['symptoms']?.toString() ?? '',
+        'diagnosis': e['diagnosis']?.toString() ?? '', // [BUG-06 FIX] was: 'Tiểu đường'
+        'treatment': e['treatment']?.toString() ?? '',
+        // Legacy lab fields (old schema compatibility — will be removed in v2)
+        'gender': e['gender']?.toString() ?? '',
+        'age': e['age']?.toString() ?? '',
+        'urea': e['urea']?.toString() ?? '',
+        'creatinine': e['creatinine']?.toString() ?? '',
+        'hba1c': e['hba1c']?.toString() ?? '',
+        'cholesterol': e['cholesterol']?.toString() ?? '',
+        'triglycerides': e['triglycerides']?.toString() ?? '',
+        'hdl': e['hdl']?.toString() ?? '',
+        'ldl': e['ldl']?.toString() ?? '',
+        'vldl': e['vldl']?.toString() ?? '',
+        'bmi': e['bmi']?.toString() ?? '',
+        'status': e['status']?.toString() ?? '',
+        // Blockchain anchor fields
+        'pdfUrl': e['pdfUrl']?.toString() ?? '',
+        'pdfHash': e['pdfHash']?.toString() ?? '',
+        'ipfsHash': e['ipfsHash']?.toString() ?? '',
+        'blockchainTx': e['blockchainTx']?.toString() ?? '',
+        'createdAt': e['createdAt']?.toString() ?? e['examinationDate']?.toString() ?? '',
       }).toList();
     } else {
       print("Lỗi khi lấy danh sách: ${response.body}");
@@ -152,5 +180,41 @@ class MedicalRecordService {
   }
 }
 
-
+  static DateTime? tryParseDateTime(String str) {
+    if (str.isEmpty) return null;
+    try {
+      return DateTime.parse(str);
+    } catch (_) {
+      try {
+        final parts = str.split(' ');
+        if (parts.length >= 4) {
+          final months = {
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+            'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+          };
+          final monthStr = parts[1].toLowerCase().substring(0, 3);
+          final day = int.parse(parts[2]);
+          final year = int.parse(parts[3]);
+          
+          int hour = 0;
+          int minute = 0;
+          int second = 0;
+          if (parts.length >= 5 && parts[4].contains(':')) {
+            final timeParts = parts[4].split(':');
+            if (timeParts.length >= 3) {
+              hour = int.parse(timeParts[0]);
+              minute = int.parse(timeParts[1]);
+              second = int.parse(timeParts[2]);
+            }
+          }
+          
+          final m = months[monthStr];
+          if (m != null) {
+            return DateTime(year, m, day, hour, minute, second);
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+  }
 }

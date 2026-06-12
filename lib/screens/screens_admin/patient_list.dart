@@ -1,176 +1,165 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import './patient_detail.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/patient_provider.dart';
+import 'patient_detail.dart';
 
-// --- PALETTE MÀU SẮC HIỆN ĐẠI ---
-const Color kPrimaryColor = Color(0xFF1565C0); // Xanh dương đậm
-const Color kAccentColor = Color(0xFF4CAF50); // Xanh lá (cho Nữ)
-const Color kMaleColor = Color(0xFF2196F3); // Xanh dương (cho Nam)
-const Color kBackgroundColor = Color(0xFFF5F7FA); // Nền xám nhạt
+const Color _kPrimary = Color(0xFF1565C0);
+const Color _kBackground = Color(0xFFF5F7FA);
 
-class PatientListScreen extends StatelessWidget {
-  // DỮ LIỆU MẪU (Giữ nguyên cấu trúc của bạn, không đụng tới backend)
-  final List<Map<String, String>> patients = [
-    {
-      'name': 'Nguyễn Văn A',
-      'dob': '12/05/1985',
-      'gender': 'Nam',
-      'phone': '0901234567',
-      'address': '123 Lê Lợi, Q1, TP.HCM'
-    },
-    {
-      'name': 'Trần Thị B',
-      'dob': '25/11/1990',
-      'gender': 'Nữ',
-      'phone': '0912345678',
-      'address': '456 Hai Bà Trưng, Q3, TP.HCM'
-    },
-    {
-      'name': 'Lê Văn C',
-      'dob': '05/08/1978',
-      'gender': 'Nam',
-      'phone': '0987654321',
-      'address': '789 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM'
-    },
-  ];
+class PatientListScreen extends ConsumerStatefulWidget {
+  const PatientListScreen({super.key});
+
+  @override
+  ConsumerState<PatientListScreen> createState() => _PatientListScreenState();
+}
+
+class _PatientListScreenState extends ConsumerState<PatientListScreen> {
+  String _searchQuery = '';
+  final _searchController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final asyncPatients = ref.watch(patientProvider(_searchQuery));
+
     return Scaffold(
-      backgroundColor: kBackgroundColor, // Màu nền hiện đại
-      appBar: AppBar(
-        shadowColor: kPrimaryColor.withOpacity(0.5),
-        centerTitle: true,
-      ),
+      backgroundColor: _kBackground,
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          Expanded(
+            child: asyncPatients.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Lỗi tải dữ liệu: $err')),
+              data: (patients) {
+                if (patients.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Không tìm thấy bệnh nhân nào.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
 
-      // Nút thêm bệnh nhân (UI only - chưa có logic backend)
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Điều hướng đến màn hình thêm bệnh nhân
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text("Chức năng thêm bệnh nhân sẽ sớm ra mắt!")));
-        },
-        label: Text("Thêm Bệnh Nhân"),
-        icon: Icon(Icons.person_add_alt_1_rounded),
-        backgroundColor: kPrimaryColor,
-      ),
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: patients.length,
+                  itemBuilder: (context, index) {
+                    final patient = patients[index];
+                    final user = patient['userId'] ?? {};
+                    final profile = user['profile'] ?? {};
+                    final avatar = profile['avatar']?.toString() ?? '';
+                    final name = user['name']?.toString() ?? 'Chưa cập nhật';
+                    final phone = profile['phone']?.toString() ?? 'Chưa cập nhật';
+                    final identityCard = patient['identityCard']?.toString() ?? 'Chưa cập nhật';
 
-      body: Padding(
-        padding: const EdgeInsets.only(top: 0),
-        child: ListView.builder(
-          itemCount: patients.length,
-          itemBuilder: (context, index) {
-            final patient = patients[index];
-            return _buildPatientCard(context, patient);
-          },
-        ),
+                    return Card(
+                      elevation: 2,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PatientDetailScreen(patient: patient),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 28,
+                                backgroundColor: _kPrimary.withOpacity(0.1),
+                                backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                                child: avatar.isEmpty ? const Icon(Icons.person, color: _kPrimary) : null,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _kPrimary),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.phone, size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text(phone, style: const TextStyle(color: Colors.black87)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.badge, size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text('CCCD: $identityCard', style: const TextStyle(color: Colors.black87)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // --- HÀM XÂY DỰNG CARD BỆNH NHÂN (Widget con) ---
-  Widget _buildPatientCard(BuildContext context, Map<String, String> patient) {
-    final isMale = patient['gender'] == 'Nam';
-    final genderColor = isMale ? kMaleColor : kAccentColor;
-    final genderIcon = isMale ? Icons.male_rounded : Icons.female_rounded;
-
-    return Card(
-      elevation: 4, // Đổ bóng mềm
-      shadowColor: Colors.black12,
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16)), // Bo góc tròn trịa
-      child: InkWell(
-        // Thêm hiệu ứng gợn sóng khi nhấn
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          context.go('/patient-detail', extra: patient);
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.trim();
+          });
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              // 1. AVATAR HIỆN ĐẠI VỚI GIỚI TÍNH
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: genderColor.withOpacity(0.1),
-                    child: Icon(Icons.person_rounded,
-                        color: genderColor, size: 32),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                          color: Colors.white, shape: BoxShape.circle),
-                      child: Icon(genderIcon, color: genderColor, size: 18),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 16),
-
-              // 2. THÔNG TIN CHÍNH
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      patient['name'] ?? 'Tên không xác định',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 6),
-
-                    // Hàng thông tin phụ 1: Ngày sinh
-                    Row(
-                      children: [
-                        Icon(Icons.cake_rounded,
-                            size: 16, color: Colors.grey.shade500),
-                        SizedBox(width: 6),
-                        Text(
-                          patient['dob'] ?? '--/--/----',
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-
-                    // Hàng thông tin phụ 2: Số điện thoại
-                    Row(
-                      children: [
-                        Icon(Icons.phone_enabled_rounded,
-                            size: 16, color: Colors.grey.shade500),
-                        SizedBox(width: 6),
-                        Text(
-                          patient['phone'] ?? 'Không có SĐT',
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // 3. ICON ĐIỀU HƯỚNG
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(Icons.arrow_forward_ios_rounded,
-                    size: 18, color: kPrimaryColor.withOpacity(0.7)),
-              )
-            ],
+        decoration: InputDecoration(
+          hintText: 'Tìm kiếm theo Tên, SĐT, CCCD...',
+          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: const Color(0xFFF5F7FA),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
           ),
         ),
       ),

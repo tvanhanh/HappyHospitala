@@ -8,6 +8,7 @@ import Otp from "../models/Otp";
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, password, confirmPassword, role, status } = req.body;
+    const fullName = name;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
 
@@ -25,12 +26,11 @@ export const register = async (req: Request, res: Response) => {
 
     // Tạo user mới (không lưu rePassword)
     const newUser = new User({
-      name,
+      fullName,
       email,
       password:hashedPassword,
       role: role || "patient",
       status: status || "activity",
-      profile: {}
     });
 
     await newUser.save();
@@ -45,6 +45,7 @@ export const register = async (req: Request, res: Response) => {
 export const registerByAdmin = async (req: Request, res: Response) => {
   try {
     const { name, email, password, confirmPassword, role, status } = req.body;
+    const fullName = name;
     console.log("Dữ liệu nhận từ frontend:", req.body);
 
 
@@ -62,12 +63,11 @@ export const registerByAdmin = async (req: Request, res: Response) => {
 
     // Tạo user mới (không lưu rePassword)
     const newUser = new User({
-      name,
+      fullName,
       email,
       password:hashedPassword,
       role,
       status: status || "activity",
-      profile: {}
     });
 
     await newUser.save();
@@ -93,7 +93,12 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    if (user.status === 'inactive') {
+      res.status(403).json({ message: "Tài khoản của bạn đã bị khóa do có hành vi đáng ngờ. Vui lòng liên hệ Admin." });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password || '');
 
     if (!isMatch) {
       res.status(400).json({ message: "Mật khẩu không đúng" });
@@ -114,7 +119,7 @@ export const login = async (req: Request, res: Response) => {
       token,
       user: {
         _id: (user._id as mongoose.Types.ObjectId).toString(),
-        name: user.name,
+        name: user.fullName,
         email: user.email,
         role: user.role,
       },

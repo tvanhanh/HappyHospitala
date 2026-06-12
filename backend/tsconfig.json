@@ -6,11 +6,22 @@
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "typeRoots": ["node_modules/@types", "./types"],
-    "types": ["node", "mongoose"],
+    "typeRoots": [
+      "node_modules/@types",
+      "./types"
+    ],
+    "types": [
+      "node"
+    ],
     "resolveJsonModule": true,
-   
   },
-  "include": ["./**/*.ts", "./types/**/*", "../blockchain/scripts/medicalRecordsService.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "./**/*.ts",
+    "./types/**/*",
+    "../blockchain/scripts/medicalRecordsService.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

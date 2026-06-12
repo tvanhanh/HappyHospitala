@@ -8,7 +8,7 @@ class DepartmentService {
   // Thêm phòng ban
   static Future<String> addDepartment(String name, String description) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_addDepartment');
+      final url = Uri.parse('$baseUrl/api/auth/api_addDepartment');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {
@@ -37,7 +37,7 @@ class DepartmentService {
   // Hiển thị danh sách phòng ban
   static Future<List<Map<String, dynamic>>> getDepartments() async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_departmentList');
+      final url = Uri.parse('$baseUrl/api/auth/api_departmentList');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -76,7 +76,7 @@ class DepartmentService {
   static Future<String> updateDepartment(
       String id, String name, String description) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_updatDepartment/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_updateDepartment/$id');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {

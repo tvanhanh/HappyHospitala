@@ -89,81 +89,72 @@ class _AdminAppointmentsScreenState extends State<AdminAppointmentsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
-
-      // ================= APPBAR =================
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF1E88E5),
-
-        // 👈 nút back
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } // nếu dùng GoRouter
-          },
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(120),
-          child: Column(
-            children: [
-              // ================= TAB BAR =================
-              TabBar(
-                controller: tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
-                isScrollable: true,
-                tabs: const [
-                  Tab(text: "Chờ duyệt"),
-                  Tab(text: "Đã xác nhận"),
-                  Tab(text: "Hoàn thành"),
-                  Tab(text: "Đã hủy"),
-                ],
+      body: Column(
+        children: [
+          // ================= HEADER =================
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-
-              const SizedBox(height: 10),
-
-              // ================= SEARCH =================
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TextField(
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TabBar(
+                  controller: tabController,
+                  indicatorColor: Colors.white,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  isScrollable: true,
+                  tabs: const [
+                    Tab(text: "Chờ duyệt"),
+                    Tab(text: "Đã xác nhận"),
+                    Tab(text: "Hoàn thành"),
+                    Tab(text: "Đã hủy"),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
                   controller: searchController,
                   onChanged: searchAppointments,
                   decoration: InputDecoration(
-                    hintText: "Tìm bệnh nhân, số điện thoại, lý do...",
-                    prefixIcon: const Icon(Icons.search),
+                    hintText: "Tìm bệnh nhân, SĐT, lý do...",
+                    prefixIcon: const Icon(Icons.search, color: Color(0xFF1E88E5)),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
-      ),
-
-      // ================= BODY =================
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: tabController,
-              children: [
-                _buildTab(filterByStatus("pending")),
-                _buildTab(filterByStatus("confirmed")),
-                _buildTab(filterByStatus("completed")),
-                _buildTab(filterByStatus("cancelled")),
               ],
             ),
+          ),
+          
+          // ================= TABS CONTENT =================
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: tabController,
+                    children: tabs.map((status) {
+                      final l = filterByStatus(status);
+                      return _buildTab(l);
+                    }).toList(),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

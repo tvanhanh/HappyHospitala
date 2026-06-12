@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AIService {
   static Future<String> predictDisease(Map<String, dynamic> patientData) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_predict');
+      final url = Uri.parse('$baseUrl/api/auth/api_predict');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {
@@ -36,7 +36,7 @@ class AIService {
 
   Future<int> getAIDecision(Map<String, dynamic> state) async {
     try {
-      final url = Uri.parse('$baseUrl/ai/predictPPO');
+      final url = Uri.parse('$baseUrl/api/ai/predictPPO');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {

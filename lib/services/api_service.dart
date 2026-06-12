@@ -156,7 +156,7 @@ class ApiService {
     final token = prefs.getString("token");
 
     final response = await http.get(
-      Uri.parse("$baseUrl/auth/get_profile"),
+      Uri.parse("$baseUrl/api/auth/get_profile"),
       headers: {
         "Authorization": "Bearer $token",
         "Content-Type": "application/json",
@@ -173,13 +173,52 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> getDoctorProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/doctor/profile"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Lỗi lấy hồ sơ bác sĩ: ${response.body}");
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateDoctorProfile(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+
+    final response = await http.put(
+      Uri.parse("$baseUrl/doctor/profile"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception("Lỗi cập nhật hồ sơ: ${response.body}");
+    }
+  }
+
   // Đăng nhập người dùng
   static Future<Map<String, dynamic>> loginUser(
     String email,
     String password,
   ) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/login');
+      final url = Uri.parse('$baseUrl/api/auth/login');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -195,12 +234,12 @@ class ApiService {
 
         // Lưu token vào SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
+        await prefs.setString('token', token ?? '');
         await prefs.setString('email', email);
-        await prefs.setString("role", data['user']?['role']);
-        await prefs.setString('doctorId', data['user']['_id']);
-        await prefs.setString('userId', data['user']['_id']);
-        await prefs.setString("name", data['user']['name']);
+        await prefs.setString("role", data['user']?['role'] ?? '');
+        await prefs.setString('doctorId', data['user']?['_id'] ?? '');
+        await prefs.setString('userId', data['user']?['_id'] ?? '');
+        await prefs.setString("name", data['user']?['name'] ?? data['user']?['fullName'] ?? '');
         await prefs.setString(
           "specialty",
           data['user']?['profile']?['specialty'] ?? '',
@@ -559,6 +598,61 @@ class ApiService {
       return {
         'error': 'Lỗi kết nối: $e',
       };
+    }
+  }
+
+  static Future<Map<String, dynamic>> createBaseAccount(String name, String email, String password, String role) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final url = Uri.parse('$baseUrl/admin/users');
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'name': name,
+          'email': email,
+          'password': password,
+          'role': role,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': 'Tạo tài khoản thành công'};
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'message': data['message'] ?? 'Tạo tài khoản thất bại'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleAdminUserStatus(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+      final url = Uri.parse('$baseUrl/api/admin/users/$id/status');
+      final response = await http.patch(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {'success': true, 'message': data['message'] ?? 'Đã cập nhật trạng thái'};
+      } else {
+        final data = jsonDecode(response.body);
+        return {'success': false, 'message': data['message'] ?? 'Cập nhật thất bại'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Lỗi kết nối: $e'};
     }
   }
 }

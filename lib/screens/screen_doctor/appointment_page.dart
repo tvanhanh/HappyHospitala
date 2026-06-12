@@ -29,6 +29,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
     // 🔥 AUTO REFRESH 5 GIÂY
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 5));
+      if (!mounted) return false;
       await fetchData();
       return true;
     });
@@ -37,15 +38,14 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   // ================= FETCH DATA =================
   Future<void> fetchData() async {
     try {
-      setState(() => loading = true);
-
       final data = await AppointmentApi.getByDoctor();
 
       if (!mounted) return;
 
       setState(() {
         list = data;
-        filteredList = data;
+        // Re-apply search filter
+        searchAppointments(searchController.text);
         loading = false;
       });
     } catch (e) {
@@ -54,34 +54,6 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
       if (!mounted) return;
 
       setState(() => loading = false);
-    }
-  }
-
-  // ================= UPDATE STATUS =================
-  Future<void> updateStatusUI(String id, String status) async {
-    try {
-      await AppointmentApi.updateStatus(
-        id: id,
-        status: status,
-      );
-
-      setState(() {
-        list = list.map((e) {
-          if (e.id == id) {
-            return e.copyWith(status: status);
-          }
-          return e;
-        }).toList();
-
-        filteredList = filteredList.map((e) {
-          if (e.id == id) {
-            return e.copyWith(status: status);
-          }
-          return e;
-        }).toList();
-      });
-    } catch (e) {
-      debugPrint("UPDATE ERROR: $e");
     }
   }
 
@@ -111,74 +83,102 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen> {
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+    // Separate list based on queue status
+    final liveQueueList = filteredList
+        .where((item) => ['checked_in', 'in_progress'].contains(item.status))
+        .toList();
 
-      // ================= APPBAR =================
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF0D47A1),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F7FB),
+
+        // ================= APPBAR =================
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: const Color(0xFF0D47A1),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text(
+            "Lịch khám của bác sĩ",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          bottom: const TabBar(
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            tabs: [
+              Tab(
+                icon: Icon(Icons.queue_play_next),
+                text: "Hàng chờ khám",
+              ),
+              Tab(
+                icon: Icon(Icons.history_edu),
+                text: "Tất cả lịch khám",
+              ),
+            ],
+          ),
         ),
-        title: const Text(
-          "Lịch khám của bác sĩ",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
 
-      // ================= BODY =================
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
+        // ================= BODY =================
+        body: Column(
+          children: [
+            const SizedBox(height: 12),
 
-          // ================= SEARCH =================
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: TextField(
-              controller: searchController,
-              onChanged: searchAppointments,
-              decoration: InputDecoration(
-                hintText: "Tìm bệnh nhân, lý do khám...",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
+            // ================= SEARCH =================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: TextField(
+                controller: searchController,
+                onChanged: searchAppointments,
+                decoration: InputDecoration(
+                  hintText: "Tìm bệnh nhân, lý do khám...",
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-          // ================= LIST =================
-          Expanded(
-            child: loading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildList(filteredList),
-          ),
-        ],
+            // ================= TABS VIEW =================
+            Expanded(
+              child: loading && list.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : TabBarView(
+                      children: [
+                        _buildList(liveQueueList, "Hàng chờ khám trống"),
+                        _buildList(filteredList, "Không tìm thấy lịch khám nào"),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   // ================= LIST UI =================
-  Widget _buildList(List<Appointment> data) {
+  Widget _buildList(List<Appointment> data, String emptyMessage) {
     if (data.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
-            SizedBox(height: 10),
+            const Icon(Icons.medical_services_outlined, size: 80, color: Colors.grey),
+            const SizedBox(height: 10),
             Text(
-              "Không có lịch khám",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              emptyMessage,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),

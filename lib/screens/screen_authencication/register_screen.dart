@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         "Đăng ký thành công! Hãy đăng nhập.",
                                         isError: false);
                                     if (!context.mounted) return;
-                                    context.go('/login');
+                                    context.go('/auth/login');
                                   } else {
                                     showSnackbar(error, isError: true);
                                   }
@@ -181,7 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.grey.shade700, fontSize: 15)),
                             TextButton(
                               onPressed: () {
-                                context.go('/login');
+                                context.go('/auth/login');
                               },
                               child: Text("Đăng nhập ngay",
                                   style: TextStyle(

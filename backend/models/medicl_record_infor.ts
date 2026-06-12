@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IDiabetesRecord extends Document {
+  patientId?: mongoose.Types.ObjectId | string;
+  doctorId?: mongoose.Types.ObjectId | string;
   patientName: string;
   email:string;
   doctorName: string;
@@ -27,6 +29,8 @@ export interface IDiabetesRecord extends Document {
 }
 
 const DiabetesRecordSchema: Schema = new Schema({
+  patientId: { type: Schema.Types.ObjectId, ref: 'User' },
+  doctorId: { type: Schema.Types.ObjectId, ref: 'Doctor' },
   patientName: { type: String, required: true },
   email: { type: String, required: true },
   examinationDate: { type: String, required: true },
@@ -45,6 +49,6 @@ const DiabetesRecordSchema: Schema = new Schema({
   vldl: { type: String },
   bmi: { type: String },
   status: { type: String, required: true }
-});
+}, { timestamps: true });
 const DiabetesRecord = mongoose.model<IDiabetesRecord>('DiabetesRecord', DiabetesRecordSchema);
 export default DiabetesRecord ;

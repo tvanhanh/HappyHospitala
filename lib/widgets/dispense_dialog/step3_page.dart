@@ -3,17 +3,27 @@ import 'dispense_medicine_dialog.dart'; // Import để dùng chung hệ màu h�
 
 class Step3Page extends StatefulWidget {
   final String patientName;
+  final int totalMedicines; 
+  final bool isInNhanThuoc;
+  final bool isLuuBlockchain;
+  final ValueChanged<bool> onInNhanThuocChanged;
+  final ValueChanged<bool> onLuuBlockchainChanged;
 
-  const Step3Page({super.key, required this.patientName});
+  const Step3Page({
+    super.key, 
+    required this.patientName,
+    required this.totalMedicines,
+    required this.isInNhanThuoc,
+    required this.isLuuBlockchain,
+    required this.onInNhanThuocChanged,
+    required this.onLuuBlockchainChanged,
+  });
 
   @override
   State<Step3Page> createState() => _Step3PageState();
 }
 
 class _Step3PageState extends State<Step3Page> {
-  bool _isInNhanThuoc = true;
-  bool _isLuuBlockchain = true;
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -50,7 +60,7 @@ class _Step3PageState extends State<Step3Page> {
           children: [
             _buildSummaryCard('Bệnh nhân', widget.patientName),
             const SizedBox(width: 16),
-            _buildSummaryCard('Số lượng thuốc', '2 loại'),
+            _buildSummaryCard('Số lượng thuốc', '${widget.totalMedicines} loại'), 
           ],
         ),
         const SizedBox(height: 32),
@@ -59,10 +69,10 @@ class _Step3PageState extends State<Step3Page> {
         Row(
           children: [
             Switch(
-              value: _isInNhanThuoc,
+              value: widget.isInNhanThuoc,
               activeColor: Colors.white,
               activeTrackColor: kPrimaryBlue,
-              onChanged: (val) => setState(() => _isInNhanThuoc = val),
+              onChanged: widget.onInNhanThuocChanged,
             ),
             const SizedBox(width: 12),
             Column(
@@ -81,10 +91,10 @@ class _Step3PageState extends State<Step3Page> {
         Row(
           children: [
             Switch(
-              value: _isLuuBlockchain,
+              value: widget.isLuuBlockchain,
               activeColor: Colors.white,
               activeTrackColor: kPrimaryBlue,
-              onChanged: (val) => setState(() => _isLuuBlockchain = val),
+              onChanged: widget.onLuuBlockchainChanged,
             ),
             const SizedBox(width: 12),
             const Icon(Icons.shield_outlined, color: kPrimaryBlue, size: 20),

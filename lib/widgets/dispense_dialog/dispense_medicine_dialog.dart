@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'step1_page.dart';
 import 'step2_page.dart';
 import 'step3_page.dart';
+// 🟢 Bổ sung import model để sử dụng kiểu dữ liệu nghiêm ngặt
+import '../../models/prescription_model.dart'; 
+import '../../services/api_prescription.dart';
 
-// KHAI BÁO CÁC HẰNG SỐ MÀU DÙNG CHUNG CHO TOÀN BỘ FILE CON
+// CÁC HẰNG SỐ MÀU DÙNG CHUNG
 const Color kPrimaryBlue = Color(0xFF3EA6E9);
 const Color kBorderColor = Color(0xFFE2E8F0);
 const Color kTextDark = Color(0xFF0F172A);
@@ -12,41 +15,52 @@ const Color kDangerRed = Color(0xFFEF4444);
 const Color kSuccessGreen = Color(0xFF22C55E);
 
 class DispenseMedicineDialog extends StatefulWidget {
-  final Map<String, dynamic> prescription;
+  final PrescriptionModel prescription;
+  final String dateDisplay;
 
-  const DispenseMedicineDialog({super.key, required this.prescription});
+  const DispenseMedicineDialog({super.key, required this.prescription, required this.dateDisplay,});
 
   @override
   State<DispenseMedicineDialog> createState() => _DispenseMedicineDialogState();
 }
 
 class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
-  int _currentStep = 0; // Trạng thái bước hiện tại
+  int _currentStep = 0; 
+  bool _isInNhanThuoc = true;    
+  bool _isLuuBlockchain = true;   
+  bool _isLoading = false;
 
-  // Mock dữ liệu gốc truyền đi cho các Page con
-  final List _medicinesData = [
-    {
-      'name': 'Paracetamol 500mg',
-      'usage': '1 viên x 3 lần/ngày',
-      'qty': '30',
-      'stock': 450,
-      'batch': 'PC2024001',
-      'exp': '2026-12-31'
-    },
-    {
-      'name': 'Vitamin C 1000mg',
-      'usage': '1 viên x 1 lần/ngày',
-      'qty': '10',
-      'stock': 0,
-      'batch': 'TP2024003',
-      'exp': '2027-03-20'
+  Future<void> _submitDispenseData() async {
+    setState(() => _isLoading = true);
+    
+    // Gọi sang file Service của bạn
+    bool isSuccess = await ApiPrescription.updatePrescriptionStatus(
+      widget.prescription.id!,
+      'completed',          
+    );
+    
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    
+    if (isSuccess) {
+      Navigator.of(context).pop(true); // Đóng Dialog và báo thành công về màn hình chính
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🎉 Cấp phát thuốc thành công và đã cập nhật hệ thống!'), backgroundColor: Colors.green),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Cập nhật thất bại. Vui lòng thử lại!'), backgroundColor: Colors.red),
+      );
     }
-  ];
+  }
 
   @override
   Widget build(BuildContext context) {
-    final bool isUrgent = widget.prescription['isUrgent'] ?? false;
+    
+    final bool isUrgent = widget.prescription.status == 'urgent';
     final double dialogHeight = MediaQuery.of(context).size.height * 0.88;
+    String rawId = widget.prescription.id ?? '---';
+    String shortCode = rawId.length > 5 ? rawId.substring(rawId.length - 5) : rawId;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -77,7 +91,7 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
                         children: [
                           const Text('Cấp phát thuốc', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kTextDark)),
                           const SizedBox(height: 4),
-                          Text('Đơn thuốc: ${widget.prescription['code']}', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                          Text('Đơn thuốc: ..$shortCode', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ],
@@ -89,8 +103,8 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
                       child: const Row(
                         children: [
                           Icon(Icons.flash_on, color: Colors.white, size: 14),
-                          SizedBox(width: 4),
-                          Text('Khẩn', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 4),
+                          Text('Khần', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     )
@@ -114,7 +128,7 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
               ),
             ),
 
-            // ================= CUỘN TRANG CHUYỂN ĐỔI BODY (Đã dọn dẹp cực sạch) =================
+            // ================= CUỘN TRANG CHUYỂN ĐỔI BODY =================
             Expanded(
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -130,29 +144,39 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: () {
-                      if (_currentStep > 0) {
-                        setState(() => _currentStep--);
-                      } else {
-                        Navigator.pop(context);
-                      }
-                    },
+                  // NÚT QUAY LẠI / HỦY
+                  TextButton(                   
+                    onPressed: _isLoading 
+                        ? null 
+                        : () {
+                            if (_currentStep > 0) {
+                              setState(() => _currentStep--);
+                            } else {
+                              Navigator.pop(context, false); 
+                            }
+                          },
                     child: Text(
                       _currentStep > 0 ? 'Quay lại' : 'Hủy',
-                      style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(
+                        color: _isLoading ? Colors.grey : kPrimaryBlue, 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_currentStep < 2) {
-                        setState(() => _currentStep++);
-                      } else {
-                        // Logic bấm nút xác nhận cuối cùng tại đây
-                        Navigator.pop(context);
-                      }
-                    },
+          
+                 ElevatedButton(
+                   
+                    onPressed: _isLoading 
+                        ? null 
+                        : () async {
+                            if (_currentStep < 2) {
+                              setState(() => _currentStep++);
+                            } else {
+                              await _submitDispenseData();
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _currentStep == 2 ? kSuccessGreen : kPrimaryBlue,
                       elevation: 0,
@@ -162,12 +186,22 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (_currentStep == 2) ...[
+                        // 🟢 ĐÃ SỬA: Nếu đang gọi API, hiển thị vòng xoay tiến trình nhỏ màu trắng
+                        if (_isLoading) ...[
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 8),
+                        ] else if (_currentStep == 2) ...[
                           const Icon(Icons.check, color: Colors.white, size: 16),
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          _currentStep == 2 ? 'Xác nhận cấp phát' : 'Tiếp tục',
+                          _isLoading 
+                              ? 'Đang đồng bộ...' 
+                              : (_currentStep == 2 ? 'Xác nhận cấp phát' : 'Tiếp tục'),
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                       ],
@@ -182,15 +216,27 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
     );
   }
 
-  // Hàm điều phối hiển thị Widget tương ứng với số bước
   Widget _buildCurrentPageContent() {
     switch (_currentStep) {
       case 0:
-        return Step1Page(prescription: widget.prescription, medicines: _medicinesData);
+        return Step1Page(
+          prescription: widget.prescription.toJson(), 
+          medicines: widget.prescription.medicines.map((m) => m.toJson()).toList(),
+          dateDisplay: widget.dateDisplay, 
+        );
       case 1:
-        return Step2Page(medicines: _medicinesData);
+        return Step2Page(
+          medicines: widget.prescription.medicines.map((m) => m.toJson()).toList(),
+        );
       case 2:
-        return Step3Page(patientName: widget.prescription['patient'] ?? 'Nguyễn Văn An');
+        return Step3Page(
+          patientName: widget.prescription.patientName,
+          totalMedicines: widget.prescription.medicines.length,
+          isInNhanThuoc: _isInNhanThuoc,
+          isLuuBlockchain: _isLuuBlockchain,
+          onInNhanThuocChanged: (val) => setState(() => _isInNhanThuoc = val),
+          onLuuBlockchainChanged: (val) => setState(() => _isLuuBlockchain = val),
+        );
       default:
         return const SizedBox.shrink();
     }

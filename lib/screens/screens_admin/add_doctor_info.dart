@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/services/api_doctors.dart';
+
 import 'package:flutter_application_datlichkham/services/api_department.dart';
 
 class AddDoctorInfoScreen extends StatefulWidget {
@@ -28,12 +29,14 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
 
   String? specialty;
   String? workShift;
-   List<dynamic> departments = [];
+
+  List<dynamic> departments = [];
+
   Map<String, dynamic>? doctor;
 
   bool isLoading = false;
   bool isFetching = true;
-  
+
   bool loadingDepartments = true;
   String? selectedDepartmentId;
 
@@ -55,15 +58,15 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
   ];
 
   @override
-void initState() {
-  super.initState();
-  loadDepartments();
-  loadDoctor();
-}
-Future<void> loadDepartments() async {
+  void initState() {
+    super.initState();
+    loadDepartments();
+    loadDoctor();
+  }
+
+  Future<void> loadDepartments() async {
     try {
-      final result =
-          await DepartmentService.getDepartments();
+      final result = await DepartmentService.getDepartments();
 
       setState(() {
         departments = result;
@@ -100,8 +103,8 @@ Future<void> loadDepartments() async {
       avatarController.text = profile['avatar']?.toString() ?? "";
       specialty = profile['specialty'];
       workShift = profile['workShift'];
-       selectedDepartmentId = res['departmentId']?.toString();
 
+      selectedDepartmentId = res['departmentId']?.toString();
       isFetching = false; // ⭐ QUAN TRỌNG
     });
   }
@@ -113,7 +116,6 @@ Future<void> loadDepartments() async {
     setState(() => isLoading = true);
 
     final data = {
-      
       "avatar": avatarController.text.trim(),
       "phone": phoneController.text,
       "specialty": specialty,
@@ -189,40 +191,40 @@ Future<void> loadDepartments() async {
 
               _buildDropdown("Chuyên khoa", specialty, specialties,
                   (v) => setState(() => specialty = v)),
-            Padding(
-  padding: const EdgeInsets.only(bottom: 12),
-  child: DropdownButtonFormField<String>(
-    value: selectedDepartmentId,
-    decoration: InputDecoration(
-      labelText: "Khoa",
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    validator: (value) {
-      if (value == null || value.isEmpty) {
-        return "Vui lòng chọn khoa";
-      }
-      return null;
-    },
-    items: departments.map((department) {
-      return DropdownMenuItem<String>(
-        value: department["id"].toString(),
-        child: Text(
-          department["departmentName"],
-        ),
-      );
-    }).toList(),
 
-    onChanged: (value) {
-      setState(() {
-        selectedDepartmentId = value;
-      });
-    },
-  ),
-),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: DropdownButtonFormField<String>(
+                  value: selectedDepartmentId,
+                  decoration: InputDecoration(
+                    labelText: "Khoa",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Vui lòng chọn khoa";
+                    }
+                    return null;
+                  },
+                  items: departments.map((department) {
+                    return DropdownMenuItem<String>(
+                      value: department["id"].toString(),
+                      child: Text(
+                        department["departmentName"],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      selectedDepartmentId = value;
+                    });
+                  },
+                ),
+              ),
               _buildDropdown("Ca làm việc", workShift, shifts,
                   (v) => setState(() => workShift = v)),
 
@@ -317,16 +319,16 @@ Future<void> loadDepartments() async {
       ),
     );
   }
-  @override
-void dispose() {
-  phoneController.dispose();
-  experienceController.dispose();
-  degreeController.dispose();
-  descriptionController.dispose();
-  clinicAddressController.dispose();
-  priceController.dispose();
-  avatarController.dispose();
 
-  super.dispose();
-}
+  @override
+  void dispose() {
+    phoneController.dispose();
+    experienceController.dispose();
+    degreeController.dispose();
+    descriptionController.dispose();
+    clinicAddressController.dispose();
+    priceController.dispose();
+    avatarController.dispose();
+    super.dispose();
+  }
 }

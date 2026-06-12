@@ -1,7 +1,19 @@
-import PDFDocument from "pdfkit";generateMedicalPDF
+import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 import { getImageBufferFromGridFS } from "./gridfs.service";
+
+function formatDate(dateInput: any): string {
+  if (!dateInput) return "N/A";
+  const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return "N/A";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
 
 export async function generateMedicalPDF(record: any): Promise<string> {
   return new Promise(async (resolve, reject) => {
@@ -94,15 +106,110 @@ export async function generateMedicalPDF(record: any): Promise<string> {
         doc.moveDown(0.4);
       };
 
+      const formatShortId = (id: any, prefix: string) => {
+        if (!id) return "N/A";
+        const str = id.toString();
+        return `${prefix}-${str.slice(-6).toUpperCase()}`;
+      };
+
       drawInfoRow("Họ và tên:", record.patientName?.toUpperCase());
-      drawInfoRow("Mã bệnh nhân:", record.patientId);
-      drawInfoRow("Mã hồ sơ:", record._id?.toString());
-      drawInfoRow("Bác sĩ điều trị:", record.doctorId);
-      drawInfoRow("Thời gian khám:", new Date(record.visitDate || record.createdAt).toLocaleString("vi-VN"));
+      drawInfoRow("Mã bệnh nhân:", formatShortId(record.patientId, "BN"));
+      drawInfoRow("Mã hồ sơ:", formatShortId(record._id, "HS"));
+      drawInfoRow("Bác sĩ điều trị:", record.doctorName ? `BS. ${record.doctorName}` : "N/A");
+      drawInfoRow("Mã bác sĩ:", formatShortId(record.doctorId, "BS"));
+      drawInfoRow("Thời gian khám:", formatDate(record.visitDate || record.createdAt));
+
+      doc.moveDown(1.5);
+
+      // ========== 3. KẾT QUẢ CẬN LÂM SÀNG ==========
+      if (doc.y > 650) doc.addPage();
+      doc.fillColor("#0057B7").fontSize(14).text("II. KẾT QUẢ CẬN LÂM SÀNG");
+      doc.moveDown(0.5);
+
+      const metricsList: { name: string; value: any; unit: string }[] = [];
+      if (record.metrics) {
+        const rawMetrics = typeof record.metrics.toObject === 'function' ? record.metrics.toObject() : record.metrics;
+        const knownMetrics: { [key: string]: { name: string; unit: string } } = {
+          hba1c: { name: "Chỉ số HbA1c", unit: "%" },
+          urea: { name: "Chỉ số Urea", unit: "mmol/L" },
+          creatinine: { name: "Chỉ số Creatinine", unit: "µmol/L" },
+          bmi: { name: "Chỉ số BMI", unit: "kg/m²" },
+          cholesterol: { name: "Cholesterol toàn phần", unit: "mmol/L" },
+          triglycerides: { name: "Triglycerides", unit: "mmol/L" },
+          hdl: { name: "HDL-Cholesterol", unit: "mmol/L" },
+          ldl: { name: "LDL-Cholesterol", unit: "mmol/L" },
+          vldl: { name: "VLDL-Cholesterol", unit: "mmol/L" },
+        };
+        
+        for (const key of Object.keys(rawMetrics)) {
+          const value = rawMetrics[key];
+          if (value !== undefined && value !== null && String(value).trim() !== "") {
+            const lowerKey = key.toLowerCase();
+            if (knownMetrics[lowerKey]) {
+              metricsList.push({
+                name: knownMetrics[lowerKey].name,
+                value: value,
+                unit: knownMetrics[lowerKey].unit
+              });
+            } else {
+              const formattedKey = key.charAt(0).toUpperCase() + key.slice(1);
+              metricsList.push({
+                name: formattedKey,
+                value: value,
+                unit: ""
+              });
+            }
+          }
+        }
+      }
+
+      if (metricsList.length > 0) {
+        const cellWidth = 240;
+        const cellHeight = 25;
+        const startY = doc.y;
+        
+        metricsList.forEach((m, index) => {
+          const row = Math.floor(index / 2);
+          const col = index % 2;
+          const x = col === 0 ? 50 : 305;
+          const y = startY + row * (cellHeight + 6);
+          
+          // Draw subtle background card for each metric
+          doc.roundedRect(x, y, cellWidth, cellHeight, 4)
+             .fillColor("#F8FAFC")
+             .fill();
+             
+          // Draw a small left border strip in primary color to make it look premium
+          doc.rect(x, y, 3, cellHeight)
+             .fillColor("#0057B7")
+             .fill();
+          
+          // Draw name
+          doc.fillColor("#444")
+             .fontSize(10)
+             .text(m.name, x + 10, y + 7, { width: 140, ellipsis: true });
+             
+          // Draw value + unit
+          const valStr = `${m.value} ${m.unit}`.trim();
+          doc.fillColor("#000")
+             .fontSize(10)
+             .text(valStr, x + 155, y + 7, { width: 80, align: "right" });
+        });
+        
+        const totalRows = Math.ceil(metricsList.length / 2);
+        doc.y = startY + totalRows * (cellHeight + 6) + 10;
+      } else {
+        doc.fillColor("#666").fontSize(11).text("Không có kết quả cận lâm sàng được ghi nhận.", 70, doc.y);
+        doc.moveDown(1);
+      }
 
       doc.moveDown(1);
 
-      // ========== 3. NỘI DUNG CHUYÊN MÔN ==========
+      // ========== 4. NỘI DUNG CHUYÊN MÔN ==========
+      if (doc.y > 650) doc.addPage();
+      doc.fillColor("#0057B7").fontSize(14).text("III. NỘI DUNG CHUYÊN MÔN");
+      doc.moveDown(0.5);
+
       const drawSection = (title: string, content: string, color: string = "#0057B7") => {
         if (doc.y > 700) doc.addPage();
         doc.moveDown(0.5);
@@ -124,14 +231,14 @@ export async function generateMedicalPDF(record: any): Promise<string> {
         doc.moveDown(1);
       };
 
-    drawSection("Triệu chứng lâm sàng", record.symptoms);
-     drawSection("Chẩn đoán xác định", record.diagnosis,"#E67E22");
-      drawSection("Phác đồ điều trị", record.treatment,"#27AE60");
+      drawSection("Triệu chứng lâm sàng", record.symptoms);
+      drawSection("Chẩn đoán xác định", record.diagnosis, "#E67E22");
+      drawSection("Phác đồ điều trị", record.treatment, "#27AE60");
 
-      // ========== 4. HÌNH ẢNH ==========
+      // ========== 5. HÌNH ẢNH CẬN LÂM SÀNG ==========
       if (record.attachments && record.attachments.length) {
         doc.addPage();
-        doc.fillColor("#0057B7").fontSize(14).text("III. HÌNH ẢNH CẬN LÂM SÀNG", { align: "center" });
+        doc.fillColor("#0057B7").fontSize(14).text("IV. HÌNH ẢNH CẬN LÂM SÀNG", { align: "center" });
         doc.moveDown(1.5);
 
         let imgY = doc.y;
@@ -151,6 +258,10 @@ export async function generateMedicalPDF(record: any): Promise<string> {
         }
       }
 
+      if (doc.y > 580) {
+        doc.addPage();
+      }
+
       // ========== 5. FOOTER ==========
       const range = doc.bufferedPageRange();
       for (let i = range.start; i < range.start + range.count; i++) {
@@ -164,9 +275,18 @@ export async function generateMedicalPDF(record: any): Promise<string> {
           .fontSize(8)
           .fillColor("#aaa")
           .text(
-            `Trang ${i + 1} / ${range.count}  |  Xác thực bởi Blockchain: ${record.fileHash?.substring(0, 20) || "SECURED"}`,
+            `Trang ${i + 1} / ${range.count}  |  Xác thực bởi Blockchain: ${record.pdfHash?.substring(0, 20) || record.fileHash?.substring(0, 20) || "SECURED"}`,
             50,
-            800,
+            795,
+            { align: "center" }
+          );
+        doc
+          .fontSize(8)
+          .fillColor("#bbb")
+          .text(
+            `System Tracking Code: ${record.patientId || "N/A"} - ${record.doctorId || "N/A"}`,
+            50,
+            807,
             { align: "center" }
           );
       }
