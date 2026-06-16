@@ -146,7 +146,7 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 export const changePassWord = async(req: Request, res: Response)=>{
   try {
     const { email, newPassword } = req.body;
-    console.log("Dữ liệu nhận từ frontend:", req.body);
+    //console.log("Dữ liệu nhận từ frontend:", req.body);
     
     if (!email || !newPassword) {
        res.status(400).json({ message: 'Thiếu email hoặc mật khẩu mới' });

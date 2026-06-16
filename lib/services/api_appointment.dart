@@ -112,8 +112,8 @@ class AppointmentApi {
       if (imageUrl != null && imageUrl.isNotEmpty) {
         body["imageUrl"] = imageUrl;
       }
-      print("===== BODY GỬI LÊN SERVER =====");
-      print(jsonEncode(body));
+      // print("===== BODY GỬI LÊN SERVER =====");
+     // print(jsonEncode(body));
       final res = await http.post(
         Uri.parse("$baseUrl/api/appointments/add"),
         headers: {
@@ -153,11 +153,11 @@ class AppointmentApi {
 
     final body = jsonDecode(res.body);
 
-    print("RAW RESPONSE = $body");
+
 
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
-      print(res.body);
+      //print(res.body);
 
       return list.map((e) => Appointment.fromJson(e)).toList();
     }
@@ -179,11 +179,10 @@ class AppointmentApi {
 
     final body = jsonDecode(res.body);
 
-    print("RAW RESPONSE = $body");
 
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
-      print(res.body);
+      //print(res.body);
 
       return list.map((e) => Appointment.fromJson(e)).toList();
     }
@@ -204,11 +203,11 @@ class AppointmentApi {
 
     final body = jsonDecode(res.body);
 
-    print("RAW RESPONSE = $body");
+  
 
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
-      print(res.body);
+      //print(res.body);
 
       return list.map((e) => Appointment.fromJson(e)).toList();
     }
@@ -234,9 +233,9 @@ class AppointmentApi {
       );
 
       final data = jsonDecode(res.body);
-      print("UPDATE STATUS CALL");
-      print("id: $id");
-      print("status: $status");
+      // print("UPDATE STATUS CALL");
+      // print("id: $id");
+      // print("status: $status");
 
       final success = res.statusCode == 200 && data["success"] == true;
       return {
@@ -267,8 +266,8 @@ class AppointmentApi {
       }),
     );
 
-    print("STATUS: ${res.statusCode}");
-    print("BODY: ${res.body}");
+    // print("STATUS: ${res.statusCode}");
+    // print("BODY: ${res.body}");
 
     if (res.statusCode != 200) {
       throw Exception("Huỷ lịch thất bại: ${res.body}");
@@ -287,7 +286,7 @@ class AppointmentApi {
     );
 
     final data = jsonDecode(res.body);
-    print("DATA FROM API: $data");
+    //print("DATA FROM API: $data");
     if (res.statusCode == 200 && data["success"] == true) {
       return data["data"];
     }
@@ -308,7 +307,7 @@ class AppointmentApi {
       );
 
       final data = jsonDecode(res.body);
-      print("CHECK-IN RESPONSE: $data");
+      //print("CHECK-IN RESPONSE: $data");
       return res.statusCode == 200 && data["success"] == true;
     } catch (e) {
       print("Error in checkInAppointment: $e");

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/receptionist_drawer.dart';
+import '../../services/api_medicalRecordBlockchain.dart'; 
+import '../screen_doctor/VerifyIntegritySection.dart'; 
 import '../../services/api_medicalRecord.dart';
 
 const kPrimaryColor = Color(0xFF0D47A1);
@@ -11,9 +12,9 @@ const kBackgroundColor = Color(0xFFF5F7FA);
 const kCardColor = Colors.white;
 const kTextColor = Color(0xFF333333);
 
-// Riverpod Provider to fetch medical records from the database
+// ✅ 1. SỬA: Gọi đúng hàm lấy TOÀN BỘ danh sách hồ sơ (chứ không gọi hàm detail)
 final medicalRecordsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  return await MedicalRecordService.getMedicalRecord();
+  return await MedicalRecordBlockchainService.listMedicalRecal(); 
 });
 
 class MedicalRecordsScreen extends ConsumerStatefulWidget {
@@ -57,7 +58,7 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
             ),
           ),
           data: (records) {
-            // Filter records locally by search query
+            // Lọc cục bộ theo ô tìm kiếm
             final filtered = records.where((e) {
               final query = _searchQuery.toLowerCase();
               final name = e['patientName']?.toString().toLowerCase() ?? '';
@@ -93,44 +94,49 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               );
             }
 
-            // Keep selected index within bounds
             if (_selectedIndex >= filtered.length) {
               _selectedIndex = 0;
             }
 
             final selectedRecord = filtered[_selectedIndex];
             final patientEmail = selectedRecord['email']?.toString() ?? '';
-
-            // Filter history records for the same patient
             final patientHistory = records.where((r) => r['email']?.toString() == patientEmail).toList();
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildSearchBox(),
-                  const SizedBox(height: 20),
-                  _buildPatientListDropdown(filtered),
-                  const SizedBox(height: 20),
-                  _buildPatientSummary(selectedRecord),
-                  const SizedBox(height: 20),
-                  _buildTabs(),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 520,
-                    child: TabBarView(
-                      children: [
-                        _buildPatientInfo(selectedRecord),
-                        _buildVisitHistory(patientHistory),
-                        _buildLabResults(selectedRecord),
-                        _buildPrescriptions(selectedRecord),
-                        _buildImages(selectedRecord),
-                      ],
-                    ),
+            // ✅ 2. SỬA: Dùng LayoutBuilder kết hợp Flex để TabBarView co giãn không giới hạn chiều cao 520
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildSearchBox(),
+                      const SizedBox(height: 20),
+                      _buildPatientListDropdown(filtered),
+                      const SizedBox(height: 20),
+                      _buildPatientSummary(selectedRecord),
+                      const SizedBox(height: 20),
+                      _buildTabs(),
+                      const SizedBox(height: 20),
+                      
+                      // Giải phóng chiều cao cho khu vực hiển thị nội dung các Tab
+                      SizedBox(
+                        height: 750, // Nâng độ cao lên 750 để chứa vừa vặn toàn bộ cấu trúc mã băm Blockchain
+                        child: TabBarView(
+                          physics: const ClampingScrollPhysics(), // Tránh xung đột cuộn mượt
+                          children: [
+                            _buildPatientInfo(selectedRecord),
+                            _buildVisitHistory(patientHistory),
+                            _buildLabResults(selectedRecord),
+                            _buildPrescriptions(selectedRecord),
+                            _buildImages(selectedRecord), // Tab 5: Chạy phần Verify mật mã
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              }
             );
           },
         );
@@ -176,7 +182,7 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         onChanged: (val) {
           setState(() {
             _searchQuery = val;
-            _selectedIndex = 0; // Reset selected record on new search
+            _selectedIndex = 0;
           });
         },
         decoration: InputDecoration(
@@ -224,7 +230,7 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
                   final name = rec['patientName'] ?? 'Không rõ';
                   final diag = rec['diagnosis'] ?? 'Chưa chẩn đoán';
                   final date = rec['visitDate'] ?? rec['examinationDate'] ?? 'N/A';
-                  // format date nicely if it's parsed
+                  
                   String cleanDate = date;
                   final parsedDate = MedicalRecordService.tryParseDateTime(date);
                   if (parsedDate != null) {
@@ -358,37 +364,25 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: _infoCard("CCCD/CMND", "Đã xác minh"),
-                ),
+                Expanded(child: _infoCard("CCCD/CMND", "Đã xác minh")),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: _infoCard("Nghề nghiệp", "Chưa cập nhật"),
-                ),
+                Expanded(child: _infoCard("Nghề nghiệp", "Chưa cập nhật")),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: _infoCard("Chỉ số BMI", bmi),
-                ),
+                Expanded(child: _infoCard("Chỉ số BMI", bmi)),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: _infoCard("Giới tính", gender),
-                ),
+                Expanded(child: _infoCard("Giới tính", gender)),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: _infoCard("Tuổi bệnh nhân", "$age tuổi"),
-                ),
+                Expanded(child: _infoCard("Tuổi bệnh nhân", "$age tuổi")),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: _infoCard("Tình trạng", record['status'] ?? 'N/A'),
-                ),
+                Expanded(child: _infoCard("Tình trạng", record['status'] ?? 'N/A')),
               ],
             ),
             const SizedBox(height: 16),
@@ -439,15 +433,6 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
   }
 
   Widget _buildLabResults(Map<String, dynamic> record) {
-    final urea = record['urea'] ?? '';
-    final creatinine = record['creatinine'] ?? '';
-    final hba1c = record['hba1c'] ?? '';
-    final cholesterol = record['cholesterol'] ?? '';
-    final triglycerides = record['triglycerides'] ?? '';
-    final hdl = record['hdl'] ?? '';
-    final ldl = record['ldl'] ?? '';
-    final bmi = record['bmi'] ?? '';
-
     return SingleChildScrollView(
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -460,14 +445,13 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15),
             ),
             const SizedBox(height: 16),
-            _buildLabMetricRow("HbA1c (Đường huyết trung bình)", hba1c, "4.0 - 5.6 %", "%"),
-            _buildLabMetricRow("Cholesterol toàn phần", cholesterol, "< 5.2 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Triglycerides", triglycerides, "< 1.7 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Urea máu", urea, "2.5 - 7.5 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Creatinine máu", creatinine, "53 - 115 µmol/L", "µmol/L"),
-            _buildLabMetricRow("HDL Cholesterol (Tốt)", hdl, "> 0.9 mmol/L", "mmol/L"),
-            _buildLabMetricRow("LDL Cholesterol (Xấu)", ldl, "< 3.4 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Chỉ số khối cơ thể (BMI)", bmi, "18.5 - 24.9", ""),
+            _buildLabMetricRow("HbA1c (Đường huyết trung bình)", record['hba1c'], "4.0 - 5.6 %", "%"),
+            _buildLabMetricRow("Cholesterol toàn phần", record['cholesterol'], "< 5.2 mmol/L", "mmol/L"),
+            _buildLabMetricRow("Triglycerides", record['triglycerides'], "< 1.7 mmol/L", "mmol/L"),
+            _buildLabMetricRow("Urea máu", record['urea'], "2.5 - 7.5 mmol/L", "mmol/L"),
+            _buildLabMetricRow("Creatinine máu", record['creatinine'], "53 - 115 µmol/L", "µmol/L"),
+            _buildLabMetricRow("HDL Cholesterol (Tốt)", record['hdl'], "> 0.9 mmol/L", "mmol/L"),
+            _buildLabMetricRow("LDL Cholesterol (Xấu)", record['ldl'], "< 3.4 mmol/L", "mmol/L"),
           ],
         ),
       ),
@@ -485,14 +469,11 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         children: [
           Expanded(
             flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-            ),
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           ),
           Expanded(
             child: Text(
-              hasValue ? "$valStr $unit" : "Chưa làm xét nghiệm",
+              hasValue ? "$valStr $unit" : "Chưa có kết quả",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: hasValue ? Colors.black87 : Colors.grey.shade400,
@@ -502,10 +483,7 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          Text(
-            "CSBT: $normalRange",
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-          ),
+          Text("CSBT: $normalRange", style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
         ],
       ),
     );
@@ -521,8 +499,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
+          Row(
+            children: const [
               Icon(Icons.medication, color: kSecondaryColor),
               SizedBox(width: 8),
               Text(
@@ -558,103 +536,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
     );
   }
 
+  // ✅ 3. ĐÃ KẾT NỐI: Đẩy dữ liệu sang khối xác minh mật mã toàn vẹn
   Widget _buildImages(Map<String, dynamic> record) {
-    final tx = record['blockchainTx']?.toString() ?? '';
-    final ipfs = record['ipfsHash']?.toString() ?? '';
-    final pdfUrl = record['pdfUrl']?.toString() ?? '';
-
-    final hasBlockchain = tx.isNotEmpty && tx != 'null';
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: _cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.security, color: Colors.green),
-              SizedBox(width: 8),
-              Text(
-                "Thông Tin Xác Minh Blockchain:",
-                style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (hasBlockchain) ...[
-            _buildVerifyRow("Mã giao dịch (Tx):", tx),
-            const Divider(),
-            _buildVerifyRow("Mã lưu trữ IPFS:", ipfs),
-            const Divider(),
-            _buildVerifyRow("Liên kết PDF bệnh án:", pdfUrl),
-            const SizedBox(height: 24),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.verified, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text(
-                      "Bệnh án được bảo mật & Neo trên Blockchain thành công",
-                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ] else ...[
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 40.0),
-                child: Column(
-                  children: [
-                    Icon(Icons.gpp_maybe, size: 64, color: Colors.grey.shade400),
-                    const SizedBox(height: 12),
-                    Text(
-                      "Hồ sơ này chưa được đẩy lên Blockchain",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade600),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Hồ sơ bệnh án điện tử cần được bác sĩ xác nhận trước khi neo.",
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ]
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVerifyRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 4),
-          SelectableText(
-            value,
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.black87),
-          ),
-        ],
-      ),
-    );
+    return VerifyIntegritySection(recordData: record);
   }
 
   Widget _infoCard(String title, String value) {
@@ -669,15 +553,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
-          ),
+          Text(title, style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14)),
         ],
       ),
     );

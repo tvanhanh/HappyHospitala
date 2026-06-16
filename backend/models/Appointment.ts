@@ -29,7 +29,7 @@ export interface IAppointment extends Document {
 
   imageUrl?: string;
 
-  status: "pending" | "confirmed" | "checked_in" | "in_progress" | "cancelled" | "completed";
+  status: "pending" | "confirmed" | "checked_in" | "in_progress" | "cancelled" | "completed" | "missed";
   // Fee & Payment
   originalFee?: number;       // Phí khám gốc (từ Doctor.consultationFee)
   discountAmount?: number;    // Số tiền giảm

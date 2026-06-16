@@ -40,7 +40,7 @@ class BookAppointmentScreen extends ConsumerWidget {
               final spec = specialties[index];
               return GestureDetector(
                 onTap: () =>
-                    context.push('/patient/book-appointment/rooms/${spec.id}'),
+                    context.push('/patient/book-appointment/doctors/${spec.id}'),
                 child: Card(
                   elevation: 2,
                   margin: const EdgeInsets.only(bottom: 12),

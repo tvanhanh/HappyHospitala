@@ -73,7 +73,7 @@ export const getDoctors = async (req: Request, res: Response) => {
 export const updateDoctorProfile = async (req: Request, res: Response): Promise<void> => {
   try {
 
-     console.log(req.body);
+    console.log(req.body);
 
     const doctorId = req.params.id;
     const user = await User.findById(doctorId);

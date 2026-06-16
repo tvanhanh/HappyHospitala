@@ -3,11 +3,11 @@
 /// Maps to the [Inventories] MongoDB collection defined in the ERD.
 ///
 /// ERD Relationships:
-/// - Inventories --[checks_stock]--> Prescriptions (via [PharmacyManager])
+/// - Inventories --[checks_stock]--> Prescriptions (via [pharmacy])
 /// - Inventories --[managed_by]--> Pharmacy role
-/// - Inventories --[triggers]--> low-stock Alert via [PharmacyManager]
+/// - Inventories --[triggers]--> low-stock Alert via [pharmacy]
 ///
-/// The [PharmacyManager] service uses [getEarliestExpiryBatch] to ensure
+/// The [pharmacy] service uses [getEarliestExpiryBatch] to ensure
 /// FEFO (First-Expiry-First-Out) dispensing for patient safety.
 library;
 
@@ -70,7 +70,7 @@ class DrugBatch {
 /// Each [Inventory] record represents one drug/medication in the pharmacy
 /// system, with multiple [DrugBatch] entries tracking different lot numbers.
 ///
-/// The [PharmacyManager] class from the Class Diagram uses:
+/// The [pharmacy] class from the Class Diagram uses:
 /// - [totalStock] to check stock before dispensing
 /// - [earliestExpiryBatch] for FEFO dispensing order
 /// - [isLowStock] to trigger [triggerLowStockAlert]
@@ -161,7 +161,7 @@ class Inventory {
   /// Returns the batch that expires soonest (FEFO order).
   ///
   /// Implements the `getEarliestExpiryBatch(): Object` method defined in
-  /// the [Inventory] class in the Class Diagram. Used by [PharmacyManager]
+  /// the [Inventory] class in the Class Diagram. Used by [pharmacy]
   /// to select which batch to dispense from first.
   DrugBatch? get earliestExpiryBatch {
     if (batches.isEmpty) return null;
@@ -174,9 +174,8 @@ class Inventory {
 
   /// Returns true if current stock is at or below the [minimumStock] threshold.
   ///
-  /// Used by [PharmacyManager.triggerLowStockAlert] per the Class Diagram.
-  bool get isLowStock =>
-      minimumStock != null && totalStock <= minimumStock!;
+  /// Used by [pharmacy.triggerLowStockAlert] per the Class Diagram.
+  bool get isLowStock => minimumStock != null && totalStock <= minimumStock!;
 
   /// Returns all batches expiring within the next 30 days.
   List<DrugBatch> get expiringBatches =>

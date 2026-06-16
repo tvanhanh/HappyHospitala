@@ -7,6 +7,7 @@ import 'dart:ui';
 import '../../models/appointment.dart';
 import '../../services/api_appointment.dart';
 import '../../services/api_medicalRecord.dart';
+import '../../services/socket_service.dart';
 
 // --- MODERN COLORS ---
 const Color kPrimaryColor = Color(0xFF0066FF); // Vibrant Modern Blue
@@ -67,6 +68,7 @@ class _DoctorDashboardState extends State<DoctorDashboard> with SingleTickerProv
     _animationController.forward();
     loadDoctorFromToken();
     _fetchData();
+    _initSocketListener();
 
     // 🔥 AUTO REFRESH 10 GIÂY
     Future.doWhile(() async {
@@ -77,8 +79,52 @@ class _DoctorDashboardState extends State<DoctorDashboard> with SingleTickerProv
     });
   }
 
+  void _initSocketListener() {
+    SocketService.instance.on(SocketEvents.newNotification, (data) {
+      if (mounted) {
+        final Map<String, dynamic> notification = Map<String, dynamic>.from(data);
+        final title = notification['title'] ?? 'Thông báo mới';
+        final body = notification['body'] ?? '';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.notifications_active, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        body,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: kPrimaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        _fetchData();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    SocketService.instance.off(SocketEvents.newNotification);
     _animationController.dispose();
     super.dispose();
   }

@@ -1,11 +1,11 @@
 /// Pharmacy (Dược Sĩ) Dashboard Screen.
 ///
-/// Responsibilities (per Use Case Diagram & Class Diagram [PharmacyManager]):
+/// Responsibilities (per Use Case Diagram & Class Diagram [pharmacy]):
 /// - View incoming prescriptions from doctors
 /// - Dispense medication using FEFO (First-Expiry-First-Out) batch logic
 ///   [Inventory.getEarliestExpiryBatch] from the Class Diagram
 /// - Manage drug inventory and batch stock levels
-/// - Trigger low-stock alerts [PharmacyManager.triggerLowStockAlert]
+/// - Trigger low-stock alerts [pharmacy.triggerLowStockAlert]
 /// - Track expiry dates and flag near-expiry batches
 ///
 /// Layout: Uses [RoleResponsiveScaffold] for:
@@ -16,11 +16,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../widgets/role_responsive_scaffold.dart';
+import '../../services/api_pharmacy.dart';
 
 // ── Color Palette (Teal/Green — medical/pharmacy theme) ─────────────────────
-const Color _kPrimary = Color(0xFF00695C);   // Deep Teal
+const Color _kPrimary = Color(0xFF00695C); // Deep Teal
 const Color _kSecondary = Color(0xFF00897B); // Teal
-const Color _kAccent = Color(0xFF4DB6AC);    // Light Teal
+const Color _kAccent = Color(0xFF4DB6AC); // Light Teal
 const Color _kSurface = Colors.white;
 const Color _kBackground = Color(0xFFF5F7FA);
 
@@ -48,6 +49,10 @@ class PharmacyDashboard extends StatelessWidget {
           label: 'Kho thuốc',
         ),
         RoleMenuItem(
+          icon: Icons.category_rounded,
+          label: 'Danh mục',
+        ),
+        RoleMenuItem(
           icon: Icons.warning_amber_rounded,
           label: 'Cảnh báo',
         ),
@@ -56,6 +61,7 @@ class PharmacyDashboard extends StatelessWidget {
         _PharmacyOverviewPage(),
         _PharmacyPrescriptionPage(),
         _PharmacyInventoryPage(),
+        _PharmacyCategoryPage(),
         _PharmacyAlertsPage(),
       ],
     );
@@ -320,24 +326,22 @@ class _PendingPrescriptionList extends StatelessWidget {
                     ),
                     Text(
                       '${rx['rx']} • ${rx['doctor']} • ${rx['items']} loại thuốc',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
               ),
               Text(
                 rx['time'] as String,
-                style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                          'Cấp thuốc: ${rx['patient']} (FEFO)'),
+                      content: Text('Cấp thuốc: ${rx['patient']} (FEFO)'),
                       backgroundColor: _kPrimary,
                     ),
                   );
@@ -407,16 +411,14 @@ class _LowStockList extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '$stock / $min ${d['unit']}',
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.red),
+                      style: const TextStyle(fontSize: 11, color: Colors.red),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -503,8 +505,394 @@ class _PharmacyPrescriptionPage extends StatelessWidget {
 // PAGE 3: INVENTORY (Kho thuốc)
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _PharmacyInventoryPage extends StatelessWidget {
+class _PharmacyInventoryPage extends StatefulWidget {
   const _PharmacyInventoryPage();
+
+  @override
+  State<_PharmacyInventoryPage> createState() => _PharmacyInventoryPageState();
+}
+
+class _PharmacyInventoryPageState extends State<_PharmacyInventoryPage> {
+  List<Map<String, dynamic>> _medicines = [];
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _filteredMedicines = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
+    try {
+      final cats = await PharmacyService.getCategories();
+      final meds = await PharmacyService.getMedicines();
+      setState(() {
+        _categories = cats;
+        _medicines = meds;
+        _filteredMedicines = meds;
+        _isLoading = false;
+      });
+      _onSearchChanged();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showSnackbar("Lỗi tải dữ liệu kho: $e", Colors.red);
+    }
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredMedicines = _medicines;
+      } else {
+        _filteredMedicines = _medicines.where((med) {
+          final name = (med['name'] ?? '').toString().toLowerCase();
+          final code = (med['medicineCode'] ?? '').toString().toLowerCase();
+          final active =
+              (med['activeIngredient'] ?? '').toString().toLowerCase();
+          return name.contains(query) ||
+              code.contains(query) ||
+              active.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  void _showSnackbar(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openMedicineDialog([Map<String, dynamic>? medicine]) {
+    final isEdit = medicine != null;
+
+    final codeController =
+        TextEditingController(text: medicine?['medicineCode'] ?? '');
+    final nameController = TextEditingController(text: medicine?['name'] ?? '');
+    final ingredientController =
+        TextEditingController(text: medicine?['activeIngredient'] ?? '');
+    final routeController = TextEditingController(
+        text: medicine?['routeOfAdministration'] ?? 'Uống');
+    final unitController =
+        TextEditingController(text: medicine?['unit'] ?? 'Viên');
+    final stockController = TextEditingController(
+        text: medicine?['stockLevel']?.toString() ?? '100');
+    final reorderController = TextEditingController(
+        text: medicine?['reorderLevel']?.toString() ?? '10');
+    final priceController =
+        TextEditingController(text: medicine?['unitPrice']?.toString() ?? '0');
+    final manufacturerController =
+        TextEditingController(text: medicine?['manufacturer'] ?? '');
+
+    // Parse category ID
+    String? selectedCategoryId;
+    if (isEdit && medicine['categoryId'] != null) {
+      if (medicine['categoryId'] is Map) {
+        selectedCategoryId = medicine['categoryId']['_id'];
+      } else {
+        selectedCategoryId = medicine['categoryId'].toString();
+      }
+    } else if (_categories.isNotEmpty) {
+      selectedCategoryId = _categories.first['_id'];
+    }
+
+    // Expiry date picker support
+    DateTime selectedExpiryDate = DateTime.now().add(const Duration(days: 365));
+    if (isEdit && medicine['expiryDate'] != null) {
+      selectedExpiryDate = DateTime.parse(medicine['expiryDate']);
+    }
+    final expiryController = TextEditingController(
+      text: DateFormat('dd/MM/yyyy').format(selectedExpiryDate),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                isEdit ? 'Sửa Thông Tin Thuốc' : 'Thêm Thuốc Mới',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, color: _kPrimary),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: codeController,
+                      enabled: !isEdit,
+                      decoration: const InputDecoration(
+                        labelText: 'Mã thuốc *',
+                        hintText: 'VD: MED-001',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tên thuốc *',
+                        hintText: 'VD: Glucophage',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: ingredientController,
+                      decoration: const InputDecoration(
+                        labelText: 'Hoạt chất *',
+                        hintText: 'VD: Metformin 500mg',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Category Dropdown
+                    DropdownButtonFormField<String>(
+                      value: selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Danh mục phân loại *',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                      items: _categories.map((cat) {
+                        return DropdownMenuItem<String>(
+                          value: cat['_id'] as String,
+                          child: Text(cat['name'] ?? ''),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          selectedCategoryId = val;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: routeController,
+                      decoration: const InputDecoration(
+                        labelText: 'Đường dùng *',
+                        hintText: 'VD: Uống, Tiêm, Bôi',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: unitController,
+                      decoration: const InputDecoration(
+                        labelText: 'Đơn vị tính *',
+                        hintText: 'VD: Viên, Vỉ, Chai',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: stockController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Số lượng tồn *',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: reorderController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Ngưỡng cảnh báo hết *',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Đơn giá (VNĐ) *',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Date Picker
+                    TextField(
+                      controller: expiryController,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Ngày hết hạn *',
+                        suffixIcon:
+                            Icon(Icons.calendar_today, color: _kPrimary),
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedExpiryDate,
+                          firstDate: DateTime.now()
+                              .subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now()
+                              .add(const Duration(days: 365 * 10)),
+                        );
+                        if (picked != null) {
+                          setDialogState(() {
+                            selectedExpiryDate = picked;
+                            expiryController.text =
+                                DateFormat('dd/MM/yyyy').format(picked);
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: manufacturerController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nhà sản xuất *',
+                        hintText: 'VD: Sanofi',
+                        labelStyle: TextStyle(color: _kPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child:
+                      const Text('Hủy', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final code = codeController.text.trim().toUpperCase();
+                    final name = nameController.text.trim();
+                    final ingredient = ingredientController.text.trim();
+                    final route = routeController.text.trim();
+                    final unit = unitController.text.trim();
+                    final stock =
+                        int.tryParse(stockController.text.trim()) ?? 0;
+                    final reorder =
+                        int.tryParse(reorderController.text.trim()) ?? 10;
+                    final price =
+                        double.tryParse(priceController.text.trim()) ?? 0.0;
+                    final manufacturer = manufacturerController.text.trim();
+
+                    if (code.isEmpty ||
+                        name.isEmpty ||
+                        ingredient.isEmpty ||
+                        selectedCategoryId == null ||
+                        route.isEmpty ||
+                        unit.isEmpty ||
+                        manufacturer.isEmpty) {
+                      _showSnackbar('Vui lòng nhập đầy đủ các trường bắt buộc',
+                          Colors.orange);
+                      return;
+                    }
+
+                    final payload = {
+                      'medicineCode': code,
+                      'name': name,
+                      'activeIngredient': ingredient,
+                      'categoryId': selectedCategoryId,
+                      'routeOfAdministration': route,
+                      'unit': unit,
+                      'stockLevel': stock,
+                      'reorderLevel': reorder,
+                      'unitPrice': price,
+                      'expiryDate': selectedExpiryDate.toIso8601String(),
+                      'manufacturer': manufacturer,
+                    };
+
+                    Navigator.pop(ctx);
+                    setState(() => _isLoading = true);
+
+                    String? err;
+                    if (isEdit) {
+                      err = await PharmacyService.updateMedicine(
+                          medicine['_id'], payload);
+                    } else {
+                      err = await PharmacyService.createMedicine(payload);
+                    }
+
+                    if (err == null) {
+                      _showSnackbar(
+                          isEdit
+                              ? 'Cập nhật thành công!'
+                              : 'Thêm thuốc thành công!',
+                          _kPrimary);
+                      _fetchData();
+                    } else {
+                      setState(() => _isLoading = false);
+                      _showSnackbar('Thất bại: $err', Colors.red);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _kPrimary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteMedicine(Map<String, dynamic> medicine) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác Nhận Xóa',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(
+            'Bạn có chắc chắn muốn xóa thuốc "${medicine['name']}" khỏi kho không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _isLoading = true);
+              final err = await PharmacyService.deleteMedicine(medicine['_id']);
+              if (err == null) {
+                _showSnackbar('Xóa thuốc thành công!', _kPrimary);
+                _fetchData();
+              } else {
+                setState(() => _isLoading = false);
+                _showSnackbar('Thất bại: $err', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -516,33 +904,62 @@ class _PharmacyInventoryPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Kho Thuốc',
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: _kPrimary),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Kho Thuốc',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: _kPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Quản lý tồn kho và thông tin thuốc chi tiết',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
               ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Nhập kho'),
-                onPressed: () {},
+                label: const Text('Thêm thuốc mới'),
+                onPressed: () {
+                  if (_categories.isEmpty) {
+                    _showSnackbar(
+                        'Vui lòng thêm danh mục trước khi thêm thuốc!',
+                        Colors.orange);
+                  } else {
+                    _openMedicineDialog();
+                  }
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Search
+          // Search Box
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Tìm kiếm thuốc...',
+              hintText: 'Tìm kiếm thuốc theo tên, hoạt chất hoặc mã...',
               prefixIcon: const Icon(Icons.search, color: _kPrimary),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    )
+                  : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.grey.shade300),
@@ -557,150 +974,259 @@ class _PharmacyInventoryPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Drug cards
-          ...List.generate(6, (i) => _DrugInventoryCard(index: i)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DrugInventoryCard extends StatelessWidget {
-  final int index;
-  const _DrugInventoryCard({required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    final drugs = [
-      {
-        'name': 'Paracetamol 500mg',
-        'stock': 245,
-        'unit': 'viên',
-        'expiry': '12/2025',
-        'low': false
-      },
-      {
-        'name': 'Amoxicillin 250mg',
-        'stock': 8,
-        'unit': 'viên',
-        'expiry': '06/2025',
-        'low': true
-      },
-      {
-        'name': 'Metformin 500mg',
-        'stock': 180,
-        'unit': 'viên',
-        'expiry': '03/2026',
-        'low': false
-      },
-      {
-        'name': 'Lisinopril 10mg',
-        'stock': 95,
-        'unit': 'viên',
-        'expiry': '09/2025',
-        'low': false
-      },
-      {
-        'name': 'Atorvastatin 20mg',
-        'stock': 12,
-        'unit': 'viên',
-        'expiry': '01/2026',
-        'low': true
-      },
-      {
-        'name': 'Omeprazole 20mg',
-        'stock': 320,
-        'unit': 'viên',
-        'expiry': '08/2026',
-        'low': false
-      },
-    ];
-
-    if (index >= drugs.length) return const SizedBox.shrink();
-    final d = drugs[index];
-    final isLow = d['low'] as bool;
-    final stock = d['stock'] as int;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _kSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: isLow ? Border.all(color: Colors.red.shade200) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Drug icon
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: isLow
-                  ? Colors.red.withOpacity(0.1)
-                  : _kPrimary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              Icons.medication_liquid_rounded,
-              color: isLow ? Colors.red : _kPrimary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          // Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40.0),
+                child: CircularProgressIndicator(color: _kPrimary),
+              ),
+            )
+          else if (_filteredMedicines.isEmpty)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 40.0),
+                child: Column(
                   children: [
+                    Icon(Icons.medication_outlined,
+                        size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
                     Text(
-                      d['name'] as String,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+                      _searchController.text.isEmpty
+                          ? 'Chưa có thuốc nào trong kho.'
+                          : 'Không tìm thấy thuốc khớp với từ khóa.',
+                      style: TextStyle(color: Colors.grey.shade600),
                     ),
-                    if (isLow) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Hết hàng',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.red,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tồn kho: $stock ${d['unit']}  •  Hạn: ${d['expiry']}',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _filteredMedicines.length,
+              itemBuilder: (context, index) {
+                final med = _filteredMedicines[index];
+
+                // Expiry Date check
+                DateTime? expDate;
+                if (med['expiryDate'] != null) {
+                  expDate = DateTime.tryParse(med['expiryDate']);
+                }
+                final String formattedExpiry = expDate != null
+                    ? DateFormat('dd/MM/yyyy').format(expDate)
+                    : 'Không xác định';
+
+                final isLowStock =
+                    (med['stockLevel'] ?? 0) <= (med['reorderLevel'] ?? 10);
+                final isExpired =
+                    expDate != null && expDate.isBefore(DateTime.now());
+                final isNearExpiry = expDate != null &&
+                    !isExpired &&
+                    expDate
+                        .isBefore(DateTime.now().add(const Duration(days: 60)));
+
+                // Resolve Category Name
+                String catName = 'N/A';
+                if (med['categoryId'] != null) {
+                  if (med['categoryId'] is Map) {
+                    catName = med['categoryId']['name'] ?? 'N/A';
+                  } else {
+                    // Search in loaded categories
+                    final catObj = _categories.firstWhere(
+                      (c) => c['_id'] == med['categoryId'].toString(),
+                      orElse: () => {},
+                    );
+                    catName = catObj['name'] ?? 'N/A';
+                  }
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _kSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: isLowStock || isExpired
+                        ? Border.all(color: Colors.red.shade200)
+                        : isNearExpiry
+                            ? Border.all(color: Colors.orange.shade200)
+                            : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Icon container
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isExpired || isLowStock
+                              ? Colors.red.withOpacity(0.1)
+                              : isNearExpiry
+                                  ? Colors.orange.withOpacity(0.1)
+                                  : _kPrimary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.medication_liquid_rounded,
+                          color: isExpired || isLowStock
+                              ? Colors.red
+                              : isNearExpiry
+                                  ? Colors.orange
+                                  : _kPrimary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    med['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    med['medicineCode'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                ),
+                                if (isLowStock) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Sắp hết hàng',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (isExpired) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'HẾT HẠN',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ] else if (isNearExpiry) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Text(
+                                      'Cận hạn',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.orange,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Hoạt chất: ${med['activeIngredient'] ?? 'N/A'} • Đường dùng: ${med['routeOfAdministration'] ?? 'N/A'}',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade700),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Phân loại: $catName • Nhà SX: ${med['manufacturer'] ?? 'N/A'}',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tồn kho: ${med['stockLevel'] ?? 0} ${med['unit'] ?? ''} • Giá: ${NumberFormat('#,###', 'vi_VN').format(med['unitPrice'] ?? 0)} đ • Hạn dùng: $formattedExpiry',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isExpired
+                                    ? Colors.red
+                                    : isNearExpiry
+                                        ? Colors.orange.shade800
+                                        : Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Actions
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () => _openMedicineDialog(med),
+                            icon: const Icon(Icons.edit_outlined,
+                                color: _kPrimary, size: 20),
+                            tooltip: 'Chỉnh sửa',
+                          ),
+                          IconButton(
+                            onPressed: () => _confirmDeleteMedicine(med),
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: Colors.red, size: 20),
+                            tooltip: 'Xóa',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-          ),
-          // Actions
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined, color: _kPrimary, size: 20),
-            tooltip: 'Chỉnh sửa',
-          ),
         ],
       ),
     );
@@ -802,6 +1328,321 @@ class _PharmacyAlertsPage extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PAGE 5: CATEGORIES (Danh mục thuốc)
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _PharmacyCategoryPage extends StatefulWidget {
+  const _PharmacyCategoryPage();
+
+  @override
+  State<_PharmacyCategoryPage> createState() => _PharmacyCategoryPageState();
+}
+
+class _PharmacyCategoryPageState extends State<_PharmacyCategoryPage> {
+  List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await PharmacyService.getCategories();
+      setState(() {
+        _categories = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showSnackbar("Lỗi tải danh mục: $e", Colors.red);
+    }
+  }
+
+  void _showSnackbar(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _openCategoryDialog([Map<String, dynamic>? category]) {
+    final isEdit = category != null;
+    final codeController =
+        TextEditingController(text: category?['categoryCode'] ?? '');
+    final nameController = TextEditingController(text: category?['name'] ?? '');
+    final descController =
+        TextEditingController(text: category?['description'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          isEdit ? 'Sửa Danh Mục' : 'Thêm Danh Mục Mới',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: _kPrimary),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: codeController,
+                decoration: const InputDecoration(
+                  labelText: 'Mã danh mục',
+                  hintText: 'VD: CAT-01',
+                  labelStyle: TextStyle(color: _kPrimary),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Tên danh mục',
+                  hintText: 'VD: Kháng sinh',
+                  labelStyle: TextStyle(color: _kPrimary),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Mô tả',
+                  hintText: 'Nhập mô tả danh mục (tùy chọn)',
+                  labelStyle: TextStyle(color: _kPrimary),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final code = codeController.text.trim();
+              final name = nameController.text.trim();
+              final desc = descController.text.trim();
+
+              if (code.isEmpty || name.isEmpty) {
+                _showSnackbar(
+                    'Vui lòng nhập đầy đủ mã và tên danh mục', Colors.orange);
+                return;
+              }
+
+              Navigator.pop(ctx);
+              setState(() => _isLoading = true);
+
+              String? err;
+              if (isEdit) {
+                err = await PharmacyService.updateCategory(
+                    category['_id'], code, name, desc);
+              } else {
+                err = await PharmacyService.createCategory(code, name, desc);
+              }
+
+              if (err == null) {
+                _showSnackbar(
+                    isEdit
+                        ? 'Cập nhật thành công!'
+                        : 'Tạo danh mục thành công!',
+                    _kPrimary);
+                _fetchCategories();
+              } else {
+                setState(() => _isLoading = false);
+                _showSnackbar('Thất bại: $err', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: _kPrimary, foregroundColor: Colors.white),
+            child: Text(isEdit ? 'Cập nhật' : 'Thêm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(Map<String, dynamic> category) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác Nhận Xóa',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        content: Text(
+            'Bạn có chắc chắn muốn xóa danh mục "${category['name']}" không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _isLoading = true);
+              final err = await PharmacyService.deleteCategory(category['_id']);
+              if (err == null) {
+                _showSnackbar('Xóa danh mục thành công!', _kPrimary);
+                _fetchCategories();
+              } else {
+                setState(() => _isLoading = false);
+                _showSnackbar('Thất bại: $err', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Danh Mục Thuốc',
+                    style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: _kPrimary),
+                  ),
+                  SizedBox(height: 4),
+                  Text('Quản lý phân loại danh mục thuốc trong hệ thống',
+                      style: TextStyle(color: Colors.grey, fontSize: 13)),
+                ],
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Thêm danh mục'),
+                onPressed: () => _openCategoryDialog(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kPrimary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40.0),
+                child: CircularProgressIndicator(color: _kPrimary),
+              ),
+            )
+          else if (_categories.isEmpty)
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 40.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.category_outlined,
+                        size: 48, color: Colors.grey.shade400),
+                    const SizedBox(height: 12),
+                    Text('Chưa có danh mục thuốc nào.',
+                        style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final cat = _categories[index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _kSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _kPrimary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.category_rounded,
+                            color: _kPrimary, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cat['name'] ?? '',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Mã: ${cat['categoryCode']} • ${cat['description'] ?? 'Không có mô tả'}',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _openCategoryDialog(cat),
+                        icon: const Icon(Icons.edit_outlined,
+                            color: _kPrimary, size: 20),
+                        tooltip: 'Sửa',
+                      ),
+                      IconButton(
+                        onPressed: () => _confirmDelete(cat),
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: Colors.red, size: 20),
+                        tooltip: 'Xóa',
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

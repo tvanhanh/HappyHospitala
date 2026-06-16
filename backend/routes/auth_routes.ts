@@ -10,7 +10,7 @@ import { addDepartments, getDepartments,updateDepartment,
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,} from "../controllers/medicalRecordController";
+import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,getDoctorAccessRequestsHistory,verifyMedicalRecordIntegrity, requestAccess,approveAccessRequest,viewMedicalRecordPdf,respondToAccessRequest,getMedicalRecordDetailForDoctor} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
 import { predictDiabetes, predictResourcePPO } from '../controllers/predictController';
 import { getAllMedicineCategories, createMedicineCategory } from "../controllers/categoryOfMedicineController";
@@ -19,6 +19,7 @@ import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine } from '
 import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescriptionStatus} from '../controllers/prescriptionController';
 import { createImportMedicne, getImportRecords } from '../controllers/importMedicneController';
 import { createBill, getBills, getBillById } from '../controllers/billController';
+import {getSentRequests,getReceivedRequests} from '../controllers/request_controller';
 import { controllers } from 'chart.js';
 
 const router = Router();
@@ -65,7 +66,15 @@ router.delete("/api_deleteDepartment/:id",verifyToken, deleteDepartment);
   router.get("/api/list-medical-records", verifyToken,listMedicalRecords);
   router.get("/api/medical-records-search",verifyToken, searchMedicalRecords);
  // router.get("/api/medical-records/:id/verify",verifyToken,verifyMedicalRecord);
-
+ router.post("/verify-blockchain", verifyToken,verifyMedicalRecordIntegrity);
+ router.post("/request",verifyToken, requestAccess);
+ router.put("/respond",verifyToken, respondToAccessRequest);
+ router.get("/record-detail",verifyToken, getMedicalRecordDetailForDoctor);
+router.get("/download-pdf/:recordId", verifyToken, viewMedicalRecordPdf);
+router.get("/requests/doctor-history", verifyToken, getDoctorAccessRequestsHistory);
+router.get("/sent-history", verifyToken,getSentRequests);
+router.get('/received-requests', verifyToken, getReceivedRequests);
+router.post("/approve", verifyToken, approveAccessRequest);
  // category of medicine
  router.get("/get_category",verifyToken, getAllMedicineCategories);
  router.post("/create_category", verifyToken, createMedicineCategory);

@@ -2,6 +2,7 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IMedicine extends Document {
   medicineCode: string;
+
   medicineName: string;
   categoryId: Types.ObjectId; 
   supplierId: Types.ObjectId; 
@@ -82,6 +83,7 @@ const MedicineSchema = new Schema<IMedicine>(
       enum: ['active', 'inactive'],
       default: 'active', 
     },
+
   },
   {
     timestamps: true,

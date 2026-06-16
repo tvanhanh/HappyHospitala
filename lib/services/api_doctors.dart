@@ -64,8 +64,8 @@ class DoctorService {
         },
       );
 
-      print("STATUS: ${response.statusCode}");
-      print("BODY: ${response.body}");
+      // print("STATUS: ${response.statusCode}");
+      // print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
@@ -368,7 +368,7 @@ class DoctorService {
       },
     );
 
-    print(res.body);
+    //print(res.body);
 
     if (res.statusCode == 200) {
       final body = jsonDecode(res.body);
@@ -428,8 +428,8 @@ class DoctorService {
         },
       );
 
-      print("STATUS = ${response.statusCode}");
-      print("BODY = ${response.body}");
+      // print("STATUS = ${response.statusCode}");
+      // print("BODY = ${response.body}");
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

@@ -272,8 +272,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
                                   if (selectedRoom == null) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text(
-                                              'Vui lòng chọn Phòng khám')),
+                                          content:
+                                              Text('Vui lòng chọn Phòng khám')),
                                     );
                                     return;
                                   }
@@ -281,17 +281,29 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
                                   final roomsList = asyncRooms.value ?? [];
                                   final roomObj = roomsList.firstWhere(
                                     (r) => r.id == selectedRoom,
-                                    orElse: () => Room(id: '', roomNumber: '', floor: 1, status: 'Available'),
+                                    orElse: () => Room(
+                                        id: '',
+                                        roomNumber: '',
+                                        floor: 1,
+                                        status: 'Available'),
                                   );
 
-                                  final finalSpecialtyId = selectedSpecialtyId ?? roomObj.specialtyId ?? '';
-                                  
+                                  final finalSpecialtyId =
+                                      selectedSpecialtyId ??
+                                          roomObj.specialtyId ??
+                                          '';
+
                                   String finalSpecialtyName = '';
                                   if (finalSpecialtyId.isNotEmpty) {
-                                    final specialtiesList = asyncSpecialties.value ?? [];
+                                    final specialtiesList =
+                                        asyncSpecialties.value ?? [];
                                     final specObj = specialtiesList.firstWhere(
                                       (s) => s.id == finalSpecialtyId,
-                                      orElse: () => Specialty(id: '', name: '', description: '', imageUrl: ''),
+                                      orElse: () => Specialty(
+                                          id: '',
+                                          name: '',
+                                          description: '',
+                                          imageUrl: ''),
                                     );
                                     finalSpecialtyName = specObj.name;
                                   }
@@ -362,9 +374,6 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Quản Lý Bác Sĩ',
-            style: TextStyle(
-                color: Color(0xFF1A1A2E), fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: _kPrimary,

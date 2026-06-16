@@ -10,7 +10,7 @@ final specialtyProvider = FutureProvider<List<Specialty>>((ref) async {
   final token = prefs.getString('token');
   
   final res = await http.get(
-    Uri.parse('$baseUrl/specialties'),
+    Uri.parse('$baseUrl/api/specialties'),
     headers: {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',

@@ -4,7 +4,7 @@ import '../../widgets/pharmacy/import_detail_dialog.dart';
 import '../../widgets/pharmacy/CreateImportDialog.dart';
 import '../../services/api_import.dart';
 import '../../services/api_supplier.dart';
-
+import '../../widgets/pharmacy/pharmaCase_drawer.dart';
 class MedicineImportsPage extends StatefulWidget {
   const MedicineImportsPage({super.key});
 
@@ -110,12 +110,19 @@ class _MedicineImportsPageState extends State<MedicineImportsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: kHeaderBlue,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
-        ),
+      backgroundColor: kHeaderBlue,
+  elevation: 0,
+  // 🔥 THAY ĐỔI Ở ĐÂY: Bọc trong Builder để lấy context chính xác mở Drawer
+  leading: Builder(
+    builder: (BuildContext context) {
+      return IconButton(
+        icon: const Icon(Icons.menu, color: Colors.white),
+        onPressed: () {
+          Scaffold.of(context).openDrawer(); 
+        },
+      );
+    },
+  ),
         title: Row(
           children: [
             Container(
@@ -176,6 +183,7 @@ class _MedicineImportsPageState extends State<MedicineImportsPage> {
           const SizedBox(width: 16),
         ],
       ),
+      drawer: const PharmaCaseDrawer(selectedMenu: "Nhập kho"),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: kPrimaryBlue))
           : RefreshIndicator(

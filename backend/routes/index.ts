@@ -16,11 +16,13 @@ import advertisement_routes from "./advertisementRoutes";
 import report_routes from "./reportRoutes";
 import room_assignment_routes from "./roomAssignmentRoutes";
 import doctor_approval_routes from "./doctorApprovalRoutes";
+import pharmacyRouter from './pharmacy';
 
 const router = Router();
 
 // 1. Authentication
 router.use('/auth', auth_routes);
+router.use('/', pharmacyRouter);
 
 // 2. Role-based Endpoints
 router.use('/admin', admin_routes);

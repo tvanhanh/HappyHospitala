@@ -29,7 +29,8 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
           Expanded(
             child: asyncPatients.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('Lỗi tải dữ liệu: $err')),
+              error: (err, stack) =>
+                  Center(child: Text('Lỗi tải dữ liệu: $err')),
               data: (patients) {
                 if (patients.isEmpty) {
                   return const Center(
@@ -45,23 +46,32 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                   itemCount: patients.length,
                   itemBuilder: (context, index) {
                     final patient = patients[index];
-                    final user = patient['userId'] ?? {};
-                    final profile = user['profile'] ?? {};
-                    final avatar = profile['avatar']?.toString() ?? '';
-                    final name = user['name']?.toString() ?? 'Chưa cập nhật';
-                    final phone = profile['phone']?.toString() ?? 'Chưa cập nhật';
-                    final identityCard = patient['identityCard']?.toString() ?? 'Chưa cập nhật';
+
+                    // Cập nhật lại cách parse dữ liệu theo Flat Schema mới
+                    final id = patient['_id'] ?? '';
+                    final avatar = patient['avatar']?.toString() ?? '';
+                    final name =
+                        patient['fullName']?.toString() ?? 'Chưa cập nhật';
+                    final phone =
+                        patient['phoneNumber']?.toString() ?? 'Chưa cập nhật';
+                    final cccd = patient['cccd']?.toString() ?? 'Chưa cập nhật';
+                    final gender = patient['gender']?.toString() ?? '';
+                    final status = patient['status']?.toString() ?? '';
+
+                    final isInactive = status == 'inactive';
 
                     return Card(
                       elevation: 2,
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       child: InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => PatientDetailScreen(patient: patient),
+                              builder: (context) =>
+                                  PatientDetailScreen(patient: patient),
                             ),
                           );
                         },
@@ -70,41 +80,96 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen> {
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
+                              // Avatar
                               CircleAvatar(
                                 radius: 28,
                                 backgroundColor: _kPrimary.withOpacity(0.1),
-                                backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                                child: avatar.isEmpty ? const Icon(Icons.person, color: _kPrimary) : null,
+                                backgroundImage: avatar.isNotEmpty
+                                    ? NetworkImage(avatar)
+                                    : null,
+                                child: avatar.isEmpty
+                                    ? const Icon(Icons.person, color: _kPrimary)
+                                    : null,
                               ),
                               const SizedBox(width: 16),
+
+                              // Thông tin chính
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: _kPrimary),
-                                    ),
-                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(Icons.phone, size: 14, color: Colors.grey),
-                                        const SizedBox(width: 4),
-                                        Text(phone, style: const TextStyle(color: Colors.black87)),
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: _kPrimary),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        // Hiển thị icon giới tính
+                                        if (gender.isNotEmpty)
+                                          Icon(
+                                            gender.toLowerCase() == 'nam'
+                                                ? Icons.male
+                                                : Icons.female,
+                                            size: 16,
+                                            color: gender.toLowerCase() == 'nam'
+                                                ? Colors.blue
+                                                : Colors.pink,
+                                          ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(Icons.badge, size: 14, color: Colors.grey),
+                                        const Icon(Icons.phone,
+                                            size: 14, color: Colors.grey),
                                         const SizedBox(width: 4),
-                                        Text('CCCD: $identityCard', style: const TextStyle(color: Colors.black87)),
+                                        Text(phone,
+                                            style: const TextStyle(
+                                                color: Colors.black87)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.badge,
+                                            size: 14, color: Colors.grey),
+                                        const SizedBox(width: 4),
+                                        Text('CCCD: $cccd',
+                                            style: const TextStyle(
+                                                color: Colors.black87)),
                                       ],
                                     ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 18),
+
+                              // Nhãn trạng thái & Icon điều hướng
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isInactive)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Text('Đã khóa',
+                                          style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                  const Icon(Icons.arrow_forward_ios,
+                                      color: Colors.grey, size: 18),
+                                ],
+                              )
                             ],
                           ),
                         ),

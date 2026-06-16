@@ -42,11 +42,11 @@ import 'screens/screen_patient/medical_records.dart';
 import 'screens/screen_patient/book_appointment_screen.dart';
 import 'screens/screen_patient/select_room_screen.dart';
 import 'screens/screen_patient/select_doctor_screen.dart';
+import 'screens/screen_patient/select_doctor_by_specialty_screen.dart';
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 import 'screens/screens_admin/admin_dashboard.dart';
 import 'screens/screens_admin/patient_detail.dart';
-import 'screens/screens_admin/security_screens/create_account_screen.dart';
 
 // ── Receptionist ──────────────────────────────────────────────────────
 import 'screens/screen_receptionist/appointment_management_screen.dart';
@@ -81,6 +81,7 @@ import 'screens/screen_doctor/doctor_profile_screen.dart';
 import 'screens/screen_doctor/appointment_page.dart';
 import 'screens/screen_doctor/appointment_detail_screen.dart';
 import 'screens/screen_doctor/PrescriptionScreen.dart';
+import 'screens/screen_doctor/VerifyIntegritySection.dart';
 
 
 import 'screens/pharmacy_screen2/add_medicine_screen.dart';
@@ -206,6 +207,14 @@ final GoRouter router = GoRouter(
                 builder: (context, state) => const BookAppointmentScreen(),
                 routes: [
                   GoRoute(
+                    path: 'doctors/:specialtyId',
+                    builder: (context, state) {
+                      final specialtyId = state.pathParameters['specialtyId']!;
+                      return SelectDoctorBySpecialtyScreen(
+                          specialtyId: specialtyId);
+                    },
+                  ),
+                  GoRoute(
                     path: 'rooms/:specialtyId',
                     builder: (context, state) {
                       final specialtyId = state.pathParameters['specialtyId']!;
@@ -272,6 +281,19 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/admin',
       builder: (context, state) => AdminDashboard(),
+      routes: [
+        GoRoute(
+            path: 'user_management',
+            builder: (context, state) => UserManagementScreen()),
+        GoRoute(
+            path: 'add-doctor', builder: (context, state) => AddDoctorScreen()),
+        GoRoute(
+            path: 'doctor-list',
+            builder: (context, state) => DoctorListScreen()),
+        GoRoute(
+            path: 'manage-price',
+            builder: (context, state) => ManagePriceScreen()),
+      ],
     ),
 
     //Staff
@@ -320,6 +342,9 @@ final GoRouter router = GoRouter(
       diagnosis: args['diagnosis'] ?? '',
     );
   },),
+  GoRoute(
+                path: '/doctor/verifyblock',
+                builder: (context, state) =>VerifyIntegritySection()),
     GoRoute(
       path: '/doctor',
       builder: (context, state) => DoctorDashboard(),
@@ -373,7 +398,8 @@ final GoRouter router = GoRouter(
             builder: (context, state) => MedicalRecordsPage()),
         GoRoute(
             path: 'medical-records',
-            builder: (context, state) => const MedicalRecordsScreen(showAppBar: true, showDrawer: false)),
+            builder: (context, state) => const MedicalRecordsScreen(
+                showAppBar: true, showDrawer: false)),
       ],
     ),
     GoRoute(
@@ -392,8 +418,7 @@ final GoRouter router = GoRouter(
             builder: (context, state) => const PatientManagementScreen()),
         GoRoute(
             path: 'appointment-management',
-            builder: (context, state) =>
-                const ReceptionistDashboardScreen()),
+            builder: (context, state) => const ReceptionistDashboardScreen()),
         GoRoute(
             path: 'notification',
             builder: (context, state) => const NotificationScreen()),

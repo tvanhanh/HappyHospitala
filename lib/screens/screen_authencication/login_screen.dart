@@ -96,10 +96,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                         // --- INPUT FIELDS ---
                         _buildTextField("Email", Icons.email, false,
-                            (value) => email = value!, controller: _emailController),
+                            (value) => email = value!,
+                            controller: _emailController),
                         SizedBox(height: 15), // ✅ Giảm khoảng cách
                         _buildTextField("Mật khẩu", Icons.lock, true,
-                            (value) => password = value!, controller: _passwordController),
+                            (value) => password = value!,
+                            controller: _passwordController),
                         SizedBox(height: 10), // ✅ Giữ khoảng cách vừa phải
 
                         // --- NÚT ĐĂNG NHẬP CHÍNH ---
@@ -108,14 +110,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           height: 45, // ✅ Giảm chiều cao nút
                           child: ElevatedButton(
                             onPressed: () async {
-                              if (_formKey.currentState!.validate() || kDebugMode) {
-                                final loginEmail = kDebugMode && _emailController.text.isNotEmpty ? _emailController.text : email;
-                                final loginPass = kDebugMode && _passwordController.text.isNotEmpty ? _passwordController.text : password;
-                                final errorMsg = await ref.read(authProvider.notifier).login(loginEmail, loginPass);
+                              if (_formKey.currentState!.validate() ||
+                                  kDebugMode) {
+                                final loginEmail = kDebugMode &&
+                                        _emailController.text.isNotEmpty
+                                    ? _emailController.text
+                                    : email;
+                                final loginPass = kDebugMode &&
+                                        _passwordController.text.isNotEmpty
+                                    ? _passwordController.text
+                                    : password;
+                                final errorMsg = await ref
+                                    .read(authProvider.notifier)
+                                    .login(loginEmail, loginPass);
                                 if (!context.mounted) return;
                                 // [Logic chuyển hướng]
                                 if (errorMsg == null) {
-                                  final role = ref.read(authProvider).role.value;
+                                  final role =
+                                      ref.read(authProvider).role.value;
 
                                   if (role == 'admin') {
                                     context.go('/admin');
@@ -135,8 +147,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text(errorMsg ??
-                                            'Đăng nhập thất bại')),
+                                        content: Text(
+                                            errorMsg ?? 'Đăng nhập thất bại')),
                                   );
                                 }
                               }
@@ -258,7 +270,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       child: Column(
         children: [
-          Text("🛠️ DEV QUICK LOGIN", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
+          Text("🛠️ DEV QUICK LOGIN",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.amber.shade900)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -295,6 +309,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.read(authProvider.notifier).login(email, password).then((errorMsg) {
           if (!mounted) return;
           if (errorMsg == null) {
+
             final role = ref.read(authProvider).role.value;
             if (role == 'admin') context.go('/admin');
             else if (role == 'patient') context.go('/home');
@@ -303,8 +318,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             else if (role == 'cashier') context.go('/cashier/dashboard');
             else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
             else context.go('/home');
+
+          
+           
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(errorMsg)));
           }
         });
       },
@@ -312,8 +331,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// ✅ Widget tạo TextField
-  Widget _buildTextField(String label, IconData icon, bool isPassword,
-      Function(String) onChanged, {TextEditingController? controller}) {
+  Widget _buildTextField(
+      String label, IconData icon, bool isPassword, Function(String) onChanged,
+      {TextEditingController? controller}) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(

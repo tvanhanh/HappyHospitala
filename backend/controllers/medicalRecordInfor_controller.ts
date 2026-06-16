@@ -45,21 +45,33 @@ export const getMedicalRecord = async (req: Request, res: Response) => {
        return;
     }
 
-    const email = req.user.email;
     const role = req.user.role;
+    // 1. Lấy patientId truyền từ Flutter lên (nếu có) thông qua Query Parameters (?patientId=...)
+    const { patientId } = req.query; 
 
-    let medicalRecords;
+    let queryCondition: any = {};
+
     if (role === 'admin' || role === 'doctor') {
-      medicalRecords = await DiabetesRecord.find({}).populate('patientId').populate({
-        path: 'doctorId',
-        populate: { path: 'userId' }
-      });
+      // Nếu có truyền bệnh nhân cụ thể từ trang trước sang, lọc theo đúng patientId đó
+      if (patientId) {
+        queryCondition = { patientId: patientId };
+      } else {
+        queryCondition = {}; // Ngược lại thì lấy hết
+      }
     } else {
-      medicalRecords = await DiabetesRecord.find({ email }).populate('patientId').populate({
+      // Nếu là role bệnh nhân, chỉ cho phép xem hồ sơ của chính mình qua email đăng nhập
+      queryCondition = { email: req.user.email };
+    }
+
+    
+    // 2. Truy vấn dữ liệu (Hãy đảm bảo DiabetesRecord Schema đã có các trường blockchain)
+    const medicalRecords = await DiabetesRecord.find(queryCondition)
+      .populate('patientId')
+      .populate({
         path: 'doctorId',
         populate: { path: 'userId' }
       });
-    }
+  
     
     res.status(200).json(medicalRecords);
   } catch (error) {
@@ -67,8 +79,6 @@ export const getMedicalRecord = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };
-
-
 
 // Cập nhật bệnh án theo ID
 export const updateMedicalRecord = async (req: Request, res: Response) => {

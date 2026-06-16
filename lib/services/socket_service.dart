@@ -99,13 +99,23 @@ class SocketService {
     // Guard: skip if already connected.
     if (isConnected) return;
 
+    // Extract root URL (scheme + host + port) without the path path suffix (e.g. "/api")
+    String socketUrl = baseUrl;
+    final uri = Uri.tryParse(baseUrl);
+    if (uri != null) {
+      socketUrl = '${uri.scheme}://${uri.host}';
+      if (uri.hasPort) {
+        socketUrl += ':${uri.port}';
+      }
+    }
+
+    print('[SocketService] Connecting to server: $socketUrl (from $baseUrl)');
+
     _socket = io.io(
-      // Connect to the Socket.IO endpoint on the Node.js backend.
-      // The base URL is shared with REST API calls via config.dart.
-      baseUrl,
+      socketUrl,
       io.OptionBuilder()
-          // Use WebSocket transport for lowest latency.
-          .setTransports(['websocket'])
+          // Support both WebSocket and HTTP polling for maximum browser and network compatibility.
+          .setTransports(['websocket', 'polling'])
           // Automatically attempt reconnection on disconnect.
           .enableReconnection()
           // Wait 2s between reconnection attempts (avoid hammering the server).
@@ -203,8 +213,12 @@ class SocketService {
   /// Removes a specific callback previously registered with [on].
   ///
   /// Call this in your widget's `dispose()` to prevent memory leaks.
-  void off(String event) {
-    _socket?.off(event);
+  void off(String event, [Function(dynamic)? callback]) {
+    if (callback != null) {
+      _socket?.off(event, callback);
+    } else {
+      _socket?.off(event);
+    }
   }
 
   /// Emits an event to the server with an optional [data] payload.
