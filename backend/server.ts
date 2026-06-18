@@ -56,8 +56,8 @@ app.use("/api", appRouter);
 // Legacy alias to preserve clients still targeting /api/v1
 app.use("/api/v1", appRouter);
 
-httpServer.listen(5000, () => {
-  console.log("Server running on port 5000");
+httpServer.listen(5001, () => {
+  console.log("Server running on port 5001");
 
   // 🔥 START CRON HERE
   startCronJobs();

@@ -1,33 +1,109 @@
 import { Request, Response } from 'express';
 import { Bill, IBill } from '../models/Bill';
-
+import mongoose from 'mongoose';
+import Inventory from '../models/Inventory';
 export const createBill = async (req: Request, res: Response): Promise<void> => {
+  // 1. Khởi tạo session để thực hiện Transaction an toàn dữ liệu
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const newBillData: Partial<IBill> = req.body;
 
+    // Kiểm tra các thông tin bắt buộc của hóa đơn giống như Flutter gửi sang
     if (!newBillData.patientId || !newBillData.finalTotalPrice) {
       res.status(400).json({
         success: false,
         message: 'Thiếu thông tin bắt buộc (patientId hoặc finalTotalPrice).'
       });
+      await session.abortTransaction();
+      session.endSession();
       return;
     }
 
+    // 🟢 ĐÃ ĐỒNG BỘ: Đón nhận chính xác mảng 'medicines' từ BillModel của Flutter
+    const orderMedicines = req.body.medicines; 
+    if (!orderMedicines || !Array.isArray(orderMedicines) || orderMedicines.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Hóa đơn phải chứa ít nhất một mặt hàng thuốc để thực hiện xuất trừ kho.'
+      });
+      await session.abortTransaction();
+      session.endSession();
+      return;
+    }
+
+    // 2. VÒNG LẶP DUYỆT QUA TỪNG THUỐC ĐỂ KHẤU TRỪ LÔ KHO (FIFO)
+    for (const item of orderMedicines) {
+      // 🟢 ĐÃ ĐỒNG BỘ: Ép kiểu 'quantity' từ String (Flutter) sang Number an toàn ở NodeJS
+      let requiredQty = parseInt(item.quantity?.toString() || '0', 10); 
+      
+      // 🟢 ĐÃ ĐỒNG BỘ: Đọc trường 'id' đại diện cho mã thuốc theo đúng cấu trúc BillMedicineItem
+      const medicineId = item.id; 
+      const medicineName = item.name || 'Thuốc';
+
+      if (!medicineId || requiredQty <= 0) continue;
+
+      // Tìm các lô hàng khả dụng của thuốc này
+      const activeBatches = await Inventory.find({
+        medicineId: medicineId,
+        currentQuantity: { $gt: 0 }, 
+        status: 'active',            
+        expiryDate: { $gt: new Date() } 
+      })
+      .sort({ expiryDate: 1 }) // Hạn dùng gần nhất xuất trước
+      .session(session);
+
+      // Tính tổng số lượng thực tế hiện có của toàn bộ các lô gộp lại
+      const totalAvailable = activeBatches.reduce((sum, b) => sum + b.currentQuantity, 0);
+      if (totalAvailable < requiredQty) {
+        throw new Error(`Thuốc [${medicineName}] không đủ số lượng trong kho! (Yêu cầu: ${requiredQty}, Hiện có: ${totalAvailable})`);
+      }
+
+      // Thực hiện cấu trúc trừ cuốn chiếu số lượng
+      for (const batch of activeBatches) {
+        if (requiredQty <= 0) break;
+
+        if (batch.currentQuantity >= requiredQty) {
+          batch.currentQuantity -= requiredQty;
+          requiredQty = 0;
+        } else {
+          requiredQty -= batch.currentQuantity;
+          batch.currentQuantity = 0;
+        }
+
+        // Tự động chuyển trạng thái nếu lô hàng cạn kiệt số lượng
+        if (batch.currentQuantity === 0) {
+          batch.status = 'out_of_stock';
+        }
+
+        await batch.save({ session });
+      }
+    }
+
+    // 3. LƯU HÓA ĐƠN KHI MỌI LOGIC TRỪ KHO ĐÃ HOÀN TẤT VÀ KHÔNG LỖI
     const bill = new Bill(newBillData);
-    const savedBill = await bill.save();
+    const savedBill = await bill.save({ session });
+
+    // Áp dụng vĩnh viễn thay đổi vào DB
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(201).json({
       success: true,
-      message: 'Tạo hóa đơn thanh toán thành công!',
+      message: 'Tạo hóa đơn và khấu trừ lô kho thành công!',
       data: savedBill
     });
 
   } catch (error: any) {
-    console.error("❌ Lỗi Controller Bill:", error);
-    res.status(500).json({
+    // Nếu có sự cố (ví dụ hụt thuốc), khôi phục lại trạng thái ban đầu của kho
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error("❌ Lỗi Xử Lý Hóa Đơn & Trừ Kho:", error);
+    res.status(error.message.includes('không đủ số lượng') ? 400 : 500).json({
       success: false,
-      message: 'Lỗi hệ thống không thể xử lý hóa đơn.',
-      error: error.message
+      message: error.message || 'Lỗi hệ thống không thể xử lý hóa đơn.',
     });
   }
 };

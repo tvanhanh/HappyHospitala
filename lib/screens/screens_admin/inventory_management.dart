@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'add_category_dialog.dart';
 import '../../models/category_model.dart';
 import '../../services/api_categoryOfMedicine.dart';
-import '../../models/medicine_model.dart';
-import '../../services/api_medicine.dart';
+import '../../models/importMedicine_model.dart';
 import '../../services/config.dart';
+import '../../services/api_importMedicine.dart';
+import '../../services/api_supplier.dart';
 
 class MedicineInventory extends StatefulWidget {
+  const MedicineInventory({Key? key}) : super(key: key);
+
   @override
   _MedicineInventoryState createState() => _MedicineInventoryState();
 }
@@ -19,16 +22,14 @@ class _MedicineInventoryState extends State<MedicineInventory> {
   static const Color kBorderColor = Color(0xFFE2E8F0); 
 
   static const String kBaseUrl = baseUrl;
-
-  // Dữ liệu gốc từ API
-  List<MedicineModel> _allMedicines = [];
+  List<ImportModel> _allImport = [];
   List<CategoryModel> _categories = [];
   bool _isLoading = false;
+  List<dynamic> _suppliers = []; 
 
   // Các biến phục vụ bộ lọc (Filter & Search)
   String _searchQuery = "";
   String _selectedStatus = "Tất cả trạng thái";
-  String _selectedCategoryId = "Tất cả danh mục";
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -44,45 +45,121 @@ class _MedicineInventoryState extends State<MedicineInventory> {
     super.dispose();
   }
 
-  // Tải đồng thời cả thuốc và danh mục phân loại từ server
+  // Tải dữ liệu từ server
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      final medicines = await ApiMedicine.getAllMedicines();
-      final categoryData = await ApiCategoryOfMedicine.getAllCategories();  
-      setState(() {
-        _allMedicines = medicines; 
-        _categories = List<CategoryModel>.from(categoryData);
-      });
+      final importData = await ApiImport.fetchImportRecords();
+      // ĐÃ SỬA: Đồng bộ đúng tên biến _allImport
+      _allImport = importData ?? [];
+
+      // Khối try-catch riêng cho Supplier đề phòng lỗi API không làm sập giao diện chính
+      try {
+        final supplierData = await ApiSupplier.getAllSuppliers();
+        _suppliers = supplierData ?? [];
+      } catch (supplierError) {
+        debugPrint("💥 Lỗi tải API Nhà cung cấp tại Inventory: $supplierError");
+      }
+
+      setState(() => _isLoading = false);
     } catch (e) {
-      print("💥 Lỗi khi tải dữ liệu: $e");
-    } finally {
+      debugPrint("💥 Lỗi tổng tại trang Inventory: $e");
       setState(() => _isLoading = false);
     }
   }
 
-  // BỘ LỌC LOGIC THÔNG MINH
-  List<MedicineModel> get _filteredMedicines {
-    return _allMedicines.where((medicine) {
-      // 1. Lọc theo từ khóa tìm kiếm (tên hoặc mã)
-      final matchesSearch = medicine.medicineName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                            medicine.medicineCode.toLowerCase().contains(_searchQuery.toLowerCase());
+  dynamic _getSupplierValue(dynamic item, String key) {
+    if (item == null) return null;
+    if (item is Map) return item[key];
+    try {
+      if (key == 'id') return item.id;
+      if (key == 'supplierName') return item.supplierName;
+    } catch (_) {}
+    return null;
+  }
 
-      // 2. Lọc theo trạng thái kinh doanh
-      bool matchesStatus = true;
-      if (_selectedStatus == "Đang bán") {
-        matchesStatus = medicine.status == 'active';
-      } else if (_selectedStatus == "Tạm dừng") {
-        matchesStatus = medicine.status == 'inactive';
+  String _getSupplierNameById(dynamic supplierId) {
+    if (supplierId == null) return 'Không rõ';
+    if (_suppliers.isEmpty) return 'ID: $supplierId';
+
+    for (var s in _suppliers) {
+      if (_getSupplierValue(s, 'id').toString() == supplierId.toString()) {
+        return _getSupplierValue(s, 'supplierName') ?? 'Nhà cung cấp không tên';
       }
+    }
+    return 'ID: $supplierId';
+  }
 
-      // 3. Lọc theo danh mục thuốc
-      bool matchesCategory = true;
-      if (_selectedCategoryId != "Tất cả danh mục") {
-        matchesCategory = medicine.categoryId == _selectedCategoryId;
+  // HÀM XỬ LÝ DUYỆT ĐƠN NHẬP KHO
+  Future<void> _approveImportOrder(ImportModel order) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.verified_user_rounded, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Xác nhận duyệt'),
+          ],
+        ),
+        content: const Text('Bạn có chắc chắn muốn duyệt đơn nhập kho này không? Dữ liệu thuốc sẽ tự động được cộng vào kho chính.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), 
+            child: const Text('Hủy', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Duyệt ngay', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirm) return;
+
+    try {
+      setState(() => _isLoading = true);
+    
+bool isSuccess = await ApiImport.updateStatus(order.id, 'Đã duyệt');
+      if (isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🎉 Duyệt đơn nhập kho thành công!'), backgroundColor: Colors.green),
+        );
+        _fetchData(); // Reload dữ liệu mới
+      } else {
+        throw Exception('Phản hồi từ server thất bại');
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('💥 Lỗi khi duyệt đơn: $e'), backgroundColor: Colors.red),
+      );
+      setState(() => _isLoading = false);
+    }
+  } // ĐÃ SỬA: Bổ sung dấu đóng ngoặc nhọn bị thiếu ở đây
 
-      return matchesSearch && matchesStatus && matchesCategory;
+  // BỘ LỌC LOGIC ĐƠN NHẬP KHO THÔNG MINH
+  List<ImportModel> get _filteredImports {
+    return _allImport.where((order) {
+      // 1. Lọc theo trạng thái đơn hàng
+      bool matchesStatus = _selectedStatus == "Tất cả trạng thái" || order.status == _selectedStatus;
+
+      // 2. Tìm kiếm thông minh theo Tên NCC, ID, Ghi chú, Người tạo, Tên thuốc
+      final supplierName = _getSupplierNameById(order.supplierId).toLowerCase();
+      final supplierIdStr = order.supplierId?.toString().toLowerCase() ?? '';
+      final noteStr = order.note?.toLowerCase() ?? '';
+      final creatorStr = order.createdBy?.toLowerCase() ?? '';
+      final query = _searchQuery.toLowerCase();
+
+      bool matchesSearch = query.isEmpty ||
+          supplierName.contains(query) ||
+          supplierIdStr.contains(query) ||
+          noteStr.contains(query) ||
+          creatorStr.contains(query) ||
+          (order.products != null && order.products.any((p) => (p as dynamic).medicineName.toString().toLowerCase().contains(query)));
+
+      return matchesStatus && matchesSearch;
     }).toList();
   }
 
@@ -94,12 +171,127 @@ class _MedicineInventoryState extends State<MedicineInventory> {
         return AddCategoryDialog(primaryColor: kPrimaryBlue);
       }
     );
-    _fetchData(); // Cập nhật lại danh mục sau khi thêm mới
+    _fetchData();
+  }
+
+  // HÀM HIỂN THỊ DIALOG CHI TIẾT ĐƠN HÀNG (Nút con mắt)
+  void _showOrderDetailsDialog(ImportModel order) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.6, // Chiếm 60% màn hình Desktop/Web
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Dialog
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.receipt_long_rounded, color: kPrimaryBlue, size: 28),
+                        SizedBox(width: 8),
+                        Text('Chi Tiết Chứng Từ Nhập Kho', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+                      ],
+                    ),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+                const Divider(height: 24, thickness: 1.2),
+
+                // Thông tin tổng quan đơn hàng
+                Wrap(
+                  spacing: 40,
+                  runSpacing: 12,
+                  children: [
+                    _buildDetailInfoItem('Nhà cung cấp:', _getSupplierNameById(order.supplierId)),
+                    _buildDetailInfoItem('Người lập đơn:', order.createdBy ?? 'Hệ thống'),
+                    _buildDetailInfoItem('Trạng thái:', order.status ?? 'Chờ duyệt'),
+                    _buildDetailInfoItem('Tổng tiền:', '${order.totalAmount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{3})(?=\d)'), (Match m) => '${m[1]}.')} đ', isBold: true),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildDetailInfoItem('Ghi chú:', order.note ?? 'Không có ghi chú'),
+                
+                const SizedBox(height: 20),
+                const Text('Danh sách sản phẩm nhập:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
+                const SizedBox(height: 8),
+
+                // Bảng danh sách sản phẩm trong đơn hàng
+                Flexible(
+                  child: Container(
+                    height: 300, // Khống chế chiều cao bảng tránh tràn màn hình
+                    decoration: BoxDecoration(border: Border.all(color: kBorderColor), borderRadius: BorderRadius.circular(8)),
+                    child: SingleChildScrollView(
+                      child: DataTable(
+                        // ĐÃ SỬA: Thay thế MaterialStateProperty thành WidgetStateProperty hiện đại hơn
+                        headingRowColor: WidgetStateProperty.all(kBgColor),
+                        columns: const [
+                          DataColumn(label: Text('Tên thuốc / Vật tư', style: TextStyle(fontWeight: FontWeight.bold))),
+                          DataColumn(label: Text('Số lượng', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                          DataColumn(label: Text('Đơn giá', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                          DataColumn(label: Text('Thành tiền', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+                        ],
+                        rows: order.products.map((product) {
+                          final double price = (product as dynamic).importPrice ?? 0.0;
+                          final int qty = (product as dynamic).quantity ?? 0;
+                          return DataRow(cells: [
+                            DataCell(Text((product as dynamic).medicineName ?? 'N/A')),
+                            DataCell(Text(qty.toString())),
+                            DataCell(Text('${price.toStringAsFixed(0)} đ')),
+                            DataCell(Text('${(price * qty).toStringAsFixed(0)} đ', style: const TextStyle(fontWeight: FontWeight.w600))),
+                          ]);
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryBlue, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
+                    child: const Text('Đóng', style: TextStyle(color: Colors.white)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailInfoItem(String label, String value, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: RichText(
+        text: TextSpan(
+          text: '$label ',
+          style: const TextStyle(color: Colors.black54, fontSize: 14),
+          children: [
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                color: isBold ? Colors.redAccent : const Color(0xFF0F172A),
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayMedicines = _filteredMedicines;
+    final displayImports = _filteredImports;
 
     return Scaffold(
       backgroundColor: kBgColor,
@@ -155,12 +347,12 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Kho Dược Phẩm',
+                        'Quản Lý Nhập Kho',
                         style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: kPrimaryBlue, letterSpacing: -0.5),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Tìm thấy: ${displayMedicines.length} / ${_allMedicines.length} loại thuốc trong hệ thống',
+                        'Tìm thấy: ${displayImports.length} / ${_allImport.length} chứng từ nhập kho trong hệ thống',
                         style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -195,7 +387,7 @@ class _MedicineInventoryState extends State<MedicineInventory> {
               ),
               const SizedBox(height: 32),
 
-              // ================= BẢNG HIỂN THỊ DỮ LIỆU THUỐC =================
+              // ================= BẢNG HIỂN THỊ DỮ LIỆU ĐƠN NHẬP =================
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -205,13 +397,13 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. THANH BỘ LỌC SEARCH BAR & DROPDOWNS
+                    // 1. THANH BỘ LỌC SEARCH BAR & DROPDOWN STATUS
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Row(
                         children: [
                           SizedBox(
-                            width: 320,
+                            width: 350,
                             height: 44,
                             child: TextField(
                               controller: _searchController,
@@ -231,7 +423,7 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                                         },
                                       )
                                     : null,
-                                hintText: 'Tìm kiếm theo tên, mã thuốc...',
+                                hintText: 'Tìm theo nhà cung cấp, ghi chú, thuốc...',
                                 hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
                                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBorderColor)),
@@ -241,13 +433,11 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                           ),
                           const SizedBox(width: 16),
                           _buildStatusDropdown(),
-                          const SizedBox(width: 16),
-                          _buildCategoryDropdown(),
                         ],
                       ),
                     ),
 
-                    // 2. PHẦN HIỂN THỊ DANH SÁCH CHÍNH KHỚP 100% THEO FILE MẪU
+                    // 2. PHẦN BẢNG DỮ LIỆU CHÍNH ĐỒNG BỘ CHUẨN ĐƠN NHẬP KHO
                     _isLoading
                         ? const Center(
                             child: Padding(
@@ -255,24 +445,24 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                               child: CircularProgressIndicator(color: kPrimaryBlue),
                             ),
                           )
-                        : displayMedicines.isEmpty
+                        : displayImports.isEmpty
                             ? const Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(60.0),
-                                  child: Text('Không tìm thấy dữ liệu thuốc phù hợp với bộ lọc!', style: TextStyle(color: Colors.grey)),
+                                  child: Text('Không tìm thấy hóa đơn nhập kho nào phù hợp!', style: TextStyle(color: Colors.grey)),
                                 ),
                               )
                             : Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 24),
                                 child: Table(
                                   columnWidths: const {
-                                    0: FlexColumnWidth(1.5), 
+                                    0: FlexColumnWidth(2.2), 
                                     1: FlexColumnWidth(1.0), 
-                                    2: FlexColumnWidth(2.5), 
+                                    2: FlexColumnWidth(1.4), 
                                     3: FlexColumnWidth(1.8), 
-                                    4: FlexColumnWidth(0.8), 
-                                    5: FlexColumnWidth(1.2), 
-                                    6: FlexColumnWidth(1.2), 
+                                    4: FlexColumnWidth(1.2), 
+                                    5: FlexColumnWidth(1.3), 
+                                    6: FlexColumnWidth(1.8), 
                                   },
                                   defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                                   children: [
@@ -281,90 +471,67 @@ class _MedicineInventoryState extends State<MedicineInventory> {
                                         border: Border(bottom: BorderSide(color: kBorderColor, width: 1.5)),
                                       ),
                                       children: [
-                                        _buildHeaderCell('Mã thuốc'),
-                                        _buildHeaderCell('Hình ảnh'),
-                                        _buildHeaderCell('Tên thuốc'),
-                                        _buildHeaderCell('Tên phân loại'), 
-                                        _buildHeaderCell('Đơn vị'),
-                                        _buildHeaderCell('Giá bán'),
+                                        _buildHeaderCell('Nhà cung cấp'),
+                                        _buildHeaderCell('Số mặt hàng'),
+                                        _buildHeaderCell('Tổng số tiền'), 
+                                        _buildHeaderCell('Ghi chú'),
+                                        _buildHeaderCell('Người lập'),
                                         _buildHeaderCell('Trạng thái'),
+                                        _buildHeaderCell('Thao tác'),
                                       ],
                                     ),
-                                    ...displayMedicines.map((med) => TableRow(
+                                    ...displayImports.map((order) => TableRow(
                                       decoration: const BoxDecoration(
                                         border: Border(bottom: BorderSide(color: kBorderColor, width: 1)),
                                       ),
                                       children: [
                                         Padding(
                                           padding: const EdgeInsets.symmetric(vertical: 16),
-                                          child: UnconstrainedBox(
-                                            alignment: Alignment.centerLeft,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(6)),
-                                              child: Text(
-                                                med.medicineCode.isNotEmpty ? med.medicineCode : 'Chưa có mã',
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF475569)),
-                                              ),
-                                            ),
+                                          child: Text(
+                                            _getSupplierNameById(order.supplierId),
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Container(
-                                              width: 50,
-                                              height: 50,
-                                              color: const Color(0xFFF8FAFC),
-                                              child: (med.imageUrl != null && med.imageUrl!.isNotEmpty)
-                                                  ? Image.network(
-                                                      (() {
-                                                        final rawUrl = med.imageUrl!;
-                                                        if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-                                                          return rawUrl;
-                                                        }
-                                                        try {
-                                                          final baseUri = Uri.parse(kBaseUrl);
-                                                          return baseUri.resolve(rawUrl).toString();
-                                                        } catch (e) {
-                                                          return '';
-                                                        }
-                                                      })(),
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return const Icon(Icons.image_not_supported, color: Colors.black26);
-                                                      },
-                                                    )
-                                                  : const Icon(Icons.medication, color: kPrimaryBlue, size: 24),
-                                            ),
-                                          ),
-                                        ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(med.medicineName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
-                                            const SizedBox(height: 2),
-                                            Text(med.dosage, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                                          ],
-                                        ),
-                                        Builder(
-                                          builder: (context) {
-                                            final foundCats = _categories.where((cat) => cat.id.toString() == med.categoryId);
-                                            final catName = foundCats.isNotEmpty ? foundCats.first.categoryname : 'Chưa phân loại';
-                                            return Text(
-                                              catName, 
-                                              style: const TextStyle(color: Color(0xFF2563EB), fontSize: 13, fontWeight: FontWeight.w500, overflow: TextOverflow.ellipsis),
-                                            );
-                                          },
-                                        ),
-                                        Text(med.unit, style: const TextStyle(color: Color(0xFF475569), fontSize: 14)),
+                                        Text('${order.products.length} loại', style: const TextStyle(color: Color(0xFF475569), fontSize: 14)),
                                         Text(
-                                          '${med.sellingPrice.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{3})(?=\d)'), (Match m) => '${m[1]}.')} đ',
+                                          '${order.totalAmount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{3})(?=\d)'), (Match m) => '${m[1]}.')} đ',
                                           style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 14),
                                         ),
-                                        _buildStatusBadge(med.status),
+                                        Text(order.note ?? '---', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13), overflow: TextOverflow.ellipsis, maxLines: 2),
+                                        Text(order.createdBy ?? 'Hệ thống', style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                                        _buildStatusBadge(order.status),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Row(
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.visibility_outlined, color: kPrimaryBlue, size: 20),
+                                                tooltip: 'Xem chi tiết đơn',
+                                                onPressed: () => _showOrderDetailsDialog(order),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              order.status == 'Chờ duyệt' 
+                                                ? ElevatedButton.icon(
+                                                    onPressed: () => _approveImportOrder(order),
+                                                    icon: const Icon(Icons.check_circle_outline, size: 14, color: Colors.white),
+                                                    label: const Text('Duyệt', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.green,
+                                                      elevation: 0,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                    ),
+                                                  )
+                                                : const Row(
+                                                    children: [
+                                                      Icon(Icons.verified, color: Colors.blue, size: 16),
+                                                      SizedBox(width: 4),
+                                                      Text('Đã đóng', style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.w500)),
+                                                    ],
+                                                  ),
+                                            ],
+                                          ),
+                                        ),
                                       ],
                                     )).toList(),
                                   ],
@@ -410,7 +577,7 @@ class _MedicineInventoryState extends State<MedicineInventory> {
               setState(() => _selectedStatus = newValue);
             }
           },
-          items: <String>['Tất cả trạng thái', 'Đang bán', 'Tạm dừng']
+          items: <String>['Tất cả trạng thái', 'Chờ duyệt', 'Đã duyệt', 'Đã nhập kho']
               .map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
@@ -419,64 +586,28 @@ class _MedicineInventoryState extends State<MedicineInventory> {
     );
   }
 
-  Widget _buildCategoryDropdown() {
-    List<DropdownMenuItem<String>> menuItems = [
-      const DropdownMenuItem(value: "Tất cả danh mục", child: Text("Tất cả danh mục")),
-    ];
-
-    for (var cat in _categories) {
-      if (cat.id != null && cat.categoryname != null) {
-        menuItems.add(DropdownMenuItem(
-          value: cat.id.toString(),
-          child: Text(cat.categoryname.toString()),
-        ));
-      }
-    }
-
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: kBorderColor),
-        color: Colors.white,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategoryId,
-          style: const TextStyle(color: Color(0xFF334155), fontSize: 13, fontWeight: FontWeight.w500),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF64748B)),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() => _selectedCategoryId = newValue);
-            }
-          },
-          items: menuItems,
-        ),
-      ),
-    );
-  }
-
   Widget _buildStatusBadge(String status) {
     Color bgColor;
     Color textColor;
-    String textLabel;
+    String textLabel = status;
 
-    if (status == 'active') {
+    if (status == 'Chờ duyệt') {
+      bgColor = const Color(0xFFFEF3C7); 
+      textColor = const Color(0xFFD97706); 
+    } else if (status == 'Đã duyệt' || status == 'Đã nhập kho') {
       bgColor = const Color(0xFFDCFCE7); 
       textColor = const Color(0xFF15803D); 
-      textLabel = 'Đang bán';
+      textLabel = 'Đã hoàn tất';
     } else {
-      bgColor = const Color(0xFFFEE2E2); 
-      textColor = const Color(0xFFB91C1C); 
-      textLabel = 'Tạm dừng';
+      bgColor = const Color(0xFFF1F5F9); 
+      textColor = const Color(0xFF475569); 
     }
 
     return UnconstrainedBox(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
         child: Text(
           textLabel,
           style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 12),

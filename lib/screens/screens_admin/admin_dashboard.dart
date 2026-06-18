@@ -52,52 +52,69 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
 
-  List<Widget> get _pages => [
+  late final List<Widget> _pages = [
+  // --- DASHBOARD ---
+  _DashboardStatsView(onNavigate: _navigateToTab), // 0
 
-    _DashboardStatsView(onNavigate: _navigateToTab),
-    const DoctorListScreen(),
-    const SpecialtyManagerScreen(),
-    const RoomManagerScreen(),
-    AdminAppointmentsScreen(),
-    const AdminSliderManagerScreen(),
-    const PromotionManagerScreen(),
-    const PremiumPackageScreen(),
-    const AdvertisementScreen(),
-    const SalaryManagerScreen(),
-    const RevenueReportScreen(),
-    const StaffManagerScreen(),
-    PatientListScreen(),
-    MedicineInventory(),
-    const ManagePriceScreen(),
-    MonthlyReportScreen(),
-    UserManagementScreen(),
-    const MedicalRecordsScreen(showAppBar: false, showDrawer: false),
-    const AddSupplierPage(),
-  ];
+  // --- NHÂN SỰ & NGƯỜI DÙNG ---
+  UserManagementScreen(), // 1 (Đổi từ DoctorListScreen thành Quản lý tài khoản)
+  const StaffManagerScreen(), // 2
+  const DoctorListScreen(), // 3
+  const PatientListScreen(), // 4
+  const SalaryManagerScreen(), // 5
 
+  // --- CƠ SỞ VẬT CHẤT & KHÁM ---
+  const SpecialtyManagerScreen(), // 6
+  const RoomManagerScreen(), // 7
+  const AdminAppointmentsScreen(), // 8
+  MedicineInventory(), // 9
+  const AddSupplierPage(), // 10
+  const ManagePriceScreen(), // 11
+  const MedicalRecordsScreen(showAppBar: false, showDrawer: false), // 12
+
+  // --- MARKETING & DỊCH VỤ ---
+  const AdminSliderManagerScreen(), // 13
+  const PromotionManagerScreen(), // 14
+  const PremiumPackageScreen(), // 15
+  const AdvertisementScreen(), // 16
+
+  // --- TÀI CHÍNH & BẢO MẬT ---
+  const RevenueReportScreen(), // 17
+  MonthlyReportScreen(), // 18
+  const Placeholder(), // 19 - Thêm widget tạm thời cho trang Bảo mật hệ thống/Blockchain (bạn có thể thay bằng screen tương ứng)
+];
 
   final List<String> _titles = [
-    'Tổng Quan Hệ Thống',
-    'Quản Lý Tài Khoản',
-    'Quản Lý Bác Sĩ',
-    'Quản Lý Chuyên Khoa',
-    'Quản Lý Phòng Khám',
-    'Lịch Hẹn',
-    'Banner Slider',
-    'Quản Lý Khuyến Mãi',
-    'Gói Premium',
-    'Quảng Cáo',
-    'Lương & Thưởng',
-    'Báo Cáo Doanh Thu',
-    'Quản Lý Nhân Viên',
-    'Quản Lý Bệnh Nhân',
-    'Quản Lý Kho Thuốc',
-    'Quản Lý Bảng Giá',
-    'Báo Cáo Thống Kê',
-    'Bảo Mật Hệ Thống',
-    'Hồ Sơ Bệnh Án',
-     'Nhà cung cấp'
-  ];
+  // --- DASHBOARD ---
+  'Tổng Quan Hệ Thống', // 0
+
+  // --- NHÂN SỰ & NGƯỜI DÙNG ---
+  'Quản Lý Tài Khoản', // 1
+  'Quản Lý Nhân Viên', // 2
+  'Quản Lý Bác Sĩ', // 3
+  'Quản Lý Bệnh Nhân', // 4
+  'Lương & Thưởng', // 5
+
+  // --- CƠ SỞ VẬT CHẤT & KHÁM ---
+  'Quản Lý Chuyên Khoa', // 6
+  'Quản Lý Phòng Khám', // 7
+  'Lịch Hẹn', // 8
+  'Quản Lý Kho Thuốc', // 9
+  'Nhà cung cấp', // 10
+  'Quản Lý Bảng Giá', // 11
+  'Hồ Sơ Bệnh Án', // 12
+
+  // --- MARKETING & DỊCH VỤ ---
+  'Banner Slider', // 13
+  'Quản Lý Khuyến Mãi', // 14
+  'Gói Premium', // 15
+  'Quảng Cáo', // 16
+
+  // --- TÀI CHÍNH & BẢO MẬT ---
+  'Báo Cáo Doanh Thu', // 17
+  'Báo Cáo Thống Kê', // 18
+  'Bảo Mật Hệ Thống', // 19
+];
 
   void _onSelectMenu(int index) {
     setState(() => _selectedIndex = index);
@@ -117,85 +134,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kWebBg,
-      appBar: AppBar(
-        backgroundColor: kSurface,
-        elevation: 0,
-        shape: const Border(bottom: BorderSide(color: kBorder, width: 1)),
-        iconTheme: const IconThemeData(color: kTextMain),
-        title: Text(
-          _titles[_selectedIndex],
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, color: kTextMain, fontSize: 18),
-        ),
-        actions: [
-          // Thêm Badges trạng thái cho hệ thống
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                  color: kAccentBlockchain.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border:
-                      Border.all(color: kAccentBlockchain.withOpacity(0.3))),
-              child: Row(
-                children: [
-                   _buildSectionTitle("DASHBOARD"),
-                  _buildDrawerItem(0, Icons.dashboard_rounded, 'Bảng Điều Khiển'),
-                  _buildSectionTitle("NHÂN SỰ & NGƯỜI DÙNG"),
-                  _buildDrawerItem(1, Icons.manage_accounts_rounded, 'Quản Lý Tài Khoản'),
-                  _buildDrawerItem(12, Icons.badge_rounded, 'Quản Lý Nhân Viên'),
-                  _buildDrawerItem(2, Icons.medical_information_rounded, 'Quản Lý Bác Sĩ (Duyệt)'),
-                  _buildDrawerItem(13, Icons.people_outline_rounded, 'Quản Lý Bệnh Nhân'),
-                  _buildDrawerItem(10, Icons.monetization_on_rounded, 'Lương & Thưởng'),
-                  const SizedBox(height: 15),
-                  
-                  _buildSectionTitle("CƠ SỞ VẬT CHẤT & KHÁM"),
-                  _buildDrawerItem(3, Icons.local_hospital_rounded, 'Chuyên Khoa'),
-                  _buildDrawerItem(4, Icons.meeting_room_rounded, 'Phòng Khám'),
-                  _buildDrawerItem(5, Icons.calendar_month_rounded, 'Lịch Hẹn & Tối Ưu'),
-                  _buildDrawerItem(14, Icons.inventory_2_rounded, 'Quản Kho Thuốc, VT'),
-                  _buildDrawerItem(15, Icons.price_change_rounded, 'Quản Lý Bảng Giá'),
-                  _buildDrawerItem(18, Icons.description_rounded, 'Hồ sơ bệnh án'),
-                  const SizedBox(height: 15),
-
-                  _buildSectionTitle("MARKETING & DỊCH VỤ"),
-                  _buildDrawerItem(19, Icons.view_list_rounded, 'Nhà cung cấp'),
-                  _buildDrawerItem(6, Icons.view_carousel_rounded, 'Banner Slider'),
-                  _buildDrawerItem(7, Icons.discount_rounded, 'Khuyến Mãi'),
-                  _buildDrawerItem(8, Icons.workspace_premium_rounded, 'Gói Premium'),
-                  _buildDrawerItem(9, Icons.campaign_rounded, 'Quảng Cáo'),
-                  const SizedBox(height: 15),
-
-                  _buildSectionTitle("TÀI CHÍNH & HỆ THỐNG"),
-                  _buildDrawerItem(11, Icons.bar_chart_rounded, 'Báo Cáo Doanh Thu'),
-                  _buildDrawerItem(16, Icons.pie_chart_rounded, 'Báo Cáo Thống Kê'),
-                  _buildDrawerItem(17, Icons.security_rounded, 'Bảo Mật Hệ Thống'),
-
-                  Icon(Icons.shield, color: kAccentBlockchain, size: 14),
-                  SizedBox(width: 6),
-                  Text("Blockchain Active",
-                      style: TextStyle(
-                          color: kAccentBlockchain,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
+  return Scaffold(
+    backgroundColor: kWebBg,
+    appBar: AppBar(
+      backgroundColor: kSurface,
+      elevation: 0,
+      shape: const Border(bottom: BorderSide(color: kBorder, width: 1)),
+      iconTheme: const IconThemeData(color: kTextMain),
+      title: Text(
+        _titles[_selectedIndex],
+        style: const TextStyle(
+            fontWeight: FontWeight.bold, color: kTextMain, fontSize: 18),
+      ),
+      actions: [
+        // --- CHỈ GIỮ LẠI BADGE BLOCKCHAIN TRẠNG THÁI GỌN GÀNG ---
+        Center(
+          child: Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+                color: kAccentBlockchain.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kAccentBlockchain.withOpacity(0.3))),
+            child: Row(
+              mainAxisSize: MainAxisSize.min, // Đảm bảo row không chiếm hết màn hình
+              children: [
+                Icon(Icons.shield, color: kAccentBlockchain, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  "Blockchain Active",
+                  style: TextStyle(
+                      color: kAccentBlockchain,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ),
-          IconButton(
-              icon: const Icon(Icons.notifications_none_rounded),
-              onPressed: () {}),
-          const SizedBox(width: 16),
-        ],
-      ),
-      drawer: _buildModernDrawer(),
-      body: _pages[_selectedIndex],
-    );
-  }
-
+        ),
+        IconButton(
+            icon: const Icon(Icons.notifications_none_rounded),
+            onPressed: () {}),
+        const SizedBox(width: 16),
+      ],
+    ),
+    // Drawer này sẽ hoạt động hoàn hảo khi bấm vào nút menu 3 gạch trên AppBar
+    drawer: _buildModernDrawer(), 
+    body: _pages[_selectedIndex],
+  );
+}
   Widget _buildModernDrawer() {
     return Drawer(
       backgroundColor: kPrimaryDark, // Nền Dark Blue
@@ -242,46 +229,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
               padding: const EdgeInsets.symmetric(
                   vertical: 16, horizontal: 12), // Giảm padding ngang một chút
               physics: const BouncingScrollPhysics(),
-              children: [
-                _buildSectionTitle("DASHBOARD"),
-                _buildDrawerItem(0, Icons.dashboard_rounded, 'Bảng Điều Khiển'),
-                _buildSectionTitle("NHÂN SỰ & NGƯỜI DÙNG"),
-                _buildDrawerItem(
-                    1, Icons.manage_accounts_rounded, 'Quản Lý Tài Khoản'),
-                _buildDrawerItem(12, Icons.badge_rounded, 'Quản Lý Nhân Viên'),
-                _buildDrawerItem(
-                    2, Icons.medical_information_rounded, 'Quản Lý Bác Sĩ'),
-                _buildDrawerItem(
-                    13, Icons.people_outline_rounded, 'Quản Lý Bệnh Nhân'),
-                _buildDrawerItem(
-                    10, Icons.monetization_on_rounded, 'Lương & Thưởng'),
-                _buildSectionTitle("CƠ SỞ VẬT CHẤT & KHÁM"),
-                _buildDrawerItem(
-                    3, Icons.local_hospital_rounded, 'Chuyên Khoa'),
-                _buildDrawerItem(4, Icons.meeting_room_rounded, 'Phòng Khám'),
-                _buildDrawerItem(
-                    5, Icons.calendar_month_rounded, 'Lịch Hẹn & Tối Ưu'),
-                _buildDrawerItem(
-                    14, Icons.inventory_2_rounded, 'Quản Kho Thuốc, VT'),
-                _buildDrawerItem(
-                    15, Icons.price_change_rounded, 'Bảng Giá Dịch Vụ'),
-                _buildDrawerItem(
-                    18, Icons.description_rounded, 'Hồ sơ bệnh án (EMR)'),
-                _buildSectionTitle("MARKETING & DỊCH VỤ"),
-                _buildDrawerItem(
-                    6, Icons.view_carousel_rounded, 'Banner Slider'),
-                _buildDrawerItem(7, Icons.discount_rounded, 'Khuyến Mãi'),
-                _buildDrawerItem(
-                    8, Icons.workspace_premium_rounded, 'Gói Premium'),
-                _buildDrawerItem(9, Icons.campaign_rounded, 'Quảng Cáo'),
-                _buildSectionTitle("TÀI CHÍNH & BẢO MẬT"),
-                _buildDrawerItem(
-                    11, Icons.bar_chart_rounded, 'Báo Cáo Doanh Thu'),
-                _buildDrawerItem(
-                    16, Icons.pie_chart_rounded, 'Báo Cáo Thống Kê'),
-                _buildDrawerItem(
-                    17, Icons.security_rounded, 'Bảo Mật Blockchain'),
-              ],
+             children: [
+  _buildSectionTitle("DASHBOARD"),
+  _buildDrawerItem(0, Icons.dashboard_rounded, 'Bảng Điều Khiển'),
+  
+  _buildSectionTitle("NHÂN SỰ & NGƯỜI DÙNG"),
+  _buildDrawerItem(1, Icons.manage_accounts_rounded, 'Quản Lý Tài Khoản'),
+  _buildDrawerItem(2, Icons.badge_rounded, 'Quản Lý Nhân Viên'),
+  _buildDrawerItem(3, Icons.medical_information_rounded, 'Quản Lý Bác Sĩ'),
+  _buildDrawerItem(4, Icons.people_outline_rounded, 'Quản Lý Bệnh Nhân'),
+  _buildDrawerItem(5, Icons.monetization_on_rounded, 'Lương & Thưởng'),
+  
+  _buildSectionTitle("CƠ SỞ VẬT CHẤT & KHÁM"),
+  _buildDrawerItem(6, Icons.local_hospital_rounded, 'Chuyên Khoa'),
+  _buildDrawerItem(7, Icons.meeting_room_rounded, 'Phòng Khám'),
+  _buildDrawerItem(8, Icons.calendar_month_rounded, 'Lịch Hẹn & Tối Ưu'),
+  _buildDrawerItem(9, Icons.inventory_2_rounded, 'Quản Kho Thuốc, VT'),
+  _buildDrawerItem(10, Icons.view_list_rounded, 'Nhà cung cấp'),
+  _buildDrawerItem(11, Icons.price_change_rounded, 'Bảng Giá Dịch Vụ'),
+  _buildDrawerItem(12, Icons.description_rounded, 'Hồ sơ bệnh án (EMR)'),
+  
+  _buildSectionTitle("MARKETING & DỊCH VỤ"),
+  _buildDrawerItem(13, Icons.view_carousel_rounded, 'Banner Slider'),
+  _buildDrawerItem(14, Icons.discount_rounded, 'Khuyến Mãi'),
+  _buildDrawerItem(15, Icons.workspace_premium_rounded, 'Gói Premium'),
+  _buildDrawerItem(16, Icons.campaign_rounded, 'Quảng Cáo'),
+  
+  _buildSectionTitle("TÀI CHÍNH & BẢO MẬT"),
+  _buildDrawerItem(17, Icons.bar_chart_rounded, 'Báo Cáo Doanh Thu'),
+  _buildDrawerItem(18, Icons.pie_chart_rounded, 'Báo Cáo Thống Kê'),
+  _buildDrawerItem(19, Icons.security_rounded, 'Bảo Mật Blockchain'),
+],
             ),
           ),
           Padding(

@@ -29,6 +29,7 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
   bool _isInNhanThuoc = true;    
   bool _isLuuBlockchain = true;   
   bool _isLoading = false;
+  List<dynamic> _dispenseMedicines = [];
 
   Future<void> _submitDispenseData() async {
     setState(() => _isLoading = true);
@@ -223,10 +224,15 @@ class _DispenseMedicineDialogState extends State<DispenseMedicineDialog> {
           prescription: widget.prescription.toJson(), 
           medicines: widget.prescription.medicines.map((m) => m.toJson()).toList(),
           dateDisplay: widget.dateDisplay, 
+          onMedicinesUpdated: (updatedList) {
+            _dispenseMedicines = updatedList;
+          },
         );
       case 1:
         return Step2Page(
-          medicines: widget.prescription.medicines.map((m) => m.toJson()).toList(),
+        medicines: _dispenseMedicines.isNotEmpty 
+              ? _dispenseMedicines 
+              : widget.prescription.medicines.map((m) => m.toJson()).toList(),
         );
       case 2:
         return Step3Page(

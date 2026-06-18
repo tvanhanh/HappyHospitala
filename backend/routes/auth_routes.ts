@@ -17,10 +17,13 @@ import { getAllMedicineCategories, createMedicineCategory } from "../controllers
 import { createSupplier ,deleteSupplier,updateSupplier,getAllSuppliers} from '../controllers/supplier_controller';
 import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine } from '../controllers/medicineController';
 import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescriptionStatus} from '../controllers/prescriptionController';
-import { createImportMedicne, getImportRecords } from '../controllers/importMedicneController';
+import { createImportMedicne, getImportRecords,approveImportBill } from '../controllers/importMedicneController';
 import { createBill, getBills, getBillById } from '../controllers/billController';
 import {getSentRequests,getReceivedRequests} from '../controllers/request_controller';
+import { getAllInventories, getInventoryById, reduceStockQuantity,checkMedicinesStock } from '../controllers/inventoryController';
 import { controllers } from 'chart.js';
+
+
 
 const router = Router();
 
@@ -94,6 +97,12 @@ router.get('/get_suppliers', verifyToken,getAllSuppliers);
 // importMedicine
  router.post("/create_importmedicine", verifyToken, createImportMedicne);
  router.get('/get_importmedicine',verifyToken, getImportRecords);
+ router.put('/update_status_import',verifyToken, approveImportBill);
+// inventories
+router.get('/get_inventories',verifyToken, getAllInventories);
+router.get('/get_inventoriesbyId/:id',verifyToken, getInventoryById);
+router.post('/reduce',verifyToken, reduceStockQuantity);
+router.post('/check-stock' ,verifyToken, checkMedicinesStock);
  //bill
  router.post("/create_bill", verifyToken, createBill);
  router.get('/get_bills',verifyToken, getBills);

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../models/import_model.dart';
+import '../../models/importMedicine_model.dart';
 import '../../widgets/pharmacy/import_detail_dialog.dart';
 import '../../widgets/pharmacy/CreateImportDialog.dart';
-import '../../services/api_import.dart';
+import '../../services/api_importMedicine.dart';
 import '../../services/api_supplier.dart';
 import '../../widgets/pharmacy/pharmaCase_drawer.dart';
 class MedicineImportsPage extends StatefulWidget {
@@ -265,9 +265,13 @@ class _MedicineImportsPageState extends State<MedicineImportsPage> {
   }
 
   Widget _buildKpiSection() {
-    int totalCount = _allImports.length;
-    int completedCount = _allImports.where((e) => ((e as dynamic).status ?? 'Hoàn thành') == 'Hoàn thành').length;
-    int pendingCount = totalCount - completedCount;
+  int totalCount = _allImports.length;
+    // 1. Đếm chính xác số phiếu Hoàn thành
+    int completedCount = _allImports.where((e) => e.status.trim() == 'Hoàn thành').length;
+    // 2. Đếm chính xác số phiếu Đã duyệt
+    int approvedCount = _allImports.where((e) => e.status.trim() == 'Đã duyệt').length;
+    // 3. Đếm số phiếu Chờ duyệt (hoặc các trạng thái còn lại nếu có)
+    int pendingCount = _allImports.where((e) => e.status.trim() == 'Chờ duyệt').length;
 
     return Row(
       children: [
@@ -276,6 +280,8 @@ class _MedicineImportsPageState extends State<MedicineImportsPage> {
         Expanded(child: _buildKpiCard('Đã hoàn thành', '$completedCount', const Color(0xFFECFDF5), kSuccessGreen)),
         const SizedBox(width: 20),
         Expanded(child: _buildKpiCard('Chờ duyệt / Khác', '$pendingCount', const Color(0xFFFFFBEB), kWarningOrange)),
+        const SizedBox(width: 20),
+        Expanded(child: _buildKpiCard('Đã duyệt / Khác', '$approvedCount', const Color(0xFFFFFBEB), kWarningOrange)),
       ],
     );
   }

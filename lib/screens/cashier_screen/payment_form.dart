@@ -5,8 +5,6 @@ import '../../models/bill_model.dart';
 import '../../services/api_bill.dart';
 import '../../services/api_prescription.dart';
 
-
-
 class PaymentForm extends StatefulWidget {
   final PrescriptionModel? prescription; 
 
@@ -19,8 +17,8 @@ class PaymentForm extends StatefulWidget {
 class _PaymentFormState extends State<PaymentForm> {
   String selectedMethod = 'Tiền mặt';
   final TextEditingController _cashController = TextEditingController();
+  bool _isLoading = false; // 🔥 Thêm biến trạng thái để chặn bấm trùng lặp
   
-  // Hàm trợ giúp để định dạng số tiền thành chuỗi "100,000đ"
   String _formatMoney(int amount) {
     final formatter = NumberFormat('#,###');
     return '${formatter.format(amount)}đ';
@@ -30,6 +28,105 @@ class _PaymentFormState extends State<PaymentForm> {
   void dispose() {
     _cashController.dispose();
     super.dispose();
+  }
+
+  // 🔥 HÀM XỬ LÝ THANH TOÁN ĐÃ ĐƯỢC ĐỒNG BỘ VÀ TỐI ƯU HÓA CHUẨN XÁC
+  void _handlePaymentConfirm(
+    PrescriptionModel prescription, 
+    int totalServices, 
+    int totalMedicines, 
+    int finalTotal
+  ) async {
+    if (_isLoading) return; // Nếu đang chạy thì block không cho click tiếp
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    String nowRealTime = DateFormat('HH:mm dd/MM/yyyy').format(DateTime.now());
+    
+    final billData = BillModel(
+      patientId: prescription.patientId,
+      patientName: prescription.patientName,
+      timeArrived: nowRealTime,
+      paymentMethod: selectedMethod,
+      cashGiven: int.tryParse(_cashController.text) ?? 0,
+      totalServicesPrice: totalServices,
+      totalMedicinesPrice: totalMedicines,
+      finalTotalPrice: finalTotal,
+      medicines: prescription.medicines.map((med) {
+        return BillMedicineItem(
+          id: med.medicineId ?? '',
+          name: med.name,
+          quantity: med.quantity,
+          sellingPrice: med.sellingPrice ?? 0,
+          unit: (med.unit != null && med.unit!.isNotEmpty) ? med.unit! : 'Đơn vị',
+        );
+      }).toList(),
+      services: [], 
+    );
+
+    try {
+      // 1. Gọi API tạo hóa đơn và khấu trừ kho thuốc ở Backend
+      final savedBill = await ApiBill.createBill(billData);
+      
+      if (!mounted) return;
+
+      if (savedBill != null) {
+        // 2. Nếu hóa đơn tạo và trừ kho tốt, cập nhật trạng thái đơn thuốc sang 'paid'
+        if (prescription.id != null) {
+          await ApiPrescription.updatePrescriptionStatus(prescription.id!, 'paid');
+        }
+        
+        if (!mounted) return;
+        Navigator.pop(context); // Đóng Drawer form thanh toán lại
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🎉 Thanh toán & xuất kho thành công ${_formatMoney(finalTotal)} cho bệnh nhân ${prescription.patientName}!'), 
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Trường hợp API không sập nhưng trả về null dữ liệu do logic lỗi chung
+        _showErrorDialog('Lưu hóa đơn thất bại. Vui lòng kiểm tra lại cấu trúc dữ liệu!');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      // 3. 🔥 ĐÓN NHẬN CẢNH BÁO THIẾU KHO: Hiện hộp thoại trực quan cho Dược sĩ biết thuốc nào hết
+      String errorMsg = e.toString().replaceAll("Exception: ", "");
+      _showErrorDialog(errorMsg);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false; // Mở khóa nút bấm sau khi xử lý xong
+        });
+      }
+    }
+  }
+
+  // Hàm bổ trợ hiển thị hộp thoại thông báo lỗi chi tiết từ Server
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text("Lỗi xử lý hệ thống"),
+          ],
+        ),
+        content: Text(message, style: const TextStyle(fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Xác nhận"),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -47,101 +144,21 @@ class _PaymentFormState extends State<PaymentForm> {
     String patientId = p.patientId;     
     String timeArrived = "Hôm nay"; 
     
-    List<dynamic> services = []; // Mảng dịch vụ (nếu có)
+    List<dynamic> services = []; 
     List<PrescribedMedicine> medicines = p.medicines;
 
     int totalServicesPrice = 0; 
     
     int totalMedicinesPrice = medicines.fold(0, (sum, item) {
       int qty = int.tryParse(item.quantity) ?? 0;
-      int pricePerUnit = 0;
-      if (item.sellingPrice != null) {
-        pricePerUnit = item.sellingPrice!;
-      }
-      String activeUnit = 'Đơn vị'; 
-         if (item.unit != null && item.unit!.isNotEmpty) {
-             activeUnit = item.unit!;
-                    }
-      
+      int pricePerUnit = item.sellingPrice ?? 0;
       return sum + (pricePerUnit * qty);
     });
     
-    // Nếu Backend đã tính sẵn tổng p.totalPrice thì lấy, ngược lại tự cộng tổng
     int finalTotalPrice = (p.totalPrice != null && p.totalPrice! > 0) 
         ? p.totalPrice! 
         : (totalServicesPrice + totalMedicinesPrice);
 
-void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, int totalMedicines, int finalTotal) async {
- String nowRealTime = DateFormat('HH:mm dd/MM/yyyy').format(DateTime.now());
-  final billData = BillModel(
-    patientId: prescription.patientId,
-    patientName: prescription.patientName,
-    timeArrived: nowRealTime,
-    paymentMethod: selectedMethod,
-    cashGiven: int.tryParse(_cashController.text) ?? 0,
-    totalServicesPrice: totalServices,
-    totalMedicinesPrice: totalMedicines,
-    finalTotalPrice: finalTotal,
-    medicines: prescription.medicines.map((med) {
-      return BillMedicineItem(
-        id: med.medicineId ?? '',
-        name: med.name,
-        quantity: med.quantity,
-        sellingPrice: med.sellingPrice ?? 0,
-        unit: (med.unit != null && med.unit!.isNotEmpty) ? med.unit! : 'Đơn vị',
-      );
-    }).toList(),
-    services: [], 
-  );
-  Map<String, dynamic> jsonPayload = billData.toJson();
-  
-  print("DEBUG BILL JSON: $jsonPayload"); 
-
-  try {
-    final savedBill = await ApiBill.createBill(billData);
-    if (!mounted) return;
-
-    if (savedBill != null) {
-      if (prescription.id != null) {
-    await ApiPrescription.updatePrescriptionStatus(prescription.id!, 'paid');
-  }
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('🎉 Thanh toán thành công ${_formatMoney(finalTotal)} cho bệnh nhân ${prescription.patientName}!'), 
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      // Thông báo nếu Server trả về lỗi (Ví dụ: statusCode không phải 200/201)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Lưu hóa đơn thất bại. Vui lòng kiểm tra lại dữ liệu!'), 
-          backgroundColor: Colors.amber,
-        ),
-      );
-    }
-
-  } catch (e) {
-    // Bắt các lỗi mất kết nối mạng, lỗi Server sập (Crash 500)
-    if (!mounted) return;
-    print("💥 Lỗi khi thực hiện bấm nút xác nhận thanh toán: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('💥 Đã xảy ra lỗi kết nối: $e'), 
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
- 
-  Navigator.pop(context);
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('🎉 Thanh toán thành công ${_formatMoney(finalTotal)} cho bệnh nhân ${prescription.patientName}!'), 
-      backgroundColor: Colors.green,
-    ),
-  );
-}
     return Drawer(
       width: 500, 
       elevation: 0,
@@ -234,17 +251,16 @@ void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, in
                   if (medicines.isEmpty)
                     const Text('Đơn thuốc này không kèm thuốc', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   
-                  // 🟢 SỬA LỖI HIỂN THỊ TIỀN TỪNG VIÊN VÀ TỔNG TIỀN ĐƠN VỊ THUỐC TẠI ĐÂY
                   ...medicines.map((med) {
-                    int pricePerUnit = med.sellingPrice ?? 0; // Lấy giá bán thực tế từ Model
+                    int pricePerUnit = med.sellingPrice ?? 0; 
                     int qty = int.tryParse(med.quantity) ?? 0;
                     int itemTotal = pricePerUnit * qty;
                     String activeUnit = med.unit ?? 'Đơn vị';
 
                     return _buildMedicineItem(
                       med.name, 
-                    'Thuốc • ${_formatMoney(pricePerUnit)}/$activeUnit', 
-                      '$qty Đơn vị', 
+                      'Thuốc • ${_formatMoney(pricePerUnit)}/$activeUnit', 
+                      '$qty $activeUnit', 
                       _formatMoney(itemTotal)
                     );
                   }).toList(),
@@ -315,8 +331,8 @@ void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, in
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      // Xử lý in hóa đơn với dữ liệu thực tế
+                    onPressed: _isLoading ? null : () {
+                      // Xử lý in hóa đơn nếu cần
                     },
                     icon: const Icon(Icons.print_outlined, size: 18, color: Color(0xFF1E293B)),
                     label: const Text('In hóa đơn', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w600)),
@@ -330,14 +346,22 @@ void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, in
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                   onPressed: () => _handlePaymentConfirm(p, totalServicesPrice, totalMedicinesPrice, finalTotalPrice)
-                  ,style: ElevatedButton.styleFrom(
-    backgroundColor: const Color(0xFF070412),
-    padding: const EdgeInsets.symmetric(vertical: 16),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    elevation: 0,
-  ),
-                    child: const Text('Xác nhận', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: _isLoading 
+                        ? null 
+                        : () => _handlePaymentConfirm(p, totalServicesPrice, totalMedicinesPrice, finalTotalPrice),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF070412),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    child: _isLoading 
+                        ? const SizedBox(
+                            width: 20, 
+                            height: 20, 
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                          )
+                        : const Text('Xác nhận', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -348,14 +372,28 @@ void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, in
     );
   }
 
-  Widget _buildRowItem(String title, String value, {bool isBold = false, double fontSize = 14, Color? color}) {
+ Widget _buildRowItem(String title, String value, {bool isBold = false, double fontSize = 14, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.w400, color: isBold ? const Color(0xFF1E293B) : const Color(0xFF64748B))),
-          Text(value, style: TextStyle(fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.w600, color: color ?? const Color(0xFF1E293B))),
+          Text(
+            title, 
+            style: TextStyle(
+              fontSize: fontSize, 
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w400, 
+              color: isBold ? const Color(0xFF1E293B) : const Color(0xFF64748B),
+            ),
+          ),
+          Text(
+            value, 
+            style: TextStyle(
+              fontSize: fontSize, 
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w600, 
+              color: color ?? const Color(0xFF1E293B),
+            ),
+          ),
         ],
       ),
     );
@@ -388,7 +426,7 @@ void _handlePaymentConfirm(PrescriptionModel prescription, int totalServices, in
     bool isSelected = selectedMethod == method;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => selectedMethod = method),
+        onTap: _isLoading ? null : () => setState(() => selectedMethod = method),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(

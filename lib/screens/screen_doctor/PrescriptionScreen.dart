@@ -27,11 +27,12 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
   late TextEditingController _diagnosisController;
   final TextEditingController _quantityController = TextEditingController(text: "1");
   final TextEditingController _usageController = TextEditingController(text: "Uống sau ăn, ngày 2 lần");
+  final SearchController _searchController = SearchController(); // Điều khiển ô tìm kiếm thuốc
 
-  List<MedicineModel> _medicines = []; 
-  bool _isLoading = true;              
+  List<MedicineModel> _searchResults = []; // Lưu kết quả tìm kiếm thuốc tạm thời
+  bool _isSearchingMedicine = false;              
   bool _isSaving = false;              
-  String? _selectedMedicineId;         
+  MedicineModel? _selectedMedicine; // Lưu trực tiếp Object thuốc được chọn thay vì chỉ lưu ID
 
   final List<Map<String, dynamic>> _prescribedMedicines = []; 
 
@@ -41,17 +42,34 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     _diagnosisController = TextEditingController(
         text: widget.diagnosis.isNotEmpty ? widget.diagnosis : "Chưa có chẩn đoán"
     );
-    _loadMedicines();
   }
 
-  Future<void> _loadMedicines() async {
-    setState(() => _isLoading = true);
-    final data = await ApiMedicine.getAllMedicines(); 
-    setState(() {
-      _medicines = data;
-      _isLoading = false;
-    });
+  // Hàm gọi API tìm kiếm thuốc khi bác sĩ gõ chữ
+  Future<void> _searchMedicines(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+    
+    setState(() => _isSearchingMedicine = true);
+    try {
+      // Giả định API của bạn hỗ trợ truyền query tìm kiếm, ví dụ: ApiMedicine.searchMedicines(query)
+      // Nếu ApiMedicine chỉ có getAllMedicines(), bạn có thể lọc tạm ở client hoặc cập nhật API backend nhé!
+      final data = await ApiMedicine.getAllMedicines(); 
+      
+      setState(() {
+        // Lọc danh sách thuốc theo tên (bỏ qua hoa thường)
+        _searchResults = data.where((med) => 
+          med.medicineName.toLowerCase().contains(query.toLowerCase())
+        ).toList();
+      });
+    } catch (e) {
+      print("Lỗi tìm kiếm thuốc: $e");
+    } finally {
+      setState(() => _isSearchingMedicine = false);
+    }
   }
+
   Map<String, String?> _extractAppointmentData() {
     final dynamic appt = widget.appointment;
     if (appt == null) {
@@ -62,9 +80,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     }
 
     Map<String, dynamic> apptMap = {};
-    try {
-      apptMap = appt.toJson();
-    } catch (_) {}
+    try { apptMap = appt.toJson(); } catch (_) {}
 
     String getStringField(String key, String? Function() objectFallback) {
       if (apptMap.containsKey(key) && apptMap[key] != null) {
@@ -89,9 +105,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     
     String? phone = apptMap['patientPhone'] ?? apptMap['phone'] ?? apptMap['sdt'] ?? apptMap['telephone'];
     if (phone == null || phone.trim().isEmpty) { 
-      try { 
-        phone = appt.patientPhone ?? appt.phone ?? appt.sdt; 
-      } catch (_) {} 
+      try { phone = appt.patientPhone ?? appt.phone ?? appt.sdt; } catch (_) {} 
     }
 
     String? birthDate = apptMap['birthDate'] ?? apptMap['ngaySinh'];
@@ -113,7 +127,6 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       "healthInsurance": healthInsurance,
       "doctorId": doctorId.isEmpty ? "---" : doctorId,
       "doctorName": doctorName.isEmpty ? "Chưa rõ bác sĩ" : doctorName,
-      
     };
   }
 
@@ -143,7 +156,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         status: "pending",
         patientId: apptData["patientId"]!,
         patientName: apptData["patientName"]!,
-        patientPhone: apptData["phone"] != "---" ? apptData["phone"] : null, // Truyền SĐT động đi lưu
+        patientPhone: apptData["phone"] != "---" ? apptData["phone"] : null,
         birthDate: apptData["birthDate"],
         gender: apptData["gender"],
         healthInsurance: apptData["healthInsurance"], 
@@ -152,9 +165,8 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
           name: item['name'],
           quantity: item['quantity'],
           usage: item['usage'],
-          sellingPrice:item['sellingPrice'] ?? 0,
-          unit:item['unit'] ?? '',
-        
+          sellingPrice: item['sellingPrice'] ?? 0,
+          unit: item['unit'] ?? '',
         )).toList(),
         doctorId: apptData["doctorId"]!,
         doctorName: apptData["doctorName"]!,
@@ -172,7 +184,6 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         medicines: prescriptionData.medicines.map((m) => m.toJson()).toList(),
         doctorId: apptData["doctorId"],     
         doctorName: apptData["doctorName"],
-       
       ).timeout(const Duration(seconds: 15)); 
 
       if (success) {
@@ -207,38 +218,31 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     _diagnosisController.dispose();
     _quantityController.dispose();
     _usageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _addMedicineToPrescription() {
-    if (_selectedMedicineId == null) {
+    if (_selectedMedicine == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng chọn một loại thuốc từ danh sách!")),
+        const SnackBar(content: Text("Vui lòng tìm và chọn một loại thuốc từ danh sách!")),
       );
       return;
     }
 
-    final medicine = _medicines.firstWhere((element) => element.id == _selectedMedicineId);
- print("====== 🔍 LOG BƯỚC 1: CHỌN THUỐC TỪ KHO ======");
-  print("Thuốc được chọn: ${medicine.medicineName}");
-  try {
-    // Thử in ra thuộc tính của model thuốc xem nó có bị Null hay sai tên không
-    print("Giá bán trong kho (medicine.sellingPrice): ${medicine.sellingPrice}");
-  } catch (err) {
-    print("💥 LỖI: Không tìm thấy thuộc tính sellingPrice trong MedicineModel: $err");
-  }
-  print("=============================================");
     setState(() {
       _prescribedMedicines.add({
-        "id": medicine.id,
-        "name": medicine.medicineName, 
+        "id": _selectedMedicine!.id,
+        "name": _selectedMedicine!.medicineName, 
         "quantity": _quantityController.text,
         "usage": _usageController.text,
-        "sellingPrice": medicine.sellingPrice ?? 0,
-        "unit": medicine.unit ?? '',
+        "sellingPrice": _selectedMedicine!.sellingPrice ?? 0,
+        "unit": _selectedMedicine!.unit ?? '',
       });
       
-      _selectedMedicineId = null;
+      // Reset trường thông tin nhập sau khi thêm thành công
+      _selectedMedicine = null;
+      _searchController.clear();
       _quantityController.text = "1";
       _usageController.text = "Uống sau ăn, ngày 2 lần";
     });
@@ -260,6 +264,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Section
             Row(
               children: [
                 CircleAvatar(
@@ -298,7 +303,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             ),
             const SizedBox(height: 24),
 
-            // ================= THẺ CHI TIẾT THÔNG TIN BỆNH NHÂN ĐỘNG =================
+            // Patient Info Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -313,7 +318,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                 children: [
                   _buildPatientMetaItem("Bệnh nhân", apptData['patientName'] ?? "Không rõ", isHighlight: true),
                   _buildPatientMetaItem("Mã BN", apptData['patientId'] ?? "---"),
-                  _buildPatientMetaItem("SĐT", apptData['phone'] ?? "---"), // 🟢 Đã hiển thị SĐT động chính xác
+                  _buildPatientMetaItem("SĐT", apptData['phone'] ?? "---"), 
                   _buildPatientMetaItem("Ngày sinh", apptData['birthDate'] ?? "---"),
                   _buildPatientMetaItem("Giới tính", apptData['gender'] ?? "---"),
                   _buildPatientMetaItem("BHYT", apptData['healthInsurance'] ?? "---"),
@@ -340,13 +345,14 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             const Text("Chọn thuốc kê đơn", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
             const SizedBox(height: 16),
 
+            // Khu vực chọn thuốc (Đã tối ưu hóa sang Ô Tìm Kiếm)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: kBgColor, 
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: kBorderColor, style: BorderStyle.solid),
+                border: Border.all(color: kBorderColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,6 +360,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 🟢 CẢI TIẾN CHÍNH: Thay Dropdown bằng SearchAnchor tìm kiếm thông minh
                       Expanded(
                         flex: 3,
                         child: Column(
@@ -361,41 +368,55 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                           children: [
                             const Text("Tìm và chọn thuốc", style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w500)),
                             const SizedBox(height: 6),
-                            _isLoading
-                                ? const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: kPrimaryBlue)),
-                                        SizedBox(width: 12),
-                                        Text("Đang tải dữ liệu kho thuốc...", style: TextStyle(fontSize: 13, color: Colors.black45)),
-                                      ],
+                            SearchAnchor(
+                              searchController: _searchController,
+                              builder: (BuildContext context, SearchController controller) {
+                                return SearchBar(
+                                  controller: controller,
+                                  hintText: "Gõ tên thuốc để tìm...",
+                                  padding: const WidgetStatePropertyAll<EdgeInsets>(EdgeInsets.symmetric(horizontal: 16)),
+                                  onTap: () {
+                                    controller.openView();
+                                  },
+                                  onChanged: (value) {
+                                    _searchMedicines(value);
+                                  },
+                                  leading: const Icon(Icons.search, color: Colors.black45),
+                                  trailing: _isSearchingMedicine 
+                                    ? [const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))] 
+                                    : null,
+                                  elevation: const WidgetStatePropertyAll<double>(0),
+                                  shape: WidgetStatePropertyAll<OutlinedBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                      side: const BorderSide(color: kBorderColor),
                                     ),
-                                  )
-                                : DropdownButtonFormField<String>(
-                                    value: _selectedMedicineId,
-                                    decoration: InputDecoration(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kPrimaryBlue)),
-                                    ),
-                                    hint: const Text("Chọn thuốc từ kho...", style: TextStyle(fontSize: 14)),
-                                    items: _medicines.map((MedicineModel med) {
-                                      return DropdownMenuItem<String>(
-                                        value: med.id, 
-                                        child: Text(
-                                          "${med.medicineName} ${med.unit != null && med.unit!.isNotEmpty ? '(${med.unit})' : ''}",
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedMedicineId = value;
-                                      });
-                                    },
                                   ),
+                                );
+                              },
+                              suggestionsBuilder: (BuildContext context, SearchController controller) {
+                                // Nếu chưa gõ gì hoặc không tìm thấy kết quả
+                                if (_searchResults.isEmpty) {
+                                  return [
+                                    const ListTile(title: Text("Không tìm thấy thuốc phù hợp hoặc chưa nhập từ khóa"))
+                                  ];
+                                }
+                                
+                                return _searchResults.map((MedicineModel med) {
+                                  return ListTile(
+                                    title: Text(med.medicineName),
+                                    subtitle: Text("Đơn vị: ${med.unit ?? 'Chưa rõ'} - Giá: ${med.sellingPrice ?? 0}đ"),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedMedicine = med;
+                                        _searchController.text = "${med.medicineName} (${med.unit ?? ''})";
+                                      });
+                                      controller.closeView(med.medicineName);
+                                    },
+                                  );
+                                }).toList();
+                              },
+                            ),
                           ],
                         ),
                       ),
@@ -447,7 +468,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
                   const SizedBox(height: 24),
 
                   ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _addMedicineToPrescription,
+                    onPressed: _addMedicineToPrescription,
                     icon: const Icon(Icons.add, color: Colors.white, size: 18),
                     label: const Text(
                       "THÊM THUỐC VÀO ĐƠN",
@@ -465,6 +486,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             ),
             const SizedBox(height: 32),
 
+            // Danh sách thuốc đã chọn hiển thị phía dưới
             if (_prescribedMedicines.isNotEmpty) ...[
               const Text("Danh sách thuốc đã chọn", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
               const SizedBox(height: 12),

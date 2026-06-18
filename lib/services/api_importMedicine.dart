@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
-import '../models/import_model.dart';
+import '../models/importMedicine_model.dart';
 class ApiImport {
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,7 +41,7 @@ class ApiImport {
   try {
     final token = await _getToken();
     final res = await http.get(
-      Uri.parse("$baseUrl/api/auth/get_importmedicine"), // Thay đổi URL endpoint cho đúng với Backend của bạn
+      Uri.parse("$baseUrl/api/auth/get_importmedicine"), 
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -62,4 +62,32 @@ class ApiImport {
   }
   return [];
 }
+static Future<bool> updateStatus(String orderId, String status) async {
+    try {
+      final token = await _getToken();
+      final response = await http.put(
+        Uri.parse("$baseUrl/api/auth/update_status_import"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "id": orderId.toString(),     
+          "status": status,  
+        }),
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        print("🎉 Cập nhật trạng thái thành công: ${body['message'] ?? ''}");
+        return true;
+      } else {
+        final errorBody = jsonDecode(response.body);
+        print("💥 Lỗi Server (updateStatus): ${response.statusCode} - ${errorBody['message'] ?? ''}");
+        return false;
+      }
+    } catch (e) {
+      print("💥 Lỗi kết nối API updateStatus: $e");
+      return false;
+    }
+  }
 }

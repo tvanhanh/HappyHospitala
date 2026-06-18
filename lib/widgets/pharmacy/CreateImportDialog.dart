@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_medicine.dart';
 import '../../services/api_supplier.dart';
-import '../../models/import_model.dart';
-import '../../services/api_import.dart';
+import '../../models/importMedicine_model.dart';
+import '../../services/api_importMedicine.dart';
 
 class CreateImportDialog extends StatefulWidget {
-  // 🚀 ĐÃ SỬA: Biến onRefresh thành nullable để an toàn khi gọi từ nhiều nơi
   final VoidCallback? onRefresh;
   const CreateImportDialog({super.key, this.onRefresh});
 
@@ -19,6 +18,7 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
 
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _sellingPriceController = TextEditingController(); // 🔥 THÊM MỚI: Quản lý giá bán của lô
   final TextEditingController _batchController = TextEditingController();
   final TextEditingController _expiryController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
@@ -52,6 +52,7 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
   void dispose() {
     _quantityController.dispose();
     _priceController.dispose();
+    _sellingPriceController.dispose(); // 🔥 Giải phóng bộ nhớ
     _batchController.dispose();
     _expiryController.dispose();
     _noteController.dispose();
@@ -73,6 +74,8 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
         case 'supplierName': return item.supplierName;
         case 'currentStock': return item.currentStock;
         case 'unit': return item.unit;
+        case 'sellingPrice': return item.sellingPrice; // 🔥 Hỗ trợ lấy giá bán
+        case 'importPrice': return item.importPrice;   // 🔥 Hỗ trợ lấy giá nhập
         default: return null;
       }
     } catch (_) { return null; }
@@ -80,7 +83,6 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
 
   Future<void> _fetchDropdownAndUserData() async {
     try {
-      // 🚀 ĐÃ SỬA: Đọc chính xác thuộc tính 'name' từ SharedPreferences như bạn yêu cầu
       final prefs = await SharedPreferences.getInstance();
       _currentUserId = prefs.getString('userId') ?? prefs.getString('_id');
       _currentUserName = prefs.getString('name') ?? 'Nhân viên kho';
@@ -107,6 +109,7 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
 
     final qty = int.tryParse(_quantityController.text) ?? 0;
     final price = double.tryParse(_priceController.text) ?? 0;
+    final sellingPrice = double.tryParse(_sellingPriceController.text) ?? 0; // 🔥 Đọc giá bán lô từ ô nhập liệu
 
     if (qty <= 0 || price <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,6 +117,13 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
       );
       return;
     }
+
+    if (sellingPrice < price) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cảnh báo: Giá bán đang thấp hơn giá nhập kho!'), backgroundColor: Colors.amber),
+      );
+    }
+
     String detectedName = 'Thuốc không tên';
     if (_selectedMedicine != null) {
       detectedName = _getValue(_selectedMedicine, 'medicineName') ?? 
@@ -121,11 +131,13 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
                      'Thuốc không tên';
     }
 
+    // 🚀 ĐÃ NÂNG CẤP: Truyền cả sellingPrice (Giá bán riêng của lô) vào Model
     final newItem = ImportItem(
       medicineId: _selectedMedicineId,
       medicineName: detectedName,
       quantity: qty,
       importPrice: price,
+      sellingPrice: sellingPrice, // 🔥 Lưu vào model để đẩy lên Backend lưu vào Inventory
       batchNumber: _batchController.text.trim().isEmpty ? null : _batchController.text.trim(),
       expiryDate: _selectedExpiryDate,
     );
@@ -134,10 +146,12 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
       _addedItems.add(newItem);
       _billTotalAmount += (qty * price);
       
+      // Clear thông tin mặt hàng vừa thêm để sẵn sàng cho thuốc tiếp theo
       _selectedMedicineId = null;
       _selectedMedicine = null;
       _quantityController.clear();
       _priceController.clear();
+      _sellingPriceController.clear(); // 🔥 Xóa ô giá bán
       _batchController.clear();
       _expiryController.clear();
       _selectedExpiryDate = null;
@@ -168,77 +182,76 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
   }
 
   void _handleSubmit() async {
-  if (_selectedSupplierId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Vui lòng chọn Nhà cung cấp!'), backgroundColor: Colors.orange),
-    );
-    return;
-  }
-
- 
-  if (_selectedMedicineId != null && _quantityController.text.isNotEmpty && _priceController.text.isNotEmpty) {
-    final qty = int.tryParse(_quantityController.text) ?? 0;
-    final price = double.tryParse(_priceController.text) ?? 0;
-
-    if (qty > 0 && price > 0) {
-      String detectedName = 'Thuốc không tên';
-      if (_selectedMedicine != null) {
-        detectedName = _getValue(_selectedMedicine, 'medicineName') ?? 
-                       _getValue(_selectedMedicine, 'name') ?? 
-                       'Thuốc không tên';
-      }
-
-      final autoItem = ImportItem(
-        medicineId: _selectedMedicineId,
-        medicineName: detectedName,
-        quantity: qty,
-        importPrice: price,
-        batchNumber: _batchController.text.trim().isEmpty ? null : _batchController.text.trim(),
-        expiryDate: _selectedExpiryDate,
-      );
-
-      // Thêm thẳng vào mảng và cộng tiền
-      _addedItems.add(autoItem);
-      _billTotalAmount += (qty * price);
-    }
-  }
-
-  // Sau khi đã gom tự động (nếu có), kiểm tra lại mảng xem thực sự có hàng không
-  if (_addedItems.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Danh sách phiếu nhập chưa có thuốc nào! Vui lòng chọn thuốc và điền số lượng.'), backgroundColor: Colors.orange),
-    );
-    return;
-  }
-
-  // Khởi tạo model dữ liệu gửi đi
-  final importRecord = ImportModel(
-    supplierId: _selectedSupplierId,
-    note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
-    totalAmount: _billTotalAmount,
-    products: _addedItems,
-    status: 'Chờ duyệt',
-    createdBy: _currentUserName,
-  );
-
-  setState(() => _isLoading = true);
-
-  try {
-    final result = await ApiImport.createImportRecord(importRecord);
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (result != null) {
-      widget.onRefresh?.call();
-      Navigator.pop(context);
+    if (_selectedSupplierId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("🎉 Nhập kho lô hàng thành công!"), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Vui lòng chọn Nhà cung cấp!'), backgroundColor: Colors.orange),
       );
+      return;
     }
-  } catch (e) {
-    setState(() => _isLoading = false);
+
+    // Tự động gom nếu người dùng đang nhập dở ở ô trên chưa bấm "Gom vào danh sách"
+    if (_selectedMedicineId != null && _quantityController.text.isNotEmpty && _priceController.text.isNotEmpty) {
+      final qty = int.tryParse(_quantityController.text) ?? 0;
+      final price = double.tryParse(_priceController.text) ?? 0;
+      final sellingPrice = double.tryParse(_sellingPriceController.text) ?? 0;
+
+      if (qty > 0 && price > 0) {
+        String detectedName = 'Thuốc không tên';
+        if (_selectedMedicine != null) {
+          detectedName = _getValue(_selectedMedicine, 'medicineName') ?? 
+                         _getValue(_selectedMedicine, 'name') ?? 
+                         'Thuốc không tên';
+        }
+
+        final autoItem = ImportItem(
+          medicineId: _selectedMedicineId,
+          medicineName: detectedName,
+          quantity: qty,
+          importPrice: price,
+          sellingPrice: sellingPrice, // 🔥 Kèm giá bán tự động gom
+          batchNumber: _batchController.text.trim().isEmpty ? null : _batchController.text.trim(),
+          expiryDate: _selectedExpiryDate,
+        );
+
+        _addedItems.add(autoItem);
+        _billTotalAmount += (qty * price);
+      }
+    }
+
+    if (_addedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Danh sách phiếu nhập chưa có thuốc nào!'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    final importRecord = ImportModel(
+      supplierId: _selectedSupplierId,
+      note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
+      totalAmount: _billTotalAmount,
+      products: _addedItems,
+      status: 'Chờ duyệt',
+      createdBy: _currentUserName,
+    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await ApiImport.createImportRecord(importRecord);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (result != null) {
+        widget.onRefresh?.call();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("🎉 Nhập kho lô hàng thành công!"), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
   }
-}
 
   InputDecoration _buildInputDecoration({required String labelText, String? hintText, Widget? suffixIcon}) {
     return InputDecoration(
@@ -258,7 +271,7 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
         width: 1100,
-        height: 820,
+        height: 850, // 🚀 Tăng nhẹ chiều cao để chứa thêm ô nhập liệu cân đối
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: kPrimaryBlue))
             : Column(
@@ -321,11 +334,28 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
                                       setState(() {
                                         _selectedMedicineId = val;
                                         _selectedMedicine = null;
+                                        
                                         for (var m in _medicines) {
                                           final String dbId = (_getValue(m, 'id') ?? '').toString().trim().toLowerCase();
                                           final String selectedId = (val ?? '').toString().trim().toLowerCase();
                                           if (dbId == selectedId) {
                                             _selectedMedicine = m;
+                                            
+                                            // 🔥 LOGIC GỢI Ý GIÁ TỰ ĐỘNG KHI CHỌN THUỐC ĐÃ ĐƯỢC THÊM TẠI ĐÂY:
+                                            final baseSellingPrice = _getValue(m, 'sellingPrice') ?? _getValue(m, 'exportPrice') ?? 0;
+                                            final baseImportPrice = _getValue(m, 'importPrice') ?? 0;
+                                            
+                                            if (baseSellingPrice > 0) {
+                                              _sellingPriceController.text = baseSellingPrice.toStringAsFixed(0);
+                                            } else {
+                                              _sellingPriceController.clear();
+                                            }
+
+                                            if (baseImportPrice > 0) {
+                                              _priceController.text = baseImportPrice.toStringAsFixed(0);
+                                            } else {
+                                              _priceController.clear();
+                                            }
                                             break;
                                           }
                                         }
@@ -333,14 +363,21 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
                                     },
                                   ),
                                   const SizedBox(height: 16),
+                                  
+                                  // HÀNG 1: SỐ LƯỢNG - GIÁ NHẬP - GIÁ BÁN MỚI
                                   Row(
                                     children: [
                                       Expanded(child: TextFormField(controller: _quantityController, keyboardType: TextInputType.number, decoration: _buildInputDecoration(labelText: "Số lượng nhập"))),
                                       const SizedBox(width: 16),
                                       Expanded(child: TextFormField(controller: _priceController, keyboardType: TextInputType.number, decoration: _buildInputDecoration(labelText: "Đơn giá mua (đ)"))),
+                                      const SizedBox(width: 16),
+                                      // 🔥 Ô NHẬP LIỆU GIÁ BÁN ĐÃ ĐƯỢC THÊM VÀO GIAO DIỆN (3 CỘT ĐỀU NHAU)
+                                      Expanded(child: TextFormField(controller: _sellingPriceController, keyboardType: TextInputType.number, decoration: _buildInputDecoration(labelText: "Giá bán đề xuất lô này (đ)", hintText: "Gợi ý từ hệ thống"))),
                                     ],
                                   ),
                                   const SizedBox(height: 16),
+                                  
+                                  // HÀNG 2: SỐ LÔ - HẠN SỬ DỤNG
                                   Row(
                                     children: [
                                       Expanded(child: TextFormField(controller: _batchController, decoration: _buildInputDecoration(labelText: "Số lô (Batch No.)"))),
@@ -386,12 +423,15 @@ class _CreateImportDialogState extends State<CreateImportDialog> {
                                       separatorBuilder: (context, index) => const Divider(height: 1, color: kBorderColor),
                                       itemBuilder: (context, index) {
                                         final item = _addedItems[index];
+                                        String formatVND(double val) => val.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+                                        
                                         return ListTile(
                                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                                           title: Text(item.medicineName, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
                                           subtitle: Padding(
                                             padding: const EdgeInsets.only(top: 4),
-                                            child: Text("SL: ${item.quantity}  |  Giá: ${item.importPrice.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}đ  |  Lô: ${item.batchNumber ?? 'N/A'}"),
+                                            // 🔥 ĐÃ CẬP NHẬT: Hiển thị song song cả Giá nhập và Giá bán lô trong danh sách hàng đợi
+                                            child: Text("SL: ${item.quantity}  |  Mua vào: ${formatVND(item.importPrice)}đ  |  Bán ra: ${formatVND(item.sellingPrice ?? 0)}đ  |  Lô: ${item.batchNumber ?? 'N/A'}"),
                                           ),
                                           trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22), onPressed: () => _removeItem(index)),
                                         );

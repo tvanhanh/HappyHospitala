@@ -16,32 +16,37 @@ class InventoryDetailDialog extends StatelessWidget {
     const Color kTextDark = Color(0xFF0F172A);
     const Color kTextMuted = Color(0xFF64748B);
     const Color kBgLight = Color(0xFFF8FAFC);
-    final String name = data['medicineName'] ?? 
-                        data['name'] ?? 
-                        (data['medicine'] is Map ? data['medicine']['name'] : null) ?? 
-                        'Chưa rõ tên';
 
-    final String id = data['_id'] ?? data['id'] ?? data['medicineId'] ?? 'N/A';
-    final String brand = data['brand'] ?? data['manufacturer'] ?? 'N/A';
-    final String activeIngredient = data['active_ingredient'] ?? data['activeIngredient'] ?? 'N/A';
+    // ================= BÓC TÁCH DỮ LIỆU ĐỒNG BỘ CHUẨN =================
+    final String name = data['name'] ?? data['medicineName'] ?? 'Chưa rõ tên';
+    final String id = data['medicineId'] ?? data['id'] ?? data['_id'] ?? 'N/A';
+    final String batchNumber = data['batchNumber'] ?? data['batch_number'] ?? 'KHÔNG SỐ LÔ'; // 🔥 ĐÃ SỬA: Lấy đúng số lô thực tế
+    final String brand = data['manufacturer'] ?? data['brand'] ?? 'N/A';
+    final String activeIngredient = data['activeIngredient'] ?? data['active_ingredient'] ?? 'N/A';
     final String group = data['group'] ?? data['category'] ?? 'Khác';
-    final int stock = data['stock'] ?? data['quantity'] ?? 0;
-    final int minStock = data['min_stock'] ?? data['minStock'] ?? 0;
+    
+    final int stock = (data['stock'] ?? data['quantity'] ?? data['currentQuantity'] ?? 0).toInt();
+    final int minStock = (data['min_stock'] ?? data['minStock'] ?? 0).toInt();
     final String unit = data['unit'] ?? 'Viên';
-    final int importPrice = data['import_price'] ?? data['importPrice'] ?? 0;
-    final int exportPrice = data['export_price'] ?? data['exportPrice'] ?? 0;
+    
+    final double importPrice = (data['import_price'] ?? data['importPrice'] ?? 0).toDouble();
+    final double exportPrice = (data['selling_price'] ?? data['export_price'] ?? data['exportPrice'] ?? 0).toDouble();
     final String expiryDate = data['expiry_date'] ?? data['expiryDate'] ?? 'N/A';
     final String status = data['status'] ?? 'Còn hàng';
 
-    // Tính toán lợi nhuận (%)
+    // Tính toán lợi nhuận (%) chi tiết
     String profitPercent = '0%';
     if (importPrice > 0) {
-      profitPercent = '${((exportPrice - importPrice) / importPrice * 100).toStringAsFixed(1)}%';
+      double profitValue = ((exportPrice - importPrice) / importPrice) * 100;
+      profitPercent = '${profitValue.toStringAsFixed(1)}%';
     }
 
-    // Hàm định dạng tiền tệ VNĐ
-    String formatMoney(int val) {
-      return val.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
+    // 🔥 ĐÃ SỬA: Hàm định dạng tiền tệ VNĐ xử lý chuẩn kiểu double
+    String formatMoney(double val) {
+      return val.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), 
+        (Match m) => '${m[1]}.'
+      ) + ' đ';
     }
 
     // Xác định cấu hình màu sắc linh hoạt theo trạng thái thực tế của thuốc
@@ -87,7 +92,7 @@ class InventoryDetailDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ================= 1. TIÊU ĐỀ DIALOG (Đã hiển thị Name) =================
+            // ================= 1. TIÊU ĐỀ DIALOG =================
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -108,7 +113,7 @@ class InventoryDetailDialog extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              name, // 🔥 Hiển thị tên thuốc tại đây
+                              name,
                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -160,7 +165,12 @@ class InventoryDetailDialog extends StatelessWidget {
                         isLeftBold: true
                       ),
                       const SizedBox(height: 10),
-                      _buildDetailGridRow('Giá nhập:', '${formatMoney(importPrice)} đ', 'Giá bán:', '${formatMoney(exportPrice)} đ', kTextDark, kTextMuted, isRightBold: true),
+                      _buildDetailGridRow(
+                        'Giá nhập:', formatMoney(importPrice), 
+                        'Giá bán:', formatMoney(exportPrice), 
+                        kTextDark, kTextMuted, 
+                        isRightBold: true
+                      ),
                       const SizedBox(height: 10),
                       _buildDetailGridRow('Lợi nhuận:', profitPercent, '', '', kTextDark, kTextMuted, leftValueColor: kSuccessGreen, isLeftBold: true),
                     ]),
@@ -168,7 +178,7 @@ class InventoryDetailDialog extends StatelessWidget {
 
                     _buildSectionTitle(Icons.warehouse_outlined, 'Lưu trữ & Hạn dùng', kPrimaryBlue),
                     _buildInfoCard(bgColor: kBgLight, children: [
-                      _buildDetailGridRow('Vị trí kho:', 'Khu A', 'Số lô:', 'LOT-$id', kTextDark, kTextMuted),
+                      _buildDetailGridRow('Vị trí kho:', 'Khu A', 'Số lô:', batchNumber, kTextDark, kTextMuted),
                       const SizedBox(height: 10),
                       _buildDetailGridRow(
                         'Hạn sử dụng:', expiryDate, 
