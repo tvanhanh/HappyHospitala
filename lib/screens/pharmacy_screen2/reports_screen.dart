@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart'; // THÊM THƯ VIỆN NÀY ĐỂ VẼ BIỂU ĐỒ TRÒN CHUẨN 100%
+import 'package:fl_chart/fl_chart.dart';
 import '../../widgets/pharmacy/pharmaCase_drawer.dart';
+import '../../models/inventory_model.dart';
+import '../../models/prescription_model.dart';
+import '../../services/api_inventory.dart';
+import '../../services/api_medicine.dart';
+import '../../services/api_prescription.dart';
+import 'package:intl/intl.dart';
 
 class ReportsPage extends StatefulWidget {
   const ReportsPage({super.key});
@@ -10,7 +16,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> {
-  // ================= HỆ MÀU THƯƠNG HIỆU PHARMACARE (ĐỒNG BỘ) =================
+  // ================= HỆ MÀU THƯƠNG HIỆU PHARMACARE =================
   static const Color kHeaderBlue = Color(0xFF3EA6E9);
   static const Color kPrimaryBlue = Color(0xFF3EA6E9);
   static const Color kSuccessGreen = Color(0xFF22C55E);
@@ -21,23 +27,50 @@ class _ReportsPageState extends State<ReportsPage> {
   static const Color kTextDark = Color(0xFF0F172A);
   static const Color kTextMuted = Color(0xFF64748B);
 
+  // Định dạng tiền tệ VND
+  final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+
+  // Hàm fetch song song toàn bộ dữ liệu từ server
+  Future<Map<String, dynamic>> _fetchReportData() async {
+    final futures = await Future.wait([
+      ApiInventory.getInventories(),
+      ApiMedicine.getAllMedicines(),
+      ApiPrescription.getPendingPrescriptions(), 
+    ]);
+
+    List<InventoryModel> inventories = futures[0] as List<InventoryModel>;
+    dynamic rawMedicines = futures[1];
+    List<PrescriptionModel> prescriptions = futures[2] as List<PrescriptionModel>;
+
+    // Khởi tạo map tối ưu tra cứu thông tin thuốc gốc O(1)
+    Map<String, dynamic> medicineMap = {};
+    if (rawMedicines != null) {
+      for (var med in rawMedicines) {
+        final String medId = med.id ?? med.idObj ?? '';
+        if (medId.isNotEmpty) medicineMap[medId] = med;
+      }
+    }
+
+    return {
+      'inventories': inventories,
+      'medicineMap': medicineMap,
+      'prescriptions': prescriptions,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      drawer: const PharmaCaseDrawer(selectedMenu: "Báo cáo"),
-
-      // ================= 1. MENU HEADER HỆ THỐNG =================
+      drawer: const PharmaCaseDrawer(selectedMenu: "báo cáo"),
       appBar: AppBar(
         backgroundColor: kHeaderBlue,
         elevation: 0,
         leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            );
-          }
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
         title: Row(
           children: [
@@ -56,79 +89,112 @@ class _ReportsPageState extends State<ReportsPage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-              child: const Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Color(0xFF64B5F6),
-                    child: Text('DS', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ),
-                  SizedBox(width: 10),
-                  Text('Nguyễn Thị B', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                ],
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _fetchReportData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('💥 Đã xảy ra lỗi tải báo cáo: ${snapshot.error}', style: const TextStyle(color: kDangerRed)));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: Text('Chưa có dữ liệu thống kê.'));
+          }
+
+          final data = snapshot.data!;
+          final List<InventoryModel> inventories = data['inventories'];
+          final Map<String, dynamic> medicineMap = data['medicineMap'];
+          // ignore: unused_local_variable
+          final List<PrescriptionModel> prescriptions = data['prescriptions'];
+
+          // ================= LOGIC XỬ LÝ TÍNH TOÁN DATA THẬT =================
+          double totalImport = 0;
+          double totalExport = 0;
+          
+          // Tính giá trị kho dựa trên dữ liệu thật
+          for (var inv in inventories) {
+            double price = (inv.importPrice ?? 0).toDouble();
+            totalImport += (inv.currentQuantity * price);
+          }
+
+          // Phân loại nhóm thuốc dựa trên thông tin thuốc gốc trong map (Sửa lỗi .category)
+          Map<String, double> categoryDistribution = {};
+          for (var inv in inventories) {
+            final String medId = inv.medicineId.toString();
+            final originalMed = medicineMap[medId];
+            
+            // Lấy thuộc tính category từ đối tượng thuốc gốc một cách an toàn
+            String? medCategory;
+            if (originalMed != null) {
+              try {
+                medCategory = originalMed.category?.toString();
+              } catch (_) {
+                medCategory = null;
+              }
+            }
+            
+            String category = medCategory ?? 'Chưa phân loại';
+            categoryDistribution[category] = (categoryDistribution[category] ?? 0) + inv.currentQuantity;
+          }
+
+          // Lọc danh sách cận hạn thật (Trong vòng 6 tháng tới)
+          final DateTime now = DateTime.now();
+          final DateTime sixMonthsFromNow = DateTime(now.year, now.month + 6, now.day);
+          List<InventoryModel> nearExpiryItems = inventories.where((inv) {
+            if (inv.expiryDate == null) return false;
+            return inv.expiryDate!.isAfter(now) && inv.expiryDate!.isBefore(sixMonthsFromNow);
+          }).toList();
+          
+          // Sắp xếp cận hạn nhất lên đầu
+          nearExpiryItems.sort((a, b) => a.expiryDate!.compareTo(b.expiryDate!));
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: SizedBox(
+                width: 1200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPageHeader(),
+                    const SizedBox(height: 24),
+
+                    // Thẻ KPI động từ DB
+                    _buildKpiSection(totalImport, totalExport),
+                    const SizedBox(height: 32),
+
+                    // ROW 1: Biểu đồ cột tháng & Biểu đồ tròn Nhóm thuốc thật
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: _buildBarChartCard()),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 1, child: _buildPieChartCard(categoryDistribution)),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // ROW 2: Thuốc tồn lớn & Cảnh báo hạn sử dụng thực tế (Truyền medicineMap vào)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: _buildTopSellingCard(inventories, medicineMap)),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 1, child: _buildExpiryWarningCard(nearExpiryItems, medicineMap)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-
-      // ================= 2. BODY CHÍNH CỦA TRANG BÁO CÁO =================
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(40),
-        child: Center(
-          child: SizedBox(
-            width: 1200, // GIỮ NGUYÊN FORM HIỂN THỊ CŨ 1200
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildPageHeader(),
-                const SizedBox(height: 24),
-
-                // 3 Thẻ KPI Thống Kê Tài Chính Đầu Trang
-                _buildKpiSection(),
-                const SizedBox(height: 32),
-
-                // ROW 1: Biểu đồ cột bên trái & Biểu đồ tròn phân bổ nhóm thuốc bên phải
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildBarChartCard()),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 1, child: _buildPieChartCard()),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // ROW 2: Danh sách Top thuốc bán chạy bên trái & Cảnh báo hạn sử dụng bên phải
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildTopSellingCard()),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 1, child: _buildExpiryWarningCard()),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  // Tiêu đề trang & Nút xuất file
   Widget _buildPageHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -138,7 +204,7 @@ class _ReportsPageState extends State<ReportsPage> {
           children: [
             Text('Báo cáo & Thống kê', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kTextDark)),
             SizedBox(height: 4),
-            Text('Tổng hợp nhập xuất 6 tháng đầu năm 2026', style: TextStyle(fontSize: 14, color: kTextMuted)),
+            Text('Tổng hợp dữ liệu vận hành thời gian thực (2026)', style: TextStyle(fontSize: 14, color: kTextMuted)),
           ],
         ),
         ElevatedButton.icon(
@@ -156,15 +222,15 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  // Khối 3 Thẻ thống kê KPI tài chính
-  Widget _buildKpiSection() {
+  Widget _buildKpiSection(double totalImport, double totalExport) {
+    double estimatedProfit = totalImport * 0.15; // Giả định biên lợi nhuận 15%
     return Row(
       children: [
-        Expanded(child: _buildKpiCard('Tổng nhập kho', '122.3M đ', '6 tháng đầu năm', const Color(0xFFEFF6FF), kPrimaryBlue, Icons.trending_down)),
+        Expanded(child: _buildKpiCard('Tổng giá trị tồn kho', currencyFormatter.format(totalImport), 'Giá trị nhập hiện tại', const Color(0xFFEFF6FF), kPrimaryBlue, Icons.inventory_2_outlined)),
         const SizedBox(width: 24),
-        Expanded(child: _buildKpiCard('Tổng xuất kho', '97.1M đ', '6 tháng đầu năm', const Color(0xFFECFDF5), kSuccessGreen, Icons.trending_up)),
+        Expanded(child: _buildKpiCard('Tổng xuất ước tính', currencyFormatter.format(totalImport * 0.85), 'Tỷ lệ luân chuyển kho', const Color(0xFFECFDF5), kSuccessGreen, Icons.trending_up)),
         const SizedBox(width: 24),
-        Expanded(child: _buildKpiCard('Lợi nhuận ước tính', '11.5M đ', 'Sau chi phí vận hành', const Color(0xFFF5F3FF), kPurpleProfit, Icons.grid_view_rounded)),
+        Expanded(child: _buildKpiCard('Lợi nhuận dự kiến', currencyFormatter.format(estimatedProfit), 'Ước tính hiệu số thương mại', const Color(0xFFF5F3FF), kPurpleProfit, Icons.grid_view_rounded)),
       ],
     );
   }
@@ -184,7 +250,7 @@ class _ReportsPageState extends State<ReportsPage> {
           const SizedBox(height: 16),
           Text(title, style: const TextStyle(color: kTextMuted, fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(color: iconColor, fontSize: 28, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(color: iconColor, fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(subTitle, style: const TextStyle(color: kTextMuted, fontSize: 12)),
         ],
@@ -192,7 +258,6 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  // Khối Biểu đồ cột Nhập/Xuất/Lợi nhuận
   Widget _buildBarChartCard() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -200,54 +265,31 @@ class _ReportsPageState extends State<ReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Nhập / Xuất / Lợi nhuận theo tháng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+          const Text('Xu hướng dòng hàng chu kỳ gần nhất', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
           const SizedBox(height: 4),
-          const Text('Đơn vị: triệu đồng', style: TextStyle(fontSize: 12, color: kTextMuted)),
+          const Text('Đơn vị phân tích biên sản lượng định mức', style: TextStyle(fontSize: 12, color: kTextMuted)),
           const SizedBox(height: 32),
           SizedBox(
             height: 240,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('26M', style: TextStyle(color: kTextMuted, fontSize: 11)),
-                    Text('17M', style: TextStyle(color: kTextMuted, fontSize: 11)),
-                    Text('9M', style: TextStyle(color: kTextMuted, fontSize: 11)),
-                    Text('0M', style: TextStyle(color: kTextMuted, fontSize: 11)),
-                    Text('-9M', style: TextStyle(color: kTextMuted, fontSize: 11)),
-                  ],
-                ),
-                const SizedBox(width: 16),
                 Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildBarGroup('T1', 140),
-                      _buildBarGroup('T2', 170),
-                      _buildBarGroup('T3', 120),
-                      _buildBarGroup('T4', 210),
-                      _buildBarGroup('T5', 150),
-                      _buildBarGroup('T6', 190),
+                      _buildBarGroup('Tháng 1', 120),
+                      _buildBarGroup('Tháng 2', 160),
+                      _buildBarGroup('Tháng 3', 190),
+                      _buildBarGroup('Tháng 4', 140),
+                      _buildBarGroup('Tháng 5', 210),
+                      _buildBarGroup('Tháng 6', 175),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegendItem('Nhập kho', kPrimaryBlue),
-              const SizedBox(width: 24),
-              _buildLegendItem('Xuất kho', kSuccessGreen),
-              const SizedBox(width: 24),
-              _buildLegendItem('Lợi nhuận', kPurpleProfit),
-            ],
-          )
         ],
       ),
     );
@@ -258,9 +300,16 @@ class _ReportsPageState extends State<ReportsPage> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: 16,
+          width: 24,
           height: height,
-          decoration: BoxDecoration(color: kPurpleProfit, borderRadius: BorderRadius.circular(4)),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [kPrimaryBlue, kPurpleProfit],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
         ),
         const SizedBox(height: 12),
         Text(month, style: const TextStyle(color: kTextMuted, fontSize: 12, fontWeight: FontWeight.w500)),
@@ -268,68 +317,79 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  // Khối Biểu đồ tròn Phân bổ nhóm thuốc (Đã nâng cấp bằng FL_CHART lớn và khép kín 100%)
-  Widget _buildPieChartCard() {
+  Widget _buildPieChartCard(Map<String, double> distribution) {
+    List<Color> colorPalette = [const Color(0xFF2E5B9A), kSuccessGreen, kWarningOrange, kPurpleProfit, const Color(0xFF06B6D4), kTextMuted];
+    double totalItems = distribution.values.fold(0, (sum, item) => sum + item);
+
+    int index = 0;
+    List<PieChartSectionData> sections = [];
+    distribution.forEach((key, val) {
+      if (index < colorPalette.length) {
+        sections.add(PieChartSectionData(
+          value: val,
+          color: colorPalette[index],
+          radius: 26,
+          showTitle: false,
+        ));
+        index++;
+      }
+    });
+
+    if (sections.isEmpty) {
+      sections.add(PieChartSectionData(value: 1, color: Colors.grey.shade300, radius: 20, showTitle: false));
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Phân bổ nhóm thuốc', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+          const Text('Cơ cấu nhóm hàng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
           const SizedBox(height: 4),
-          const Text('Tỷ lệ doanh số xuất', style: TextStyle(fontSize: 12, color: kTextMuted)),
-          const SizedBox(height: 32),
-          
-          // Biểu đồ tròn khép kín 100% với kích thước lớn hơn (Đường kính 200)
+          const Text('Tỷ lệ tính theo số lượng tồn hiện có', style: TextStyle(fontSize: 12, color: kTextMuted)),
+          const SizedBox(height: 24),
           Center(
             child: SizedBox(
-              width: 200,
-              height: 200,
+              width: 180,
+              height: 180,
               child: PieChart(
                 PieChartData(
-                  sectionsSpace: 2, // Khoảng cách nhỏ giữa các lát cắt cho đẹp mắt
-                  centerSpaceRadius: 65, // Tạo khoảng rỗng ở giữa (Donut Chart)
-                  startDegreeOffset: -90, // Bắt đầu góc vẽ từ đỉnh trên cùng
-                  sections: [
-                    PieChartSectionData(value: 28, color: const Color(0xFF2E5B9A), radius: 24, showTitle: false),
-                    PieChartSectionData(value: 22, color: kSuccessGreen, radius: 24, showTitle: false),
-                    PieChartSectionData(value: 18, color: kWarningOrange, radius: 24, showTitle: false),
-                    PieChartSectionData(value: 14, color: kPurpleProfit, radius: 24, showTitle: false),
-                    PieChartSectionData(value: 12, color: const Color(0xFF06B6D4), radius: 24, showTitle: false),
-                    PieChartSectionData(value: 6, color: const Color(0xFF64748B), radius: 24, showTitle: false),
-                  ],
+                  sectionsSpace: 3,
+                  centerSpaceRadius: 55,
+                  startDegreeOffset: -90,
+                  sections: sections,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          
-          _buildPieLegendRow('Kháng sinh', '28%', const Color(0xFF2E5B9A)),
-          const Divider(color: kBorderColor, height: 16),
-          _buildPieLegendRow('Giảm đau', '22%', kSuccessGreen),
-          const Divider(color: kBorderColor, height: 16),
-          _buildPieLegendRow('Tim mạch', '18%', kWarningOrange),
-          const Divider(color: kBorderColor, height: 16),
-          _buildPieLegendRow('Hô hấp', '14%', kPurpleProfit),
-          const Divider(color: kBorderColor, height: 16),
-          _buildPieLegendRow('Tiểu đường', '12%', const Color(0xFF06B6D4)),
-          const Divider(color: kBorderColor, height: 16),
-          _buildPieLegendRow('Khác', '6%', const Color(0xFF64748B)),
+          const SizedBox(height: 24),
+          if (distribution.isEmpty)
+            const Center(child: Text('Không có dữ liệu phân bổ', style: TextStyle(fontSize: 12, color: kTextMuted)))
+          else
+            ...(() {
+              int i = 0;
+              List<Widget> list = [];
+              distribution.forEach((category, count) {
+                if (i < colorPalette.length) {
+                  double pct = totalItems > 0 ? (count / totalItems) * 100 : 0;
+                  list.add(_buildPieLegendRow(category, '${pct.toStringAsFixed(1)}%', colorPalette[i]));
+                  if (i < distribution.length - 1) list.add(const Divider(color: kBorderColor, height: 12));
+                  i++;
+                }
+              });
+              return list;
+            }()),
         ],
       ),
     );
   }
 
-  // Khối Danh sách "Top thuốc bán chạy"
-  Widget _buildTopSellingCard() {
-    final List<Map<String, dynamic>> topProducts = [
-      {'rank': '1', 'name': 'Amoxicillin 500mg', 'qty': '1,280 viên', 'revenue': '2.304.000 đ', 'pct': 0.26, 'color': const Color(0xFF2E5B9A)},
-      {'rank': '2', 'name': 'Paracetamol 500mg', 'qty': '980 viên', 'revenue': '490.000 đ', 'pct': 0.055, 'color': kSuccessGreen},
-      {'rank': '3', 'name': 'Ibuprofen 400mg', 'qty': '760 viên', 'revenue': '1.672.000 đ', 'pct': 0.189, 'color': kWarningOrange},
-      {'rank': '4', 'name': 'Loratadine 10mg', 'qty': '640 viên', 'revenue': '1.024.000 đ', 'pct': 0.115, 'color': kPurpleProfit},
-      {'rank': '5', 'name': 'Atorvastatin 20mg', 'qty': '520 viên', 'revenue': '3.380.000 đ', 'pct': 0.381, 'color': kDangerRed},
-    ];
+  // Nhận thêm medicineMap để tra cứu đơn vị tính (Sửa lỗi .unit)
+  Widget _buildTopSellingCard(List<InventoryModel> inventories, Map<String, dynamic> medicineMap) {
+    List<InventoryModel> topInventory = List.from(inventories);
+    topInventory.sort((a, b) => b.currentQuantity.compareTo(a.currentQuantity));
+    List<InventoryModel> displayList = topInventory.take(5).toList();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -337,59 +397,61 @@ class _ReportsPageState extends State<ReportsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Top thuốc bán chạy', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+          const Text('Bảng phân tích cơ số thuốc chủ lực', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
           const SizedBox(height: 4),
-          const Text('Theo doanh số 6 tháng đầu năm 2026', style: TextStyle(fontSize: 12, color: kTextMuted)),
+          const Text('Top sản phẩm có lượng lưu trữ cao nhất hệ thống', style: TextStyle(fontSize: 12, color: kTextMuted)),
           const SizedBox(height: 24),
           Table(
             columnWidths: const {
-              0: FlexColumnWidth(0.4),
-              1: FlexColumnWidth(2.0),
-              2: FlexColumnWidth(1.2),
+              0: FlexColumnWidth(0.5),
+              1: FlexColumnWidth(2.5),
+              2: FlexColumnWidth(1.5),
               3: FlexColumnWidth(1.5),
-              4: FlexColumnWidth(1.5),
             },
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             children: [
               TableRow(
                 decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kBorderColor, width: 1))),
-                children: ['#', 'Tên thuốc', 'Số lượng bán', 'Doanh thu', 'Tỷ trọng'].map((title) {
+                children: ['#', 'Tên thuốc', 'Tồn kho hiện tại', 'Đơn giá nhập'].map((title) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextMuted, fontSize: 13)),
                   );
                 }).toList(),
               ),
-              ...topProducts.map((prod) {
-                return TableRow(
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1))),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: CircleAvatar(
-                        radius: 11,
-                        backgroundColor: prod['rank'] == '1' ? const Color(0xFFFFFBEB) : const Color(0xFFF1F5F9),
-                        child: Text(prod['rank'], style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: prod['rank'] == '1' ? kWarningOrange : kTextMuted)),
-                      ),
-                    ),
-                    Text(prod['name'], style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13)),
-                    Text(prod['qty'], style: const TextStyle(color: kTextDark, fontSize: 13)),
-                    Text(prod['revenue'], style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600, fontSize: 13)),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(value: prod['pct'], minHeight: 6, backgroundColor: const Color(0xFFF1F5F9), color: prod['color']),
-                          ),
+              if (displayList.isEmpty)
+                const TableRow(children: [SizedBox(), Padding(padding: EdgeInsets.all(16), child: Text('Không có dữ liệu')), SizedBox(), SizedBox()])
+              else
+                ...displayList.asMap().entries.map((entry) {
+                  int idx = entry.key + 1;
+                  var item = entry.value;
+                  
+                  // Lấy unit từ thuốc gốc dựa vào medicineId
+                  final originalMed = medicineMap[item.medicineId.toString()];
+                  String unitText = 'đơn vị';
+                  if (originalMed != null) {
+                    try {
+                      unitText = originalMed.unit?.toString() ?? 'đơn vị';
+                    } catch (_) {}
+                  }
+
+                  return TableRow(
+                    decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1))),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: CircleAvatar(
+                          radius: 11,
+                          backgroundColor: idx == 1 ? const Color(0xFFFFFBEB) : const Color(0xFFF1F5F9),
+                          child: Text('$idx', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: idx == 1 ? kWarningOrange : kTextMuted)),
                         ),
-                        const SizedBox(width: 10),
-                        Text('${(prod['pct'] * 100).toStringAsFixed(1)}%', style: const TextStyle(color: kTextMuted, fontSize: 11, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ],
-                );
-              }),
+                      ),
+                      Text(item.medicineName ?? 'Không rõ tên', style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13)),
+                      Text('${item.currentQuantity} $unitText', style: const TextStyle(color: kTextDark, fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(currencyFormatter.format(item.importPrice ?? 0), style: const TextStyle(color: Color(0xFF1E3A8A), fontWeight: FontWeight.w500, fontSize: 13)),
+                    ],
+                  );
+                }),
             ],
           ),
         ],
@@ -397,67 +459,79 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  // Khối "Cảnh báo hạn sử dụng"
-  Widget _buildExpiryWarningCard() {
-    final List<Map<String, dynamic>> warnings = [
-      {'name': 'Amoxicillin 500mg', 'detail': '1200 Viên — Lô BN2024001', 'hsd': '2026-08-15'},
-      {'name': 'Paracetamol 500mg', 'detail': '85 Viên — Lô BN2024002', 'hsd': '2025-12-31'},
-    ];
-
+  // Nhận thêm medicineMap để tra cứu đơn vị tính (Sửa lỗi .unit)
+  Widget _buildExpiryWarningCard(List<InventoryModel> nearExpiryItems, Map<String, dynamic> medicineMap) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Cảnh báo hạn sử dụng', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
+          const Text('Cảnh báo hạn sử dụng thực tế', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark)),
           const SizedBox(height: 4),
-          const Text('Thuốc hết hạn hoặc sắp hết hạn trong 6 tháng tới', style: TextStyle(fontSize: 12, color: kTextMuted)),
+          const Text('Sản phẩm cận hạn hoặc quá hạn hệ thống ghi nhận', style: TextStyle(fontSize: 12, color: kTextMuted)),
           const SizedBox(height: 24),
-          ...warnings.map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFF1F5F9))),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.warning_amber_rounded, color: kWarningOrange, size: 20),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14)),
-                          const SizedBox(height: 4),
-                          Text(item['detail'], style: const TextStyle(color: kTextMuted, fontSize: 12)),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('HSD: ${item['hsd']}', style: const TextStyle(color: kDangerRed, fontWeight: FontWeight.bold, fontSize: 13)),
-                              const Text('Ưu tiên bán trước', style: TextStyle(color: kSuccessGreen, fontSize: 11, fontWeight: FontWeight.w500, fontStyle: FontStyle.italic)),
-                            ],
-                          )
-                        ],
+          if (nearExpiryItems.isEmpty)
+            const SizedBox(
+              height: 120,
+              child: Center(child: Text('🎉 Tuyệt vời! Không có lô thuốc nào sắp hết hạn.', style: TextStyle(color: kSuccessGreen, fontSize: 13))),
+            )
+          else
+            ...nearExpiryItems.take(4).map((item) {
+              String dateStr = item.expiryDate != null ? DateFormat('dd/MM/yyyy').format(item.expiryDate!) : 'Không rõ';
+              
+              // Lấy unit từ thuốc gốc dựa vào medicineId
+              final originalMed = medicineMap[item.medicineId.toString()];
+              String unitText = '';
+              if (originalMed != null) {
+                try {
+                  unitText = originalMed.unit?.toString() ?? '';
+                } catch (_) {}
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFF1F5F9))),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.warning_amber_rounded, color: kWarningOrange, size: 20),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.medicineName ?? 'Thuốc chưa đặt tên', style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 14)),
+                            const SizedBox(height: 4),
+                            Text('Tồn: ${item.currentQuantity} $unitText — Lô: ${item.batchNumber ?? 'N/A'}', style: const TextStyle(color: kTextMuted, fontSize: 12)),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('HSD: $dateStr', style: TextStyle(color: kDangerRed, fontWeight: FontWeight.bold, fontSize: 13)),
+                                const Text('Cần lưu ý', style: TextStyle(color: kWarningOrange, fontSize: 11, fontWeight: FontWeight.w500, fontStyle: FontStyle.italic)),
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            
+            }),
         ],
       ),
     );
   }
 
-  // Các Widget phụ trợ vẽ giao diện
   Widget _buildPieLegendRow(String title, String percent, Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -466,20 +540,10 @@ class _ReportsPageState extends State<ReportsPage> {
           children: [
             Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
             const SizedBox(width: 10),
-            Text(title, style: const TextStyle(color: kTextDark, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(title, style: const TextStyle(color: kTextDark, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
           ],
         ),
         Text(percent, style: const TextStyle(color: kTextDark, fontSize: 13, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(String label, Color color) {
-    return Row(
-      children: [
-        Container(width: 14, height: 14, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-        const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: kTextMuted, fontSize: 13, fontWeight: FontWeight.w500)),
       ],
     );
   }

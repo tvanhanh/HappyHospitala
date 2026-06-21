@@ -376,7 +376,7 @@ class _DashboardStatsView extends ConsumerWidget {
                     icon: Icons.medical_information,
                     color: kPrimary,
                     trend: '+2%',
-                    onTap: () => onNavigate(2),
+                    onTap: () => onNavigate(3),
                   ),
                   _StatCardPro(
                     title: 'Bệnh Nhân',
@@ -384,7 +384,7 @@ class _DashboardStatsView extends ConsumerWidget {
                     icon: Icons.people_outline,
                     color: kAccentBlockchain,
                     trend: '+12%',
-                    onTap: () => onNavigate(13),
+                    onTap: () => onNavigate(4),
                   ),
 
                   _StatCardPro(

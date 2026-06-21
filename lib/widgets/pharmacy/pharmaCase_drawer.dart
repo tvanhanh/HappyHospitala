@@ -17,13 +17,92 @@ class PharmaCaseDrawer extends StatelessWidget {
   static const Color kSelectedText = Color(0xFF0F172A);  // Chữ khi được active sẽ đậm và nổi bật
   static const Color kBorderColor = Color(0xFFE2E8F0);   // Đường kẻ mỏng tinh tế
 
+  // 🟢 Hàm xử lý hiển thị Dialog xác nhận Đăng xuất
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Bắt buộc người dùng chọn Có hoặc Không
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 22),
+              SizedBox(width: 10),
+              Text(
+                'Xác nhận đăng xuất',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống PharmaCare không?',
+            style: TextStyle(fontSize: 14, color: Color(0xFF475569)),
+          ),
+          actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          actions: [
+            // Nút Bỏ qua / Không
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              child: const Text(
+                'Không',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            // Nút Đồng ý / Có
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Đóng hộp thoại xác nhận
+                
+                // 🛑 THỰC HIỆN LOGOUT THỰC TẾ Ở ĐÂY:
+                // Ví dụ xóa Token, xóa SharedPreferences, clear AuthState...
+                
+                // Chuyển hướng về trang đăng nhập
+                context.go('/auth/login'); 
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEF4444),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              child: const Text(
+                'Có, đăng xuất',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: kMenuBgColor,
-      elevation: 0, // Loại bỏ đổ bóng nặng nề để tạo cảm giác phẳng liền mạch với body
+      elevation: 0, 
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero, // Giữ vuông vắn theo trục bên trái màn hình
+        borderRadius: BorderRadius.zero, 
       ),
       child: Column(
         children: [
@@ -31,18 +110,17 @@ class PharmaCaseDrawer extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
             decoration: const BoxDecoration(
-    border: Border(
-      bottom: BorderSide(color: kBorderColor, width: 1),
-    ),
-  ),
+              border: Border(
+                bottom: BorderSide(color: kBorderColor, width: 1),
+              ),
+            ),
             child: Row(
               children: [
-                // Khối vuông chứa Logo Icon bo tròn phẳng
                 Container(
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF38BDF8).withOpacity(0.15), // Xanh cyan dịu nhẹ từ logo gốc
+                    color: const Color(0xFF38BDF8).withOpacity(0.15), 
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -52,7 +130,6 @@ class PharmaCaseDrawer extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Tên hệ thống phân cấp text rõ ràng
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +223,7 @@ class PharmaCaseDrawer extends StatelessWidget {
                   icon: Icons.logout_rounded,
                   title: "Đăng xuất",
                   route: "/pharmacy/logout",
-                  isLogout: true,
+                  isLogout: true, // Đánh dấu thẻ logout
                 ),
               ],
             ),
@@ -166,19 +243,17 @@ class PharmaCaseDrawer extends StatelessWidget {
   }) {
     final isSelected = selectedMenu == title;
 
-    // Phối màu dựa trên trạng thái active
     final activeTextColor = isLogout ? const Color(0xFFEF4444) : kSelectedText;
     final inactiveTextColor = isLogout ? const Color(0xFFF87171) : kTextSecondary;
     final activeIconColor = isLogout ? const Color(0xFFEF4444) : const Color(0xFF0F172A);
     final inactiveIconColor = isLogout ? const Color(0xFFF87171) : const Color(0xFF94A3B8);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4), // Tạo khoảng cách thở giữa các thẻ menu
+      padding: const EdgeInsets.only(bottom: 4), 
       child: ListTile(
         horizontalTitleGap: 12,
         minLeadingWidth: 20,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        // Bo góc nhẹ cho dòng được chọn giống kiến trúc thiết kế mới
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -195,9 +270,14 @@ class PharmaCaseDrawer extends StatelessWidget {
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
-        tileColor: isSelected ? kSelectedBg : Colors.transparent, // Nền xám nhạt tinh giản phẳng
+        tileColor: isSelected ? kSelectedBg : Colors.transparent, 
         onTap: () {
-          context.go(route);
+          // 🟢 ĐÃ SỬA LOGIC ONTAP: Nếu bấm đăng xuất thì hiện Dialog thay vì tự động chuyển trang
+          if (isLogout) {
+            _showLogoutConfirmationDialog(context);
+          } else {
+            context.go(route);
+          }
         },
       ),
     );

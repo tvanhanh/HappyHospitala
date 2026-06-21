@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Thêm thư viện này để đọc data lưu trữ
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../widgets/pharmacy/pharmaCase_drawer.dart';
-
+import '../../services/api_prescription.dart';
+import '../../services/api_inventory.dart';
+import '../../services/api_medicine.dart'; 
+import '../../models/prescription_model.dart'; 
+import '../../models/inventory_model.dart';  
+import '../../widgets/pharmacy/medicine_alert_page.dart';
+import '../../widgets/pharmacy/pharma_notification_bell.dart';
+import '../../widgets/pharmacy/CreateImportDialog.dart';
 class PharmaCareDashboardScreen extends StatefulWidget {
   const PharmaCareDashboardScreen({super.key});
 
@@ -16,27 +23,37 @@ class _PharmaCareDashboardScreenState extends State<PharmaCareDashboardScreen> {
   static const Color kBgColor = Color(0xFFF8FAFC);     
   static const Color kBorderColor = Color(0xFFE2E8F0);
 
-  // 🟢 Khai báo các biến lưu thông tin dược sĩ đăng nhập
   String _pharmacistName = "Đang tải...";
   String _roleName = "Dược sĩ";
   String _shortName = "DS";
+  bool _isLoadingData = true;
+  
+  // Danh sách lưu trữ các lô hàng cần chú ý kèm theo đơn vị tính đã được map bổ sung
+  List<Map<String, dynamic>> _attentionMedicinesWithUnit = []; 
+  List<PrescriptionModel> _pendingPrescriptions = []; 
+
+  int _totalMedicinesCount = 0;
+  int _pendingCount = 0;
+  int _attentionCount = 0;
+  int _dispensedTodayCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // 🟢 Tự động lấy thông tin tài khoản khi mở màn hình
+    _initDashboard();
   }
 
-  
+  Future<void> _initDashboard() async {
+    await _loadUserData();      
+    await _fetchDashboardData(); 
+  }
+
   Future<void> _loadUserData() async {
-    final prefs = await SharedPreferences.getInstance();
-print(prefs.getKeys());
     try {
       final prefs = await SharedPreferences.getInstance();
       String? savedName = prefs.getString('name');
       String? savedRole = prefs.getString('role');
 
-    
       final userString = prefs.getString('user_data');
       if (userString != null) {
         final Map<String, dynamic> userMap = jsonDecode(userString);
@@ -49,7 +66,6 @@ print(prefs.getKeys());
           _pharmacistName = savedName!;
           _roleName = (savedRole == "pharmacist" || savedRole == "Pharmacist") ? "Dược sĩ chính" : (savedRole ?? "Dược sĩ");
           
-          // Tạo tên viết tắt (Ví dụ: Nguyễn Thị B -> B, Trần Văn An -> A)
           List<String> nameParts = _pharmacistName.trim().split(" ");
           if (nameParts.isNotEmpty) {
             String lastWord = nameParts.last;
@@ -62,19 +78,92 @@ print(prefs.getKeys());
         });
       }
     } catch (e) {
-      print("💥 Lỗi đọc thông tin tài khoản: $e");
       setState(() {
         _pharmacistName = "Dược sĩ Admin";
       });
     }
   }
 
+ Future<void> _fetchDashboardData() async {
+    setState(() => _isLoadingData = true);
+    try {
+      // 1. Gọi song song 3 API để tối ưu hiệu năng
+      final futures = await Future.wait([
+        ApiInventory.getInventories(),
+        ApiMedicine.getAllMedicines(), 
+        ApiPrescription.getPendingPrescriptions(),
+      ]);
+
+      List<InventoryModel> allInventories = futures[0] as List<InventoryModel>;
+      dynamic rawMedicines = futures[1]; 
+      List<PrescriptionModel> allPrescriptions = futures[2] as List<PrescriptionModel>;
+
+      // 2. Chuyển danh mục thuốc gốc thành Map để tra cứu O(1) theo ID thuốc
+     Map<String, dynamic> medicineMap = {};
+      if (rawMedicines != null) {
+        for (var med in rawMedicines) {
+          final String medId = med.id ?? med.idObj ?? ''; 
+          if (medId.isNotEmpty) {
+            medicineMap[medId] = med;
+          }
+        }
+      }
+      // 3. Duyệt danh sách kho và áp dụng logic so sánh cảnh báo mới
+      List<Map<String, dynamic>> computedAttentionList = [];
+      for (var inv in allInventories) {
+        final String targetMedId = inv.medicineId.toString();
+        
+        // Tìm thông tin thuốc gốc từ map
+        dynamic originalMedicine = medicineMap[targetMedId];
+
+        // Lấy minStock và unit từ bảng thuốc (Nếu không có thì fallback về giá trị mặc định của kho)
+        int dynamicMinStock = originalMedicine != null ? (originalMedicine.minStock ?? 0) : inv.minStock;
+        String dynamicUnit = originalMedicine != null ? (originalMedicine.unit ?? 'đơn vị') : 'đơn vị';
+
+        // Cập nhật lại thuộc tính minStock của đối tượng kho để đồng bộ dữ liệu hiển thị
+        inv.minStock = dynamicMinStock;
+
+        // 🟢 LOGIC THEO YÊU CẦU: Nếu số tồn hiện tại nhỏ hơn mức sàn cộng thêm 5 (currentQuantity < minStock + 5)
+        if (inv.currentQuantity < (dynamicMinStock + 5)) {
+          
+          // Xác định mức độ nghiêm trọng để đổi màu sắc trên giao diện (nếu muốn)
+          bool isCritical = inv.currentQuantity <= dynamicMinStock; 
+
+          computedAttentionList.add({
+            'inventory': inv,
+            'unit': dynamicUnit,
+            'isCritical': isCritical, // true nếu lọt thỏm dưới minStock, false nếu nằm trong vùng cảnh báo sớm (+5)
+          });
+        }
+      }
+
+      // 4. Lọc các đơn thuốc đang chờ xử lý
+      _pendingPrescriptions = allPrescriptions.where((prescription) {
+        return prescription.status.toLowerCase().trim() == 'pending';
+      }).toList();
+
+      setState(() {
+        _attentionMedicinesWithUnit = computedAttentionList;
+        _attentionCount = _attentionMedicinesWithUnit.length;
+        _pendingCount = _pendingPrescriptions.length;
+        _totalMedicinesCount = allInventories.length; 
+        
+        _dispensedTodayCount = allPrescriptions.where((p) => 
+          p.status.toLowerCase() == 'dispensed' || p.status.toLowerCase() == 'completed'
+        ).length; 
+        
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      print("💥 Lỗi xử lý so sánh định mức cảnh báo tại Dashboard: $e");
+      setState(() => _isLoadingData = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // ---- LOGIC TÍNH CÂU CHÀO REAL-TIME ----
     final int currentHour = DateTime.now().hour;
-    String greetingText = 'Chào mừng Dược sĩ!';
-
+    String greetingText = 'Chào buổi làm việc!';
     if (currentHour >= 5 && currentHour < 11) {
       greetingText = 'Chào buổi sáng, $_pharmacistName!';
     } else if (currentHour >= 11 && currentHour < 14) {
@@ -87,7 +176,6 @@ print(prefs.getKeys());
 
     return Scaffold(
       backgroundColor: kBgColor,
-      // ================= 1. APPBAR =================
       appBar: AppBar(
         backgroundColor: kAppBarColor,
         elevation: 0,
@@ -96,77 +184,44 @@ print(prefs.getKeys());
           children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.local_hospital_rounded, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 10),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "PharmaCare System",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
-                ),
-                Text(
-                  "Hệ thống quản lý nhà thuốc thông minh",
-                  style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.normal),
-                ),
+                Text("PharmaCare System", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                Text("Hệ thống quản lý nhà thuốc thông minh", style: TextStyle(fontSize: 11, color: Colors.white70)),
               ],
             ),
           ],
         ),
         actions: [
+          const PharmaNotificationBell(),
           Stack(
             alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications, color: Colors.white, size: 22),
-                onPressed: () {},
-              ),
-              Positioned(
-                top: 10,
-                right: 6,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
-                  child: const Text('4', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                ),
-              )
-            ],
+
           ),
           const SizedBox(width: 8),
-          
-          // ================= ĐOẠN HIỂN THỊ THÔNG TIN TÀI KHOẢN ĐỘNG =================
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: Colors.white,
-                  child: Text(
-                    _shortName, // 🟢 Tên viết tắt động
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kAppBarColor),
-                  ),
+                  child: Text(_shortName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kAppBarColor)),
                 ),
                 const SizedBox(width: 8),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_roleName, style: const TextStyle(color: Colors.white70, fontSize: 10)), // 🟢 Chức vụ động
-                    Text(
-                      _pharmacistName, // 🟢 Tên tài khoản hiển thị động
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
+                    Text(_roleName, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    Text(_pharmacistName, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 )
               ],
@@ -175,307 +230,261 @@ print(prefs.getKeys());
           const SizedBox(width: 12),
         ],
       ),
-   drawer: const PharmaCaseDrawer(selectedMenu: "Tổng quan"),
+      drawer: const PharmaCaseDrawer(selectedMenu: "Tổng quan"),
+      body: _isLoadingData 
+        ? const Center(child: CircularProgressIndicator(color: kAppBarColor)) 
+        : RefreshIndicator(
+            onRefresh: _fetchDashboardData, 
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(greetingText, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: kTextBlue, letterSpacing: -0.5)),
+                  const SizedBox(height: 32),
+
+                  // Cảnh báo hết hàng dựa trên dữ liệu thật
+                  if (_attentionMedicinesWithUnit.any((item) => (item['inventory'] as InventoryModel).currentQuantity == 0))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildAlertBox(
+                        icon: Icons.dangerous_rounded,
+                        iconColor: const Color(0xFFDC2626),
+                        title: '⚠️ Cảnh báo nghiêm trọng: Hết hàng trong kho',
+                        content: 'Hệ thống phát hiện có một số mặt hàng đã chạm mốc 0. Vui lòng lập phiếu nhập kho bổ sung.',
+                        borderColor: const Color(0xFFFCA5A5),
+                        bgColor: const Color(0xFFFEF2F2),
+                      ),
+                    ),
+                  
+                  const SizedBox(height: 16),
+
+                  Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    children: [
+                      _buildStatCard(title: 'Tổng thuốc trong kho', value: '$_totalMedicinesCount', subText: '📦 Lô hàng đang quản lý', themeColor: const Color(0xFF0EA5E9), icon: Icons.archive_outlined),
+                      _buildStatCard(title: 'Đơn thuốc chờ', value: '$_pendingCount', subText: '🕒 Đơn trạng thái Chờ xử lý', themeColor: const Color(0xFFD97706), icon: Icons.assignment_outlined),
+                      _buildStatCard(title: 'Thuốc cần chú ý', value: '$_attentionCount', subText: '⚠ Đang ở dưới mức tối thiểu', themeColor: const Color(0xFFEF4444), icon: Icons.report_problem_outlined),
+                      _buildStatCard(title: 'Đã cấp hôm nay', value: '$_dispensedTodayCount', subText: '✓ Hoàn thành trong ngày', themeColor: const Color(0xFF10B981), icon: Icons.check_circle_outline),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // CỘT 1: THUỐC CẦN CHÚ Ý
+                      Expanded(
+                        flex: 3,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Text('💊', style: TextStyle(fontSize: 18)),
+                                      SizedBox(width: 8),
+                                      Text('Thuốc cần chú ý (Dưới định mức)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                                    ],
+                                  ),
+                                  TextButton(onPressed: () {
+                                    Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MedicineAlertPage()),
+        ).then((_) => _fetchDashboardData());
       
-      // ================= BODY CHÍNH CÓ CHỨA PHẦN THÊM MỚI BÊN DƯỚI =================
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Dòng tiêu đề câu chào Real-time
-            Text(
-              greetingText,
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: kTextBlue, letterSpacing: -0.5),
-            ),
-            const SizedBox(height: 6),
-            
-            const SizedBox(height: 32),
-
-            // Khối cảnh báo 1: Kho thuốc
-            _buildAlertBox(
-              icon: Icons.warning_amber_rounded,
-              iconColor: const Color(0xFFDC2626),
-              title: '⚠️ Cảnh báo kho thuốc',
-              content: 'Có 3 loại thuốc sắp hết hoặc đã hết hàng. Vui lòng nhập thêm!',
-              actionText: 'XEM CHI TIẾT',
-              borderColor: const Color(0xFFFCA5A5),
-              bgColor: const Color(0xFFFEF2F2),
-            ),
-            const SizedBox(height: 16),
-
-            // Khối cảnh báo 2: Hạn sử dụng
-            _buildAlertBox(
-              icon: Icons.warning_amber_rounded,
-              iconColor: const Color(0xFFD97706),
-              title: '⏰ Cảnh báo hạn sử dụng',
-              content: 'Có 1 loại thuốc sắp hết hạn. Kiểm tra ngay!',
-              borderColor: const Color(0xFFFDE68A),
-              bgColor: const Color(0xFFFFFBEB),
-            ),
-            const SizedBox(height: 32),
-
-            // Ba thẻ tóm tắt số liệu hàng đầu
-            Wrap(
-              spacing: 20,
-              runSpacing: 20,
-              children: [
-                _buildStatCard(
-                  title: 'Tổng thuốc trong kho',
-                  value: '7',
-                  subText: '↗ +5 mặt hàng mới',
-                  themeColor: const Color(0xFF0EA5E9),
-                  icon: Icons.archive_outlined,
-                ),
-                _buildStatCard(
-                  title: 'Đơn thuốc chờ',
-                  value: '3',
-                  subText: '🕒 Cần xử lý ngay',
-                  themeColor: const Color(0xFFD97706),
-                  icon: Icons.assignment_outlined,
-                ),
-                _buildStatCard(
-                  title: 'Thuốc cần chú ý',
-                  value: '4',
-                  subText: '⚠ Cần xử lý',
-                  themeColor: const Color(0xFFEF4444),
-                  icon: Icons.report_problem_outlined,
-                ),_buildStatCard(
-                  title: 'Đã cấp hôm nay',
-                  value: '4',
-                  subText: ' Hoàn thành tốt',
-                  themeColor: const Color(0xFFEF4444),
-                  icon: Icons.check_circle_outline,
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // ==================== PHẦN BỔ SUNG MỚI: HAI CỘT DANH SÁCH CHI TIẾT ====================
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // CỘT 1: THUỐC CẦN CHÚ Ý (Rộng hơn để chứa thông tin lô/hạn dùng)
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: kBorderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Text('💊', style: TextStyle(fontSize: 18)),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Thuốc cần chú ý',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                                ),
-                              ],
-                            ),
-                            TextButton(
-                              onPressed: () {},
-                              child: const Text('Xem tất cả', style: TextStyle(color: kAppBarColor, fontWeight: FontWeight.bold)),
-                            )
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Danh sách 4 sản phẩm theo đúng mẫu ảnh thiết kế
-                        _buildAttentionMedicineItem(
-                          name: 'Amoxicillin 250mg (M002)',
-                          subInfo: '⚠ Còn 30 viên • Lô: DHG2024002',
-                          isCritical: false,
-                        ),
-                        _buildAttentionMedicineItem(
-                          name: 'Vitamin C 1000mg (M003)',
-                          subInfo: '🔴 Đã hết hàng - Cần nhập ngay',
-                          isCritical: true,
-                        ),
-                        _buildAttentionMedicineItem(
-                          name: 'Ibuprofen 400mg (M004)',
-                          subInfo: '⏰ Hết hạn: 2024-07-10 • Lô: PC2023004',
-                          isCritical: false,
-                        ),
-                        _buildAttentionMedicineItem(
-                          name: 'Aspirin 100mg (M007)',
-                          subInfo: '⚠ Còn 25 viên • Lô: PC2024007',
-                          isCritical: false,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-
-                // CỘT 2: ĐƠN THUỐC MỚI NHẤT
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: kBorderColor),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text('📋', style: TextStyle(fontSize: 18)),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Đơn thuốc mới nhất',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                            ),
-                            const SizedBox(width: 8),
-                            // Tag số lượng đơn chờ nhỏ màu cam
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFD97706),
-                                borderRadius: BorderRadius.circular(12),
+                                  }, child: const Text('Xem tất cả', style: TextStyle(color: kAppBarColor, fontWeight: FontWeight.bold)))
+                                ],
                               ),
-                              child: const Text('3 chờ', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            )
-                          ],
+                              const SizedBox(height: 16),
+                              
+                              if (_attentionMedicinesWithUnit.isEmpty)
+                                const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text("Kho hàng an toàn. Toàn bộ thuốc đều nằm trên mức sàn.", style: TextStyle(color: Colors.grey)))
+                              else
+                                ..._attentionMedicinesWithUnit.map((item) {
+                                  final InventoryModel medicine = item['inventory'] as InventoryModel;
+                                  final String unit = item['unit'] as String; // Đơn vị tính động: Hộp, Viên, Chai...
+                                  final bool isCritical = item['isCritical'] as bool;
+                                  final int stock = medicine.currentQuantity;
+                                  final String lot = medicine.batchNumber.isNotEmpty ? medicine.batchNumber : 'N/A';
+                                  
+                                  String subInfo = "";
+                                  if (stock == 0) {
+                                    subInfo = "🔴 Đã hết sạch hàng (Mức sàn cấu hình: ${medicine.minStock} $unit)";
+                                  } else if (isCritical) {
+                                  subInfo = "❌ Nguy hiểm: Tồn kho hiện tại ($stock $unit) đã dưới mức sàn tối thiểu (${medicine.minStock} $unit)";}
+                                  else {
+                                    subInfo = "⚠ Tồn hiện tại: $stock $unit  •  Mức sàn: ${medicine.minStock} $unit  •  Lô: $lot";
+                                  }
+                                  
+                                  if (medicine.expiryDate != null) {
+                                    subInfo += "  •  HSD: ${medicine.expiryDate!.toString().substring(0, 10)}";
+                                  }
+
+                                  return _buildAttentionMedicineItem(
+                                    name: medicine.medicineName,
+                                    subInfo: subInfo,
+                                    isCritical: stock == 0,
+                                  );
+                                }),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 24),
-                        // Danh sách đơn thuốc khẩn cấp và bình thường
-                        _buildPrescriptionItem(
-                          code: 'RX001',
-                          patientName: 'Nguyễn Văn An',
-                          doctor: 'BS. Trần Thị Hoa • 2 thuốc',
-                          isUrgent: true,
+                      ),
+                      const SizedBox(width: 24),
+
+                      // CỘT 2: ĐƠN THUỐC MỚI NHẤT
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text('📋', style: TextStyle(fontSize: 18)),
+                                  const SizedBox(width: 8),
+                                  const Text('Đơn thuốc mới nhất', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(color: const Color(0xFFD97706), borderRadius: BorderRadius.circular(12)),
+                                    child: Text('$_pendingCount chờ', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  )
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+                              
+                              if (_pendingPrescriptions.isEmpty)
+                                const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text("Không còn đơn thuốc nào đang chờ xử lý.", style: TextStyle(color: Colors.grey)))
+                              else
+                                ..._pendingPrescriptions.map((prescription) {
+                                  final String code = prescription.id ?? 'Chưa cấp mã';
+                                  final String patientName = prescription.patientName;
+                                  final String doctorName = prescription.doctorName;
+                                  final int medicinesCount = prescription.medicines.length;
+
+                                  return _buildPrescriptionItem(
+                                    code: code.length > 8 ? "Mã: ...${code.substring(code.length - 6)}" : code,
+                                    patientName: patientName,
+                                    doctor: "$doctorName • $medicinesCount loại thuốc",
+                                  );
+                                }),
+                            ],
+                          ),
                         ),
-                        _buildPrescriptionItem(
-                          code: 'RX002',
-                          patientName: 'Trần Thị Bình',
-                          doctor: 'BS. Lê Văn Nam • 2 thuốc',
-                          isUrgent: false,
-                        ),
-                        _buildPrescriptionItem(
-                          code: 'RX004',
-                          patientName: 'Phạm Thị Dung',
-                          doctor: 'BS. Trần Thị Hoa • 1 thuốc',
-                          isUrgent: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+          ),
     );
   }
 
-  // ==================== COMPONENT WIDGETS PHỤ TRỢ BÊN BÁN THUỐC ====================
-
-  // Hàng item của danh sách Thuốc cần chú ý
-  Widget _buildAttentionMedicineItem({
-    required String name,
-    required String subInfo,
-    required bool isCritical,
-  }) {
-    final cardBgColor = isCritical ? const Color(0xFFFDF2F2) : const Color(0xFFFFFBEB); // Hồng đỏ hoặc Vàng cam nhạt
+  Widget _buildAttentionMedicineItem({required String name, required String subInfo, required bool isCritical}) {
+    final cardBgColor = isCritical ? const Color(0xFFFDF2F2) : const Color(0xFFFFFBEB);
     final iconData = isCritical ? Icons.error_outline_rounded : Icons.warning_amber_rounded;
     final iconColor = isCritical ? const Color(0xFFEF4444) : const Color(0xFFD97706);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: cardBgColor, borderRadius: BorderRadius.circular(10)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Icon(iconData, color: iconColor, size: 20),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
-                  const SizedBox(height: 4),
-                  Text(subInfo, style: TextStyle(color: iconColor.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ],
+          Expanded(
+            child: Row(
+              children: [
+                Icon(iconData, color: iconColor, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B))),
+                      const SizedBox(height: 4),
+                      Text(subInfo, style: TextStyle(color: iconColor.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Text(
-            'NHẬP HÀNG',
-            style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.3),
-          )
+          const SizedBox(width: 8),
+         InkWell(
+  onTap: () {
+    // 🟢 Điều hướng sang trang nhập kho thực tế của bạn
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const CreateImportDialog(), 
+      ),
+    );
+  },
+  borderRadius: BorderRadius.circular(8), // Tạo hiệu ứng bo góc khi click (nếu có background)
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Tạo vùng đệm bấm dễ hơn
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.add_box_outlined, color: Color(0xFF475569), size: 16), // Thêm icon trực quan (nếu thích)
+        const SizedBox(width: 6),
+        const Text(
+          'NHẬP HÀNG', 
+          style: TextStyle(
+            color: Color(0xFF475569), 
+            fontWeight: FontWeight.bold, 
+            fontSize: 12,
+          ),
+        ),
+      ],
+    ),
+  ),
+)
         ],
       ),
     );
   }
 
-  // Khối kén item đại diện Đơn thuốc
-  Widget _buildPrescriptionItem({
-    required String code,
-    required String patientName,
-    required String doctor,
-    required bool isUrgent,
-  }) {
+  Widget _buildPrescriptionItem({required String code, required String patientName, required String doctor}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isUrgent ? const Color(0xFFFEF9C3).withOpacity(0.6) : Colors.white, // Nền vàng nhẹ nếu Khẩn
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isUrgent ? const Color(0xFFEAB308) : kBorderColor, width: isUrgent ? 1.5 : 1), // Viền cam đậm nếu Khẩn
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A))),
-              if (isUrgent)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEA580C),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Khẩn', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                )
-            ],
-          ),
+          Text(code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A))),
           const SizedBox(height: 10),
           Row(
             children: [
               const Text('BN: ', style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500)),
-              Text(patientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A))),
+              Expanded(child: Text(patientName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)))),
             ],
           ),
           const SizedBox(height: 6),
-          Text(doctor, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+          Text(doctor, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
         ],
       ),
     );
   }
 
-  // (Giữ nguyên các hàm _buildAlertBox và _buildStatCard cũ của bạn...)
-  Widget _buildAlertBox({required IconData icon, required Color iconColor, required String title, required String content, String? actionText, required Color borderColor, required Color bgColor}) {
-    return Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor, width: 1.5)), child: Row(children: [Icon(icon, color: iconColor, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A))), const SizedBox(height: 4), Text(content, style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500))])), if (actionText != null) ...[const SizedBox(width: 12), TextButton(onPressed: () {}, child: Text(actionText, style: TextStyle(color: iconColor, fontWeight: FontWeight.bold, fontSize: 13)))]]));
+  Widget _buildAlertBox({required IconData icon, required Color iconColor, required String title, required String content, required Color borderColor, required Color bgColor}) {
+    return Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: borderColor, width: 1.5)), child: Row(children: [Icon(icon, color: iconColor, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A))), const SizedBox(height: 4), Text(content, style: const TextStyle(fontSize: 13, color: Color(0xFF334155), fontWeight: FontWeight.w500))]))]));
   }
+
   Widget _buildStatCard({required String title, required String value, required String subText, required Color themeColor, required IconData icon}) {
     return Container(width: 260, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text(title, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13, fontWeight: FontWeight.w500))), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 20))]), const SizedBox(height: 4), Text(value, style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.bold)), const SizedBox(height: 12), Text(subText, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500))]));
   }

@@ -1,53 +1,60 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../providers/receptionist_provider.dart';
 import '../../widgets/receptionist_drawer.dart';
 
-class ListWaitingScreen extends StatelessWidget {
+// ĐƯA CÁC BIẾN MÀU RA NGOÀI CLASS ĐỂ SỬA LỖI ĐỊNH DANH (UNDEFINED NAME)
+const Color kPrimaryColor = Color(0xFF0F172A); 
+const Color kBackgroundColor = Color(0xFFF8FAFC); 
+const Color kBorderColor = Color(0xFFE2E8F0);
+
+class ListWaitingScreen extends ConsumerStatefulWidget {
   const ListWaitingScreen({super.key});
 
-  // Hệ màu cao cấp chuẩn Clinic SaaS
-  static const Color kPrimaryColor = Color(0xFF0F172A); // Màu tối sang trọng thay cho xanh đậm cổ điển
-  static const Color kBackgroundColor = Color(0xFFF8FAFC); 
-  static const Color kBorderColor = Color(0xFFE2E8F0);
+  @override
+  ConsumerState<ListWaitingScreen> createState() => _ListWaitingScreenState();
+}
 
-  final List<Map<String, dynamic>> waitingList = const [
-    {
-      'name': 'Nguyễn Văn An',
-      'age': 35,
-      'doctor': 'Trần Thị Hoa',
-      'time': '08:30',
-      'phone': '0901234567',
-      'status': 'Đang chờ',
-    },
-    {
-      'name': 'Trần Thị Bình',
-      'age': 28,
-      'doctor': 'Lê Văn Nam',
-      'time': '09:00',
-      'phone': '0902345678',
-      'status': 'Đang khám',
-    },
-    {
-      'name': 'Lê Văn Cường',
-      'age': 42,
-      'doctor': 'Trần Thị Hoa',
-      'time': '09:30',
-      'phone': '0903456789',
-      'status': 'Đang chờ',
-    },
-    {
-      'name': 'Phạm Thị Dung',
-      'age': 51,
-      'doctor': 'Nguyễn Văn Đức',
-      'time': '10:00',
-      'phone': '0904567890',
-      'status': 'Đang chờ',
-    },
-  ];
+class _ListWaitingScreenState extends ConsumerState<ListWaitingScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    // Tự động fetch dữ liệu mới nhất theo ngày đang chọn khi vào màn hình
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(receptionistProvider);
+      ref.read(receptionistProvider.notifier).fetchAppointments(state.selectedDate);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final receptionistState = ref.watch(receptionistProvider);
+    
+    // LỌC REAL-TIME: Chỉ lấy những cuộc hẹn có trạng thái là 'checked_in'
+    final allWaitingAppointments = receptionistState.appointments
+        .where((a) => a.status == 'checked_in')
+        .toList();
+
+    // Áp dụng thêm bộ lọc tìm kiếm (Search Bar) nếu có nhập chữ
+    final filteredWaitingList = allWaitingAppointments.where((a) {
+      final query = _searchQuery.toLowerCase();
+      return a.patientName.toLowerCase().contains(query) ||
+             a.phone.contains(query) ||
+             a.id.toLowerCase().contains(query);
+    }).toList();
+
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: kBackgroundColor, // ĐÃ SỬA: Thay thế dấu chấm phẩy ';' sai cú pháp thành dấu phẩy ','
       appBar: AppBar(
         title: const Text(
           "Hệ thống Thu ngân - Phòng khám Đa khoa Hòa Bình",
@@ -60,76 +67,148 @@ class ListWaitingScreen extends StatelessWidget {
           child: Divider(color: kBorderColor, height: 1),
         ),
         iconTheme: const IconThemeData(color: Colors.black87),
+        actions: [
+          // Nút Refresh để hỗ trợ lấy dữ liệu thủ công nhanh
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black87),
+            onPressed: () {
+              ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate);
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      drawer: const ReceptionistDrawer(
+      drawer: ReceptionistDrawer(
         selectedMenu: "Danh sách chờ khám",
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Tiêu đề & Số lượng
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hàng đợi khám bệnh',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${waitingList.length} bệnh nhân trong danh sách',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+      body: receptionistState.isLoading
+          ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+          : Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // TIÊU ĐỀ & NÚT LỌC NGÀY CHUYÊN NGHIỆP
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hàng đợi khám bệnh',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${allWaitingAppointments.length} bệnh nhân đã check-in trong ngày',
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      
+                      // NÚT CHỌN NGÀY LỌC DATA (BẤM VÀO ĐỂ TEST)
+                      TextButton.icon(
+                        onPressed: () async {
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: receptionistState.selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(
+                                    primary: kPrimaryColor, // Màu chủ đạo của lịch chọn
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          
+                          if (picked != null && picked != receptionistState.selectedDate) {
+                            // Cập nhật ngày mới vào state và kích hoạt gọi API fetch data tự động
+                            // ref.read(receptionistProvider.notifier).updateSelectedDate(picked);
+                            ref.read(receptionistProvider.notifier).fetchAppointments(picked);
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_month_outlined, size: 16, color: kPrimaryColor),
+                        label: Text(
+                          "Ngày: ${DateFormat('dd/MM/yyyy').format(receptionistState.selectedDate)}",
+                          style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            side: const BorderSide(color: kBorderColor),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-            // Thanh tìm kiếm khít gọn
-            SizedBox(
-              height: 36,
-              child: TextField(
-                style: const TextStyle(fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: 'Tìm theo tên / SĐT / Mã bệnh nhân...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 16, color: Colors.grey),
-                  contentPadding: EdgeInsets.zero,
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: Color(0xFF0F172A))),
-                ),
+                  // Thanh tìm kiếm hoạt động real-time
+                  SizedBox(
+                    height: 36,
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(fontSize: 13),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Tìm theo tên / SĐT / Mã lịch hẹn...',
+                        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                        prefixIcon: const Icon(Icons.search, size: 16, color: Colors.grey),
+                        contentPadding: EdgeInsets.zero,
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kBorderColor)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: const BorderSide(color: kPrimaryColor)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Hiển thị danh sách thẻ hoặc thông báo trống
+                  Expanded(
+                    child: filteredWaitingList.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchQuery.isEmpty 
+                                  ? 'Không có bệnh nhân nào đang đợi khám trong ngày này.' 
+                                  : 'Không tìm thấy bệnh nhân phù hợp.',
+                              style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            child: Wrap(
+                              spacing: 16, 
+                              runSpacing: 16, 
+                              children: filteredWaitingList.map((appointment) => _buildPatientCard(context, appointment)).toList(),
+                            ),
+                          ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-
-            // GIẢI PHÁP: Thay thế GridView bằng Wrap chạy cuộn mượt mà
-            Expanded(
-              child: SingleChildScrollView(
-                child: Wrap(
-                  spacing: 16, // Khoảng cách ngang giữa các thẻ
-                  runSpacing: 16, // Khoảng cách dọc giữa các hàng
-                  children: waitingList.map((patient) => _buildPatientCard(context, patient)).toList(),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildPatientCard(BuildContext context, Map<String, dynamic> patient) {
-    final isWaiting = patient['status'] == 'Đang chờ';
-    final statusColor = isWaiting ? const Color(0xFFEA580C) : const Color(0xFF2563EB); // Màu sắc đậm đà hiện đại
-    final statusBgColor = isWaiting ? const Color(0xFFFFF7ED) : const Color(0xFFEFF6FF);
+  Widget _buildPatientCard(BuildContext context, dynamic appointment) {
+    const statusColor = Color(0xFF2563EB); 
+    const statusBgColor = Color(0xFFEFF6FF);
 
-    // CỐ ĐỊNH CHIỀU RỘNG THẺ: Giúp thẻ không bị bẻ rộng xấu xí khi dùng màn hình lớn
     return Container(
-      width: 380, // Chiều rộng lý tưởng gọn gàng
+      width: 380, 
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -142,23 +221,19 @@ class ListWaitingScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Thanh chỉ thị màu mỏng bo góc khít ở biên trái
             Container(
               width: 4,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: statusColor,
-                borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
               ),
             ),
-            
-            // 2. Nội dung chi tiết bên trong thẻ
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(14), // Padding vừa vặn, không quá trống
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // HÀNG 1: TÊN BN VÀ TAG TRẠNG THÁI
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,44 +243,41 @@ class ListWaitingScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                patient['name'],
+                                appointment.patientName,
                                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                '${patient['age']} tuổi • STT: ${patient['time']}',
+                                'Mã: #${appointment.id.toUpperCase()} • Giờ hẹn: ${appointment.time}',
                                 style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 8),
-                        
-                        // Tag trạng thái nhỏ nhắn, bo góc tinh tế
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: statusBgColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text(
-                            patient['status'].toUpperCase(),
+                          child: const Text(
+                            "ĐÃ CHECK-IN",
                             style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5),
                           ),
                         ),
                       ],
                     ),
-                    
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 10),
                       child: Divider(color: Color(0xFFF1F5F9), height: 1),
                     ),
-
-                    // HÀNG 2: THÔNG TIN BÁC SĨ & SĐT
-                    _infoRow(Icons.medical_services_outlined, 'Bác sĩ', 'BS. ${patient['doctor']}'),
+                    _infoRow(Icons.medical_services_outlined, 'Bác sĩ', 'BS. ${appointment.doctorName}'),
                     const SizedBox(height: 6),
-                    _infoRow(Icons.phone_outlined, 'SĐT', patient['phone']),
+                    _infoRow(Icons.badge_outlined, 'Chuyên khoa', appointment.departmentName.isNotEmpty ? appointment.departmentName : appointment.doctorSpecialty),
+                    const SizedBox(height: 6),
+                    _infoRow(Icons.phone_outlined, 'SĐT bệnh nhân', appointment.phone),
                   ],
                 ),
               ),

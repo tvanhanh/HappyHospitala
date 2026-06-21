@@ -8,7 +8,7 @@ final patientProvider = FutureProvider.family<List<Map<String, dynamic>>, String
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token');
   
-  String url = '$baseUrl/admin/patients';
+  String url = '$baseUrl/api/admin/patients';
   if (query.isNotEmpty) {
     url += '?search=$query';
   }

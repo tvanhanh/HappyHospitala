@@ -20,6 +20,7 @@ import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescrip
 import { createImportMedicne, getImportRecords,approveImportBill } from '../controllers/importMedicneController';
 import { createBill, getBills, getBillById } from '../controllers/billController';
 import {getSentRequests,getReceivedRequests} from '../controllers/request_controller';
+import { getMessages,createMessage,getChatRooms,getPatientMessages,deletePatientChat,updateMessage,deleteSingleMessage } from '../controllers/messageController';
 import { getAllInventories, getInventoryById, reduceStockQuantity,checkMedicinesStock } from '../controllers/inventoryController';
 
 import { controllers } from 'chart.js';
@@ -108,7 +109,15 @@ router.post('/check-stock' ,verifyToken, checkMedicinesStock);
  router.post("/create_bill", verifyToken, createBill);
  router.get('/get_bills',verifyToken, getBills);
  router.get('/get_bill/:id',verifyToken, getBillById);
-
+ // messenger
+router.get('/get_messages',verifyToken, getMessages);
+// Gửi tin nhắn (Hỗ trợ text đơn thuần hoặc đính kèm File nhận trực tiếp vào RAM tối đa 10MB)
+router.post('/messages', upload.single('file'),verifyToken, createMessage);
+router.get('/get_chat_rooms', verifyToken, getChatRooms);
+router.get('/patient/messages', verifyToken, getPatientMessages);
+router.delete('/patient/chat', verifyToken, deletePatientChat);
+router.put('/messages/update', verifyToken, updateMessage);
+router.delete('/messages/delete/:messageId', verifyToken, deleteSingleMessage);
 
 // Endpoint truyền ID tham số: /api/suppliers/:id
 router.put('/update_supplier/:id', verifyToken, updateSupplier);

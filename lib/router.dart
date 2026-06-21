@@ -43,6 +43,7 @@ import 'screens/screen_patient/book_appointment_screen.dart';
 import 'screens/screen_patient/select_room_screen.dart';
 import 'screens/screen_patient/select_doctor_screen.dart';
 import 'screens/screen_patient/select_doctor_by_specialty_screen.dart';
+import 'screens/screen_patient/customer_messenger_screen.dart';
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 import 'screens/screens_admin/admin_dashboard.dart';
@@ -75,6 +76,9 @@ import 'screens/screen_receptionist/patient_management_screen.dart';
 import 'screens/screen_receptionist/notificationScreen.dart';
 import 'screens/screen_receptionist/medical_records_screen.dart';
 import 'screens/screen_receptionist/dashboard.dart';
+import 'screens/screen_receptionist/list_waiting.dart';
+import 'screens/screen_receptionist/messenger_screen.dart';
+
 import 'screens/screen_doctor/appointment_detail_screen.dart';
 import 'screens/screen_doctor/appointment_detail_screen_doctor.dart';
 import 'screens/screen_doctor/doctor_profile_screen.dart';
@@ -151,6 +155,9 @@ final GoRouter router = GoRouter(
     GoRoute(
         path: '/patient_apointment',
         builder: (context, state) => PatientAppointmentsScreen()),
+         GoRoute(
+        path: '/chat_support',
+        builder: (context, state) => CustomerMessengerScreen()),
     GoRoute(
       path: '/patient-detail',
       builder: (context, state) {
@@ -325,6 +332,11 @@ final GoRouter router = GoRouter(
     
     ),
     GoRoute(
+      path: '/receptionist/waiting-list',
+      builder: (context, state) => const ListWaitingScreen(),
+    
+    ),
+    GoRoute(
   path: '/receptionist/medical-records',
   builder: (context, state) =>
       const MedicalRecordsScreen(),
@@ -418,15 +430,19 @@ final GoRouter router = GoRouter(
             builder: (context, state) => const PatientManagementScreen()),
         GoRoute(
             path: 'appointment-management',
-            builder: (context, state) => const ReceptionistDashboardScreen()),
+            builder: (context, state) => const ReceptionistCheckListScreen()),
         GoRoute(
             path: 'notification',
             builder: (context, state) => const NotificationScreen()),
         GoRoute(
             path: 'medical-records',
             builder: (context, state) => const MedicalRecordsScreen()),
+            
       ],
     ),
+    GoRoute(
+            path:'/receptionist/messenger',
+            builder: (context, state) => const ReceptionistMessengerScreen()),
     GoRoute(
         path: '/staff',
         builder: (context, state) => const ReceptionistDashboard()),

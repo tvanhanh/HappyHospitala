@@ -6,17 +6,18 @@ import '../../models/appointment.dart';
 import '../../providers/receptionist_provider.dart';
 import '../../widgets/receptionist_drawer.dart';
 import '../../providers/auth_provider.dart';
-
-class ReceptionistDashboardScreen extends ConsumerStatefulWidget {
-  const ReceptionistDashboardScreen({super.key});
+import 'notificationScreen.dart';
+import '../../widgets/appointment_form_dialog.dart';
+class ReceptionistCheckListScreen extends ConsumerStatefulWidget {
+  const ReceptionistCheckListScreen({super.key});
 
   @override
-  ConsumerState<ReceptionistDashboardScreen> createState() =>
+  ConsumerState<ReceptionistCheckListScreen> createState() =>
       _ReceptionistDashboardScreenState();
 }
 
 class _ReceptionistDashboardScreenState
-    extends ConsumerState<ReceptionistDashboardScreen> {
+    extends ConsumerState<ReceptionistCheckListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -269,37 +270,62 @@ class _ReceptionistDashboardScreenState
     // Filter appointments for each tab locally
     final checkedInList = appointments.where((a) => a.status == 'checked_in').toList();
     final toCheckInList = appointments.where((a) => ['pending', 'confirmed'].contains(a.status)).toList();
+    final state = ref.watch(receptionistProvider);
+    final userState = ref.watch(authProvider);
+    
 
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
-        appBar: isDesktop
-            ? null
-            : AppBar(
-                title: const Text(
-                  "Quản lý lịch hẹn & Check-in",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
-                ),
-                backgroundColor: const Color(0xFF0D47A1),
-                elevation: 0,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.white),
-                    onPressed: () {
-                      ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate);
-                    },
-                  ),
-                ],
-              ),
-        drawer: isDesktop
-            ? null
-            : const ReceptionistDrawer(
-                selectedMenu: "Quản lý lịch hẹn",
-              ),
+  return DefaultTabController(
+    length: 3,
+    child: Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
+      
+      // LUÔN LUÔN hiển thị AppBar này trên cả Mobile lẫn Desktop để đồng bộ màu xanh
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0D47A1), // Màu xanh đồng bộ như hình
+        elevation: 0, // Xóa bóng mờ phía dưới thanh để tạo cảm giác phẳng
+        centerTitle: true,
+        
+        // 1. Nút Menu 3 gạch ở góc trái (Tự động bo tròn nhẹ khi di chuột vào giống ảnh)
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              tooltip: "Open navigation menu", // Tooltip xuất hiện như trong ảnh của bạn
+              onPressed: () {
+                Scaffold.of(context).openDrawer(); // Mở Menu bên trái
+              },
+            );
+          },
+        ),
+        
+        // 2. Tiêu đề chính nằm ở giữa thanh xanh
+        title: const Text(
+          "Happy Clinic - Hệ thống quản lý",
+          style: TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 18, 
+            color: Colors.white,
+          ),
+        ),
+        
+        // 3. Nút Refresh (vòng xoay) nằm ở góc phải
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate);
+            },
+          ),
+          const SizedBox(width: 8), // Khoảng cách nhỏ với mép phải
+        ],
+      ),
+      
+      // Thanh Menu Drawer kéo ra từ bên trái
+      drawer: const ReceptionistDrawer(
+        selectedMenu: "Quản lý lịch hẹn",
+      ),
         body: Row(
           children: [
-            if (isDesktop) _buildSidebar(context),
             Expanded(
               child: Center(
                 child: Container(
@@ -309,9 +335,7 @@ class _ReceptionistDashboardScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Header Title & Date Picker Action
-                      if (isDesktop)
-                        _buildDesktopHeader(context, receptionistState)
-                      else
+                
                         Row(
                           children: [
                             Column(
@@ -326,17 +350,14 @@ class _ReceptionistDashboardScreenState
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  "Ngày: ${DateFormat('dd/MM/yyyy').format(receptionistState.selectedDate)}",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                                ),
+                               
                               ],
                             ),
                             const Spacer(),
                             ElevatedButton.icon(
-                              onPressed: () => _selectDate(context),
-                              icon: const Icon(Icons.calendar_today, size: 14, color: Colors.white),
-                              label: const Text("Chọn Ngày", style: TextStyle(color: Colors.white, fontSize: 12)),
+                              onPressed: () =>{context.push("/receptionist/notification")},
+                              icon: const Icon(Icons.notification_add, size: 14, color: Colors.white),
+                              label: const Text("Thông báo", style: TextStyle(color: Colors.white, fontSize: 12)),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1976D2),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -431,6 +452,26 @@ class _ReceptionistDashboardScreenState
                                 onPressed: () => _selectDate(context),
                                 icon: const Icon(Icons.calendar_today, size: 16, color: Colors.white),
                                 label: const Text("Chọn Ngày Khám", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0D47A1),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                             const SizedBox(width: 16),
+                            SizedBox(
+                              height: 52,
+                              child: ElevatedButton.icon(
+                                onPressed: () {showDialog(
+        context: context,
+        builder: (BuildContext dialogContext) {
+          return const AppointmentFormDialog(); // Khởi tạo dialog của bạn ở đây
+        },
+      );},
+                                icon: const Icon(Icons.add_alarm, size: 16, color: Colors.white),
+                                label: const Text("Thêm mới", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF0D47A1),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -571,107 +612,6 @@ class _ReceptionistDashboardScreenState
     );
   }
 
-  Widget _buildSidebar(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    const selectedMenu = "Quản lý lịch hẹn";
-
-    return Container(
-      width: 260,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D47A1),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF0D47A1),
-            Color(0xFF1565C0),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Logo Section
-          Container(
-            padding: const EdgeInsets.only(top: 40, bottom: 30, left: 24, right: 24),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.local_hospital_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "HAPPY CLINIC",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      Text(
-                        "Hệ thống quản lý",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(color: Colors.white24, height: 1, indent: 16, endIndent: 16),
-          const SizedBox(height: 16),
-          
-          // Menu Items
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildSidebarItem(context, Icons.dashboard_outlined, "Tổng quan", "/receptionist/dashboard", selectedMenu),
-                _buildSidebarItem(context, Icons.people_outline, "Quản lý bệnh nhân", "/receptionist/patient-management", selectedMenu),
-                _buildSidebarItem(context, Icons.calendar_today_outlined, "Quản lý lịch hẹn", "/receptionist/appointment-management", selectedMenu),
-                _buildSidebarItem(context, Icons.access_time, "Danh sách chờ khám", "/receptionist/waiting-list", selectedMenu),
-                _buildSidebarItem(context, Icons.folder_shared_outlined, "Hồ sơ bệnh án", "/receptionist/medical-records", selectedMenu),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Divider(color: Colors.white24, height: 1),
-                ),
-                _buildSidebarItem(context, Icons.notifications_none, "Thông báo", "/receptionist/notification", selectedMenu),
-                _buildSidebarItem(context, Icons.settings_outlined, "Cài đặt", "/receptionist/settings", selectedMenu),
-              ],
-            ),
-          ),
-
-          // User Profile Section
-          _buildSidebarProfile(context, authState),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSidebarItem(
     BuildContext context,
     IconData icon,
@@ -806,65 +746,61 @@ class _ReceptionistDashboardScreenState
     );
   }
 
-  Widget _buildDesktopHeader(BuildContext context, receptionistState) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      "Lễ tân",
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(Icons.chevron_right, size: 12, color: Colors.grey.shade400),
-                    const SizedBox(width: 4),
-                    const Text(
-                      "Quản lý lịch hẹn",
-                      style: TextStyle(fontSize: 12, color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Quản Lý Check-In Khách Hàng",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D47A1),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Ngày làm việc: ${DateFormat('dd/MM/yyyy').format(receptionistState.selectedDate)}",
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-          // Actions on the right
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate);
-            },
-            icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
-            label: const Text("Tải lại", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0D47A1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              elevation: 0,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildDesktopHeader(BuildContext context, receptionistState) {
+  //   return Container(
+  //     padding: const EdgeInsets.only(bottom: 24),
+  //     child: Row(
+  //       children: [
+  //         Expanded(
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Builder(
+  //         builder: (context) {
+  //           return IconButton(
+  //             icon: const Icon(Icons.menu, color: Color(0xFF0D47A1), size: 28),
+  //             onPressed: () {
+  //               Scaffold.of(context).openDrawer(); // Mở Drawer của Scaffold chứa nó
+  //             },
+  //           );
+  //         },
+  //       ),
+      
+  //               const SizedBox(height: 6),
+  //               const Text(
+  //                 "Quản Lý Check-In Khách Hàng",
+  //                 style: TextStyle(
+  //                   fontSize: 28,
+  //                   fontWeight: FontWeight.bold,
+  //                   color: Color(0xFF0D47A1),
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 4),
+  //               Text(
+  //                 "Ngày làm việc: ${DateFormat('dd/MM/yyyy').format(receptionistState.selectedDate)}",
+  //                 style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         // Actions on the right
+  //         ElevatedButton.icon(
+  //           onPressed: () {
+  //             ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate);
+  //           },
+  //           icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
+  //           label: const Text("Tải lại", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+  //           style: ElevatedButton.styleFrom(
+  //             backgroundColor: const Color(0xFF0D47A1),
+  //             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  //             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  //             elevation: 0,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildStatCard(String title, String count, IconData icon, Color color) {
     return Container(

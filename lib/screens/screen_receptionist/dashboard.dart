@@ -6,13 +6,16 @@ import 'package:intl/intl.dart';
 import '../../widgets/receptionist_drawer.dart';
 import '../../providers/receptionist_provider.dart';
 import '../../services/socket_service.dart';
+import 'messenger_screen.dart';
 
-const kPrimaryColor = Color(0xFF0D47A1); // Deep Indigo
-const kSecondaryColor = Color(0xFF1976D2);
-const kAccentColor = Color(0xFF4CAF50); // Emerald Green
-const kBackgroundColor = Color(0xFFF5F7FA);
-const kCardColor = Colors.white;
-const kTextColor = Color(0xFF333333);
+// Hệ màu cao cấp chuẩn Clinic SaaS mới
+const Color kPrimaryColor = Color(0xFF0F172A); // Màu tối sang trọng thay cho xanh đậm cổ điển
+const Color kSecondaryColor = Color(0xFF2563EB); // Royal Blue hiện đại
+const Color kAccentColor = Color(0xFF10B981); // Emerald Green tinh tế
+const Color kBackgroundColor = Color(0xFFF8FAFC); 
+const Color kCardColor = Colors.white;
+const Color kBorderColor = Color(0xFFE2E8F0);
+const Color kTextColor = Color(0xFF1E293B);
 
 class ReceptionistDashboard extends ConsumerStatefulWidget {
   const ReceptionistDashboard({super.key});
@@ -27,7 +30,6 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   @override
   void initState() {
     super.initState();
-    // Fetch today's appointments on screen initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final selectedDate = ref.read(receptionistProvider).selectedDate;
       ref.read(receptionistProvider.notifier).fetchAppointments(selectedDate);
@@ -43,7 +45,7 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.notifications_active, color: Colors.white),
+                const Icon(Icons.notifications_active, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -52,12 +54,12 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         body,
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(fontSize: 11),
                       ),
                     ],
                   ),
@@ -66,7 +68,7 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             ),
             backgroundColor: kPrimaryColor,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -89,7 +91,6 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget build(BuildContext context) {
     final state = ref.watch(receptionistProvider);
 
-    // Calculate real stats dynamically from the state's loaded appointments
     final totalPatients = state.appointments.map((a) => a.patientId).toSet().length;
     final waiting = state.appointments.where((a) => ['pending', 'confirmed'].contains(a.status)).length;
     final checkedIn = state.appointments.where((a) => a.status == 'checked_in').length;
@@ -105,148 +106,190 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       appBar: AppBar(
         title: const Text(
           "Happy Clinic - Hệ thống quản lý",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.black87),
         ),
-        backgroundColor: kPrimaryColor,
+        backgroundColor: Colors.white,
         elevation: 0,
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(color: kBorderColor, height: 1),
+        ),
+        iconTheme: const IconThemeData(color: Colors.black87),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.refresh, color: Colors.black87),
             onPressed: () {
               ref.read(receptionistProvider.notifier).fetchAppointments(state.selectedDate);
             },
-          )
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       drawer: const ReceptionistDrawer(
         selectedMenu: "Tổng quan",
       ),
+      
+      // NÚT CHAT MESSENGER NỔI CHUYÊN NGHIỆP TRÊN GIAO DIỆN
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+        Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ReceptionistMessengerScreen()),
+    ); // Điều hướng tới trang chat hỗ trợ của bạn
+        },
+        backgroundColor: kSecondaryColor,
+        elevation: 4,
+        icon: const Icon(Icons.forum_rounded, color: Colors.white, size: 20),
+        label: const Text(
+          "Hỗ trợ khách hàng",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+        ),
+      ),
       body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+          ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+          : Padding(
               padding: const EdgeInsets.all(24.0),
-              physics: const BouncingScrollPhysics(),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Welcome Header
-                  Row(
-                    children: [
-                      Column(
+                  // Khối Nội Dung Chính
+                  Expanded(
+                    flex: 3,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Xin chào, Lễ tân",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0D47A1),
-                            ),
+                          // Welcome Header tinh gọn
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Xin chào, Lễ tân",
+                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Hôm nay: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)}",
+                                style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "Hôm nay: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)}",
-                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                          ),
+                          const SizedBox(height: 24),
+
+                          // Thống kê phân chia dạng lưới gọn gàng
+                          _buildOverviewGrid(totalPatients, waiting, checkedIn, completed, formattedRevenue),
+                          const SizedBox(height: 24),
+
+                          // Hành động nhanh dạng nút bấm cao cấp
+                          _buildQuickActions(context),
+                          const SizedBox(height: 24),
+
+                          // Đồ thị trực quan
+                          _buildChartsSection(state.appointments),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Real-time Overview Cards
-                  _buildOverviewCards(totalPatients, waiting, checkedIn, completed, formattedRevenue),
-                  const SizedBox(height: 24),
-
-                  // Quick Actions Card Section
-                  _buildQuickActions(context),
-                  const SizedBox(height: 24),
-
-                  // Charts Section using dynamic data aggregation
-                  _buildChartsSection(state.appointments),
-                  const SizedBox(height: 24),
-
-                  // Real-time Live Queue list
-                  _buildRecentAppointments(state.appointments),
+                  const SizedBox(width: 24),
+                  
+                  // Khối Hàng Chờ Trực Quan Bên Phải (Layout Dashboard Tiêu chuẩn)
+                  Expanded(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: _buildLiveQueueSection(state.appointments),
+                    ),
+                  ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildOverviewCards(int total, int wait, int checkedIn, int done, String revStr) {
+  Widget _buildOverviewGrid(int total, int wait, int checkedIn, int done, String revStr) {
     return Column(
       children: [
-        Row(
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
           children: [
-            _buildStatCard("Bệnh nhân hôm nay", total.toString(), Icons.group, Colors.blue),
-            const SizedBox(width: 16),
-            _buildStatCard("Chờ Check-in", wait.toString(), Icons.hourglass_top, Colors.orange),
+            _buildStatCard("Bệnh nhân hôm nay", total.toString(), Icons.group_outlined, Colors.blue),
+            _buildStatCard("Chờ Check-in", wait.toString(), Icons.hourglass_top_rounded, Colors.orange),
+            _buildStatCard("Trong hàng chờ", checkedIn.toString(), Icons.directions_run_rounded, kSecondaryColor),
+            _buildStatCard("Đã khám xong", done.toString(), Icons.check_circle_outline_rounded, kAccentColor),
           ],
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildStatCard("Đang trong hàng chờ", checkedIn.toString(), Icons.check_circle_outline, Colors.green),
-            const SizedBox(width: 16),
-            _buildStatCard("Đã khám xong", done.toString(), Icons.done_all, Colors.teal),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildStatCard("Doanh thu thực tế (Đã thu)", revStr, Icons.monetization_on, Colors.purple),
-          ],
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: kPrimaryColor,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white.withOpacity(0.1),
+                radius: 22,
+                child: const Icon(Icons.monetization_on_outlined, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "DOANH THU THỰC TẾ (ĐÃ THU)",
+                    style: TextStyle(color: const Color.fromARGB(255, 80, 156, 183), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    revStr,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: kCardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: kTextColor,
-                    ),
-                  ),
-                ],
+    return Container(
+      width: 172,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 6, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
               ),
-            ),
-            CircleAvatar(
-              backgroundColor: color.withOpacity(0.1),
-              radius: 24,
-              child: Icon(icon, color: color, size: 24),
-            ),
-          ],
-        ),
+              Icon(icon, color: color, size: 18),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kTextColor),
+          ),
+        ],
       ),
     );
   }
@@ -256,33 +299,28 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Thao tác nhanh",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryColor),
+            "Thao tác nhanh hệ thống",
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kPrimaryColor),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildActionItem(Icons.list_alt, "Check-in Lịch hẹn", () {
+              _buildActionButton(Icons.assignment_turned_in_outlined, "Check-in Lịch hẹn", () {
                 context.go('/receptionist/appointment-management');
               }),
-              _buildActionItem(Icons.description, "Hồ sơ bệnh án", () {
+              const SizedBox(width: 12),
+              _buildActionButton(Icons.folder_shared_outlined, "Hồ sơ bệnh án", () {
                 context.go('/receptionist/medical-records');
               }),
-              _buildActionItem(Icons.people_outline, "Quản lý bệnh nhân", () {
+              const SizedBox(width: 12),
+              _buildActionButton(Icons.assignment_ind_outlined, "Quản lý bệnh nhân", () {
                 context.go('/receptionist/patient-management');
               }),
             ],
@@ -292,35 +330,28 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     );
   }
 
-  Widget _buildActionItem(IconData icon, String label, VoidCallback onTap) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: kSecondaryColor.withOpacity(0.08),
-              child: Icon(icon, size: 26, color: kSecondaryColor),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(color: kTextColor, fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ],
+  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 16, color: kSecondaryColor),
+        label: Text(label, style: const TextStyle(color: kTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: kBorderColor),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          backgroundColor: Colors.white,
         ),
       ),
     );
   }
 
   Widget _buildChartsSection(List<dynamic> appointments) {
-    return Column(
+    return Row(
       children: [
-        _buildChartContainer("Lưu lượng bệnh nhân theo buổi", _buildPatientBarChart(appointments)),
-        const SizedBox(height: 24),
-        _buildChartContainer("Cơ cấu chuyên khoa khám hôm nay", _buildSpecialtyPieChart(appointments)),
+        Expanded(child: _buildChartContainer("Lưu lượng bệnh nhân theo buổi", _buildPatientBarChart(appointments))),
+        const SizedBox(width: 16),
+        Expanded(child: _buildChartContainer("Cơ cấu chuyên khoa khám", _buildSpecialtyPieChart(appointments))),
       ],
     );
   }
@@ -330,37 +361,29 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryColor),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kPrimaryColor),
           ),
-          const SizedBox(height: 20),
-          SizedBox(height: 220, child: chart),
+          const SizedBox(height: 16),
+          SizedBox(height: 200, child: chart),
         ],
       ),
     );
   }
 
   Widget _buildPatientBarChart(List<dynamic> appointments) {
-    // Group appointments into morning (before 12 PM) vs afternoon/evening (after 12 PM)
     int morningCount = 0;
     int afternoonCount = 0;
 
     for (var appt in appointments) {
       final timeStr = appt.time.toString().toLowerCase();
-      // Simple parse check: if it contains 'am' or hour is early (e.g. 07:00, 08:00, 09:00, 10:00, 11:00)
       if (timeStr.contains('am') || timeStr.startsWith('0') || timeStr.startsWith('10') || timeStr.startsWith('11')) {
         morningCount++;
       } else {
@@ -378,25 +401,20 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         barTouchData: BarTouchData(enabled: true),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: true, reservedSize: 28, interval: (maxVal / 4).roundToDouble().clamp(1.0, 50.0)),
+            sideTitles: SideTitles(showTitles: true, reservedSize: 24, interval: (maxVal / 4).roundToDouble().clamp(1.0, 50.0)),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                const style = TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold);
-                String text = '';
-                if (value.toInt() == 0) text = 'Sáng (AM)';
-                if (value.toInt() == 1) text = 'Chiều (PM)';
-                return SideTitleWidget(
-                  meta: meta,
-                  child: Text(text, style: style),
-                );
+                const style = TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500);
+                String text = value.toInt() == 0 ? 'Sáng (AM)' : 'Chiều (PM)';
+                return SideTitleWidget(meta: meta, child: Text(text, style: style));
               },
             ),
           ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
@@ -406,10 +424,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         borderData: FlBorderData(show: false),
         barGroups: [
           BarChartGroupData(x: 0, barRods: [
-            BarChartRodData(toY: morningCount.toDouble(), color: Colors.orange, width: 32, borderRadius: BorderRadius.circular(4))
+            BarChartRodData(toY: morningCount.toDouble(), color: Colors.orange.shade400, width: 24, borderRadius: BorderRadius.circular(4))
           ]),
           BarChartGroupData(x: 1, barRods: [
-            BarChartRodData(toY: afternoonCount.toDouble(), color: Colors.blue, width: 32, borderRadius: BorderRadius.circular(4))
+            BarChartRodData(toY: afternoonCount.toDouble(), color: kSecondaryColor, width: 24, borderRadius: BorderRadius.circular(4))
           ]),
         ],
       ),
@@ -424,11 +442,11 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     }
 
     if (specialtyMap.isEmpty) {
-      return const Center(child: Text("Không có lịch hẹn để lập sơ đồ cơ cấu"));
+      return const Center(child: Text("Không có lịch hẹn hôm nay"));
     }
 
     final total = specialtyMap.values.fold(0, (sum, val) => sum + val);
-    final List<Color> colors = [Colors.blue, Colors.green, Colors.orange, Colors.purple, Colors.red, Colors.teal];
+    final List<Color> colors = [kSecondaryColor, kAccentColor, Colors.orange, Colors.purple, Colors.teal];
 
     int index = 0;
     final sections = specialtyMap.entries.map((entry) {
@@ -439,35 +457,29 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         color: color,
         value: entry.value.toDouble(),
         title: '${entry.key}\n(${percent.toStringAsFixed(0)}%)',
-        radius: 70,
-        titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+        radius: 60,
+        titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
       );
     }).toList();
 
     return PieChart(
       PieChartData(
         sectionsSpace: 2,
-        centerSpaceRadius: 35,
+        centerSpaceRadius: 30,
         sections: sections,
       ),
     );
   }
 
-  Widget _buildRecentAppointments(List<dynamic> appointments) {
-    final recent = appointments.take(5).toList();
+  Widget _buildLiveQueueSection(List<dynamic> appointments) {
+    final recent = appointments.take(6).toList();
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kCardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,25 +488,25 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Lịch khám ngày hôm nay",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                "Lịch khám hôm nay",
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kPrimaryColor),
               ),
-              TextButton(
+              IconButton(
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18, color: kSecondaryColor),
                 onPressed: () => context.go('/receptionist/appointment-management'),
-                child: const Text("Xem tất cả"),
               )
             ],
           ),
           const SizedBox(height: 12),
           if (recent.isEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              padding: const EdgeInsets.symmetric(vertical: 40.0),
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.calendar_today_outlined, color: Colors.grey.shade300, size: 48),
+                    Icon(Icons.calendar_today_outlined, color: Colors.grey.shade300, size: 36),
                     const SizedBox(height: 8),
-                    Text("Không có lịch khám nào cho hôm nay", style: TextStyle(color: Colors.grey.shade400)),
+                    Text("Không có lịch khám nào", style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
                   ],
                 ),
               ),
@@ -504,7 +516,7 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: recent.length,
-              separatorBuilder: (context, index) => const Divider(),
+              separatorBuilder: (context, index) => const Divider(color: Color(0xFFF1F5F9), height: 16),
               itemBuilder: (context, index) {
                 final appt = recent[index];
                 Color statusColor = Colors.grey;
@@ -512,18 +524,18 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 switch (appt.status) {
                   case 'pending':
                     statusColor = Colors.orange;
-                    statusLabel = 'Chờ xác nhận';
+                    statusLabel = 'Chờ duyệt';
                     break;
                   case 'confirmed':
                     statusColor = Colors.blue;
-                    statusLabel = 'Đã xác nhận';
+                    statusLabel = 'Đã duyệt';
                     break;
                   case 'checked_in':
-                    statusColor = Colors.green;
-                    statusLabel = 'Đã Check-in';
+                    statusColor = kSecondaryColor;
+                    statusLabel = 'Đang chờ khám';
                     break;
                   case 'completed':
-                    statusColor = Colors.teal;
+                    statusColor = kAccentColor;
                     statusLabel = 'Hoàn thành';
                     break;
                   case 'cancelled':
@@ -532,50 +544,52 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     break;
                 }
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    children: [
-                      Column(
+                return Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: kBorderColor),
+                      ),
+                      child: Text(
+                        appt.time,
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: kTextColor, fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.access_time, color: Colors.grey, size: 18),
-                          const SizedBox(height: 4),
                           Text(
-                            appt.time,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: kTextColor, fontSize: 13),
+                            appt.patientName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextColor),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "BS. ${appt.doctorName} • ${appt.departmentName}",
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              appt.patientName,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF222222)),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Bác sĩ: ${appt.doctorName} • ${appt.departmentName}",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                            ),
-                          ],
-                        ),
+                    ),
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          statusLabel,
-                          style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 11),
-                        ),
+                      child: Text(
+                        statusLabel,
+                        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 );
               },
             )

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Thêm Thư viện Riverpod
 import '../../services/api_doctors.dart';
-import '../../services/api_department.dart';
+// import '../../services/api_department.dart'; // Bỏ nếu không dùng tới
 import '../../services/api_appointment.dart';
-class AppointmentFormDialog extends StatefulWidget {
+import '../providers/specialty_provider.dart';
+
+// Đổi từ StatefulWidget sang ConsumerStatefulWidget để dùng được 'ref'
+class AppointmentFormDialog extends ConsumerStatefulWidget {
   const AppointmentFormDialog({super.key});
 
   @override
-  State<AppointmentFormDialog> createState() =>
+  ConsumerState<AppointmentFormDialog> createState() =>
       _AppointmentFormDialogState();
 }
 
-class _AppointmentFormDialogState
-    extends State<AppointmentFormDialog> {
+// Kế thừa từ ConsumerState thay vì State thông thường
+class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
   final _formKey = GlobalKey<FormState>();
 
   /// Patient
@@ -40,7 +44,8 @@ class _AppointmentFormDialogState
   @override
   void initState() {
     super.initState();
-    loadDepartments();
+    // Gọi hàm load dữ liệu chuyên khoa từ Provider khi khởi tạo popup
+    loadSpeciality(); 
   }
 
   @override
@@ -56,18 +61,16 @@ class _AppointmentFormDialogState
     super.dispose();
   }
 
-  Future<void> loadDepartments() async {
+  // ĐÃ SỬA: Sắp xếp gọn gàng logic nạp dữ liệu chuyên khoa từ Riverpod
+  Future<void> loadSpeciality() async {
     try {
-      final result =
-          await DepartmentService.getDepartments();
-
+      final result = await ref.read(specialtyProvider.future);
       setState(() {
-        departments = result;
+        departments = result; 
         loadingDepartments = false;
       });
     } catch (e) {
-      debugPrint(e.toString());
-
+      debugPrint("Lỗi load chuyên khoa: ${e.toString()}");
       setState(() {
         loadingDepartments = false;
       });
@@ -75,88 +78,93 @@ class _AppointmentFormDialogState
   }
 
   Future<void> loadDoctors(String departmentId) async {
-  print("loadDoctors: $departmentId");
-
-  try {
-    final result =
-        await DoctorService.getDoctorsByDepartment(
-            departmentId);
-
-    print("Doctors result:");
-    print(result);
-
+    print("loadDoctors: $departmentId");
     setState(() {
-      doctors = result;
+      loadingDoctors = true;
+      doctors = []; // Xóa danh sách bác sĩ cũ trước khi nạp mới
+      selectedDoctorId = null;
     });
-  } catch (e) {
-    print("ERROR: $e");
-  }
-}
- Future<void> submit() async {
-  if (!_formKey.currentState!.validate()) return;
 
-  // check bắt buộc
-  if (selectedDoctorId == null ||
-      selectedDepartmentId == null ||
-      dateController.text.isEmpty ||
-      timeController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Vui lòng chọn đầy đủ bác sĩ, ngày và giờ"),
-        backgroundColor: Colors.orange,
-      ),
-    );
-    return;
+    try {
+      final result = await DoctorService.getDoctorsBySpecialty(departmentId);
+      print("Doctors result: $result");
+      setState(() {
+        doctors = result ?? [];
+        loadingDoctors = false;
+      });
+    } catch (e) {
+      print("ERROR load bác sĩ: $e");
+      setState(() {
+        loadingDoctors = false;
+      });
+    }
   }
 
-  try {
-    final birthParts = birthController.text.split("/");
-    final formattedBirth =
-        "${birthParts[2]}-${birthParts[1]}-${birthParts[0]}";
+  Future<void> submit() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    final result = await AppointmentApi.addAppointment(
-      doctorId: selectedDoctorId!,
-      departmentId: selectedDepartmentId!,
-      patientName: patientNameController.text,
-      phone: phoneController.text,
-      cccd: cccdController.text,
-      birthDate: formattedBirth,
-      gender: gender,
-      address: addressController.text,
-      reason: reasonController.text,
-      date: dateController.text,
-      time: timeController.text,
-    );
-    if (!mounted) return;
-    print(result); 
-    if (result is Map && result["success"] == true) {
+    if (selectedDoctorId == null ||
+        selectedDepartmentId == null ||
+        dateController.text.isEmpty ||
+        timeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Đặt lịch thành công 🎉"),
-          backgroundColor: Colors.green,
+          content: Text("Vui lòng chọn đầy đủ bác sĩ, ngày và giờ"),
+          backgroundColor: Colors.orange,
         ),
       );
-      Navigator.pop(context, true);
-    } else {
+      return;
+    }
+
+    try {
+      final birthParts = birthController.text.split("/");
+      final formattedBirth =
+          "${birthParts[2]}-${birthParts[1]}-${birthParts[0]}";
+
+      final result = await AppointmentApi.addAppointment(
+        doctorId: selectedDoctorId!,
+        departmentId: selectedDepartmentId!,
+        patientName: patientNameController.text,
+        phone: phoneController.text,
+        cccd: cccdController.text,
+        birthDate: formattedBirth,
+        gender: gender,
+        address: addressController.text,
+        reason: reasonController.text,
+        date: dateController.text,
+        time: timeController.text,
+      );
+      
+      if (!mounted) return;
+      print("Kết quả thêm lịch hẹn: $result"); 
+
+      if (result is Map && result["success"] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Đặt lịch thành công 🎉"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true); // Đóng và báo thành công về màn hình chính
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Thất bại: ${result is Map ? result["message"] : result}",
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            "Thất bại: ${result is Map ? result["message"] : result}",
-          ),
+          content: Text("Lỗi hệ thống: $e"),
           backgroundColor: Colors.red,
         ),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Lỗi: $e"),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -169,38 +177,25 @@ class _AppointmentFormDialogState
             key: _formKey,
             child: SingleChildScrollView(
               child: Column(
-                crossAxisAlignment:
-               
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Center(
                     child: Text(
                       "Đặt lịch khám mới",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
                   const Text(
                     "Thông tin bệnh nhân",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
-
                   const SizedBox(height: 15),
-
                   Row(
                     children: [
                       Expanded(
                         child: _buildTextField(
-                          controller:
-                              patientNameController,
+                          controller: patientNameController,
                           label: "Tên bệnh nhân",
                         ),
                       ),
@@ -213,9 +208,7 @@ class _AppointmentFormDialogState
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 15),
-
                   Row(
                     children: [
                       Expanded(
@@ -226,25 +219,15 @@ class _AppointmentFormDialogState
                       ),
                       const SizedBox(width: 15),
                       Expanded(
-                        child:
-                            DropdownButtonFormField<
-                                String>(
+                        child: DropdownButtonFormField<String>(
                           value: gender,
-                          decoration:
-                              const InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: "Giới tính",
-                            border:
-                                OutlineInputBorder(),
+                            border: OutlineInputBorder(),
                           ),
                           items: const [
-                            DropdownMenuItem(
-                              value: "Nam",
-                              child: Text("Nam"),
-                            ),
-                            DropdownMenuItem(
-                              value: "Nữ",
-                              child: Text("Nữ"),
-                            ),
+                            DropdownMenuItem(value: "Nam", child: Text("Nam")),
+                            DropdownMenuItem(value: "Nữ", child: Text("Nữ")),
                           ],
                           onChanged: (value) {
                             setState(() {
@@ -255,268 +238,184 @@ class _AppointmentFormDialogState
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 15),
-
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           controller: birthController,
                           readOnly: true,
-                          decoration:
-                              const InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: "Ngày sinh",
-                            border:
-                                OutlineInputBorder(),
-                            prefixIcon:
-                                Icon(Icons.cake),
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.cake),
                           ),
                           onTap: () async {
-                            final picked =
-                                await showDatePicker(
+                            final picked = await showDatePicker(
                               context: context,
-                              initialDate:
-                                  DateTime(2000),
-                              firstDate:
-                                  DateTime(1900),
-                              lastDate:
-                                  DateTime.now(),
+                              initialDate: DateTime(2000),
+                              firstDate: DateTime(1900),
+                              lastDate: DateTime.now(),
                             );
-
                             if (picked != null) {
-                              birthController.text =
-                                  "${picked.day}/${picked.month}/${picked.year}";
+                              setState(() {
+                                birthController.text =
+                                    "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+                              });
                             }
                           },
                         ),
                       ),
-
                       const SizedBox(width: 15),
-
                       Expanded(
                         child: _buildTextField(
-                          controller:
-                              addressController,
+                          controller: addressController,
                           label: "Địa chỉ",
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 25),
-
                   const Divider(),
-
                   const SizedBox(height: 20),
-
                   const Text(
                     "Thông tin lịch khám",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
-
                   const SizedBox(height: 15),
-
                   Row(
                     children: [
+                      // DROPDOWN CHUYÊN KHOA
                       Expanded(
-                        child:
-                            DropdownButtonFormField<
-                                String>(
-                          value: selectedDepartmentId,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                "Chuyên khoa",
-                            border:
-                                OutlineInputBorder(),
+  child: DropdownButtonFormField<String>(
+    value: selectedDepartmentId,
+    decoration: InputDecoration(
+      labelText: loadingDepartments ? "Đang tải chuyên khoa..." : "Chuyên khoa",
+      border: const OutlineInputBorder(),
+    ),
+    items: departments.map((department) {
+      // Đọc linh hoạt từ Map hoặc Object model
+      final id = department is Map ? department["id"] : department.id;
+      final name = department is Map ? department["departmentName"] : department.name;
+      
+      return DropdownMenuItem<String>(
+        // SỬA TẠI ĐÂY: Dùng đúng biến id và name vừa lấy ở trên
+        value: id?.toString(),
+        child: Text(name?.toString() ?? "Không rõ tên khoa"),
+      );
+    }).toList(),
+    onChanged: loadingDepartments ? null : (value) async {
+      print("Đã chọn khoa: $value");
+      setState(() {
+        selectedDepartmentId = value;
+      });
+      if (value != null) {
+        await loadDoctors(value);
+      }
+    },
+  ),
+),
+                      const SizedBox(width: 15),
+                      // DROPDOWN BÁC SĨ
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: selectedDoctorId,
+                          decoration: InputDecoration(
+                            labelText: loadingDoctors ? "Đang tải danh sách..." : "Bác sĩ",
+                            border: const OutlineInputBorder(),
                           ),
-                          items: departments
-                              .map((department) {
-                            return DropdownMenuItem<
-                                String>(
-                              value:
-                                  department["id"],
-                              child: Text(
-                                department[
-                                    "departmentName"],
-                              ),
+                          items: doctors.map((doctor) {
+                            return DropdownMenuItem<String>(
+                             value: doctor.id?.toString() ?? doctor.sId?.toString(), 
+        child: Text(doctor.name?.toString() ?? "Không rõ tên"),             
                             );
                           }).toList(),
-                          onChanged: (value) async {
-                           print("Đã chọn khoa: $value");
+                          onChanged: doctors.isEmpty ? null : (value) {
                             setState(() {
-                              selectedDepartmentId = value;
+                              selectedDoctorId = value;
                             });
-                            if (value != null) {
-                              await loadDoctors(
-                                  value);
-                            }
                           },
-                        ),
-                      ),
-
-                      const SizedBox(width: 15),
-
-                      Expanded(
-                        child:
-                            DropdownButtonFormField<
-                                String>(
-                          value:
-                              selectedDoctorId,
-                          decoration:
-                              const InputDecoration(
-                            labelText: "Bác sĩ",
-                            border:
-                                OutlineInputBorder(),
-                          ),
-                          items: doctors
-                              .map((doctor) {
-                            return DropdownMenuItem<
-                                String>(
-                              value:doctor["_id"],
-                              child: Text(
-                                doctor[
-                                    "name"],
-                              ),
-                            );
-                          }).toList(),
-                          onChanged:
-                              doctors.isEmpty
-                                  ? null
-                                  : (value) {
-                                      setState(() {
-                                        selectedDoctorId =
-                                            value;
-                                      });
-                                    },
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 15),
-
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
-                          controller:
-                              dateController,
+                          controller: dateController,
                           readOnly: true,
-                          decoration:
-                              const InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: "Ngày khám",
-                            border:
-                                OutlineInputBorder(),
-                            prefixIcon: Icon(
-                                Icons
-                                    .calendar_today),
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.calendar_today),
                           ),
                           onTap: () async {
-                            final pickedDate =
-                                await showDatePicker(
+                            final pickedDate = await showDatePicker(
                               context: context,
-                              initialDate:
-                                  DateTime.now(),
-                              firstDate:
-                                  DateTime.now(),
-                              lastDate:
-                                  DateTime(2035),
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2035),
                             );
-
-                            if (pickedDate !=
-                                null) {
-                              dateController.text =
-                                  "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+                            if (pickedDate != null) {
+                              setState(() {
+                                dateController.text =
+                                    "${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}";
+                              });
                             }
                           },
                         ),
                       ),
-
                       const SizedBox(width: 15),
-
                       Expanded(
                         child: TextFormField(
-                          controller:
-                              timeController,
+                          controller: timeController,
                           readOnly: true,
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                "Giờ khám",
-                            border:
-                                OutlineInputBorder(),
-                            prefixIcon: Icon(
-                                Icons
-                                    .access_time),
+                          decoration: const InputDecoration(
+                            labelText: "Giờ khám",
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.access_time),
                           ),
                           onTap: () async {
-                            final pickedTime =
-                                await showTimePicker(
+                            final pickedTime = await showTimePicker(
                               context: context,
-                              initialTime:
-                                  TimeOfDay.now(),
+                              initialTime: TimeOfDay.now(),
                             );
-
-                            if (pickedTime !=
-                                null) {
-                              timeController.text =
-                                  pickedTime.format(
-                                      context);
+                            if (pickedTime != null) {
+                              setState(() {
+                                timeController.text = pickedTime.format(context);
+                              });
                             }
                           },
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 15),
-
                   TextFormField(
                     controller: reasonController,
                     maxLines: 3,
-                    decoration:
-                        const InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: "Lý do khám",
-                      border:
-                          OutlineInputBorder(),
+                      border: OutlineInputBorder(),
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(
-                              context);
-                        },
-                        child: const Text(
-                            "Hủy"),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Hủy"),
                       ),
-
                       const SizedBox(width: 12),
-
                       ElevatedButton.icon(
-                        icon:
-                            const Icon(Icons.save),
-                        label: const Text(
-                            "Lưu lịch hẹn"),
+                        icon: const Icon(Icons.save),
+                        label: const Text("Lưu lịch hẹn"),
                         onPressed: () async {
-                           if (!_formKey.currentState!.validate()) return;
-                            await submit(); 
-                          debugPrint("Patient: ${patientNameController.text}");
-                          debugPrint("Doctor: $selectedDoctorId");
-
-                          Navigator.pop(
-                              context);
+                          // ĐÃ SỬA: Xóa bỏ Navigator.pop() thừa để nút submit thực thi lưu và kiểm tra API trước
+                          await submit();
                         },
                       ),
                     ],
@@ -537,8 +436,7 @@ class _AppointmentFormDialogState
     return TextFormField(
       controller: controller,
       validator: (value) {
-        if (value == null ||
-            value.trim().isEmpty) {
+        if (value == null || value.trim().isEmpty) {
           return "Không được để trống";
         }
         return null;

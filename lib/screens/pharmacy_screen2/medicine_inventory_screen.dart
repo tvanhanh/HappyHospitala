@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/inventory_model.dart';
 import '../../services/api_inventory.dart'; 
+import '../../services/api_medicine.dart'; // 🟢 Đảm bảo import file chứa hàm ApiMedicine.getAllMedicines()
 import '../../widgets/pharmacy/inventory_detail_dialog.dart';
 import '../../widgets/pharmacy/pharmaCase_drawer.dart';
 
@@ -10,6 +11,7 @@ class MedicineInventoryPage extends StatefulWidget {
   @override
   State<MedicineInventoryPage> createState() => _MedicineInventoryPageState();
 }
+
 class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
   // ================= HỆ MÀU THƯƠNG HIỆU PHARMACARE (ĐỒNG BỘ) =================
   static const Color kHeaderBlue = Color(0xFF3EA6E9);
@@ -21,7 +23,8 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
   static const Color kTextDark = Color(0xFF0F172A);
   static const Color kTextMuted = Color(0xFF64748B);
 
-  late Future<List<InventoryModel>> _inventoryFuture;
+  // Thay đổi kiểu dữ liệu để lưu trữ cả đối tượng lô hàng và đơn vị tính, minStock từ thuốc gốc
+  late Future<List<Map<String, dynamic>>> _combinedInventoryFuture;
   String _searchQuery = '';
 
   @override
@@ -32,20 +35,66 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
 
   void _refreshInventoryData() {
     setState(() {
-      _inventoryFuture = ApiInventory.getInventories();
+      _combinedInventoryFuture = _fetchAndCombineData();
     });
   }
 
-  // Hàm tính toán trạng thái động dựa trên số lượng tồn kho thực tế và hạn sử dụng (Năm 2026)
-  String _calculateStatus(InventoryModel item) {
+  // 🟢 Hàm mới: Gọi song song 2 API và trộn dữ liệu danh mục thuốc gốc vào lô hàng kho
+  Future<List<Map<String, dynamic>>> _fetchAndCombineData() async {
+    final futures = await Future.wait([
+      ApiInventory.getInventories(),
+      ApiMedicine.getAllMedicines(),
+    ]);
+
+    List<InventoryModel> allInventories = futures[0] as List<InventoryModel>;
+    dynamic rawMedicines = futures[1];
+
+    // Chuyển mảng thuốc gốc thành Map tra cứu nhanh O(1) theo mã ID thuốc
+    Map<String, dynamic> medicineMap = {};
+    if (rawMedicines != null) {
+      for (var med in rawMedicines) {
+        final String medId = med.id ?? med.idObj ?? '';
+        if (medId.isNotEmpty) {
+          medicineMap[medId] = med;
+        }
+      }
+    }
+
+    // Tiến hành ánh xạ và bổ sung thuộc tính động
+    return allInventories.map((inv) {
+      final String targetMedId = inv.medicineId.toString();
+      dynamic originalMedicine = medicineMap[targetMedId];
+
+      // Đọc minStock và đơn vị tính (unit) động từ cấu trúc danh mục thuốc của bạn
+      int dynamicMinStock = originalMedicine != null ? (originalMedicine.minStock ?? 0) : inv.minStock;
+      String dynamicUnit = originalMedicine != null ? (originalMedicine.unit ?? 'đơn vị') : 'đơn vị';
+
+      // Gán đồng bộ minStock vào thực thể inventory hiện tại
+      inv.minStock = dynamicMinStock;
+
+      return {
+        'inventory': inv,
+        'unit': dynamicUnit,
+        'minStock': dynamicMinStock,
+      };
+    }).toList();
+  }
+
+  // 🟢 ĐÃ SỬA: Hàm tính toán trạng thái động dựa trên cấu hình minStock của TỪNG loại thuốc
+  String _calculateStatus(InventoryModel item, int minStock) {
     if (item.status == 'inactive' || item.status == 'expired') return 'Hết hạn';
     if (item.currentQuantity == 0) return 'Hết hàng';
-    if (item.currentQuantity < 50) return 'Sắp hết'; // Ngưỡng cảnh báo sắp hết hàng lẻ
     
-    // Kiểm tra hạn sử dụng giả định với mốc thời gian hệ thống hiện tại
+    // Kiểm tra hạn sử dụng hệ thống thực tế (Năm 2026)
     if (item.expiryDate != null && item.expiryDate!.isBefore(DateTime.now())) {
       return 'Hết hạn';
     }
+
+    // LOGIC THEO YÊU CẦU: Nếu số tồn kho < mức sàn tối thiểu + 5 thì cảnh báo "Sắp hết"
+    if (item.currentQuantity < (minStock + 5)) {
+      return 'Sắp hết';
+    }
+    
     return 'Còn hàng';
   }
 
@@ -100,8 +149,8 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
       ),
 
       // ================= 2. BODY QUẢN LÝ TỒN KHO THỰC TẾ =================
-      body: FutureBuilder<List<InventoryModel>>(
-        future: _inventoryFuture,
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _combinedInventoryFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
@@ -111,26 +160,31 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
 
           final allRecords = snapshot.data ?? [];
           
-          // Lọc dữ liệu theo ô tìm kiếm (Mã thuốc, Tên thuốc hoặc Số lô)
+          // Lọc dữ liệu theo ô tìm kiếm động (Mã thuốc, Tên thuốc hoặc Số lô)
           final filteredRecords = allRecords.where((item) {
+            final InventoryModel inv = item['inventory'] as InventoryModel;
             final query = _searchQuery.toLowerCase();
-            return item.medicineName.toLowerCase().contains(query) ||
-                   item.medicineId.toLowerCase().contains(query) ||
-                   item.batchNumber.toLowerCase().contains(query);
+            return inv.medicineName.toLowerCase().contains(query) ||
+                   inv.medicineId.toLowerCase().contains(query) ||
+                   inv.batchNumber.toLowerCase().contains(query);
           }).toList();
 
-          // Tính toán các chỉ số KPI động từ DB thực tế
-          int totalActive = allRecords.where((e) => _calculateStatus(e) == 'Còn hàng').length;
-          int totalLow = allRecords.where((e) => _calculateStatus(e) == 'Sắp hết').length;
-          int totalOut = allRecords.where((e) => _calculateStatus(e) == 'Hết hàng').length;
-          int totalExpired = allRecords.where((e) => _calculateStatus(e) == 'Hết hạn').length;
-          double totalValue = allRecords.fold(0, (sum, item) => sum + (item.currentQuantity * item.importPrice));
+          // Tính toán các chỉ số KPI động từ danh sách đã liên kết thuốc gốc
+          int totalActive = allRecords.where((e) => _calculateStatus(e['inventory'], e['minStock']) == 'Còn hàng').length;
+          int totalLow = allRecords.where((e) => _calculateStatus(e['inventory'], e['minStock']) == 'Sắp hết').length;
+          int totalOut = allRecords.where((e) => _calculateStatus(e['inventory'], e['minStock']) == 'Hết hàng').length;
+          int totalExpired = allRecords.where((e) => _calculateStatus(e['inventory'], e['minStock']) == 'Hết hạn').length;
+          
+          double totalValue = allRecords.fold(0, (sum, item) {
+            final InventoryModel inv = item['inventory'] as InventoryModel;
+            return sum + (inv.currentQuantity * inv.importPrice);
+          });
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(40),
             child: Center(
               child: SizedBox(
-                width: 1200, // ĐỒNG BỘ: Độ rộng chuẩn khung quản trị của bạn
+                width: 1200, 
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -179,7 +233,7 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
       children: [
         Text('Quản lý tồn kho', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kTextDark)),
         SizedBox(height: 4),
-        Text('Theo dõi số lượng, số lô và hạn dùng thực tế từ cơ sở dữ liệu', style: TextStyle(fontSize: 14, color: kTextMuted)),
+        Text('Theo dõi số lượng, số lô và hạn dùng thực tế dựa trên định mức tối thiểu của từng loại thuốc', style: TextStyle(fontSize: 14, color: kTextMuted)),
       ],
     );
   }
@@ -196,7 +250,7 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
         const SizedBox(width: 16),
         Expanded(child: _buildKpiCard('Còn hàng (Lô)', '$active', const Color(0xFFECFDF5), kSuccessGreen, Icons.check_circle_outline)),
         const SizedBox(width: 16),
-        Expanded(child: _buildKpiCard('Sắp hết', '$low', const Color(0xFFFFFBEB), kWarningOrange, Icons.error_outline_outlined)),
+        Expanded(child: _buildKpiCard('Sắp hết (< sàn + 5)', '$low', const Color(0xFFFFFBEB), kWarningOrange, Icons.error_outline_outlined)),
         const SizedBox(width: 16),
         Expanded(child: _buildKpiCard('Hết hàng', '$out', const Color(0xFFFEF2F2), kDangerRed, Icons.cancel_outlined)),
         const SizedBox(width: 16),
@@ -255,7 +309,7 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
     );
   }
 
-  Widget _buildInventoryTable(List<InventoryModel> records, int totalCount) {
+  Widget _buildInventoryTable(List<Map<String, dynamic>> records, int totalCount) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,25 +339,31 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
               DataColumn(label: Text('', style: TextStyle(fontWeight: FontWeight.bold))),
             ],
             rows: records.map((item) {
+              final InventoryModel inv = item['inventory'] as InventoryModel;
+              final String unit = item['unit'] as String;
+              final int minStock = item['minStock'] as int;
+
               String formatMoney(double val) => val.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
               
-              String expiryStr = item.expiryDate != null 
-                  ? "${item.expiryDate!.day.toString().padLeft(2, '0')}/${item.expiryDate!.month.toString().padLeft(2, '0')}/${item.expiryDate!.year}"
+              String expiryStr = inv.expiryDate != null 
+                  ? "${inv.expiryDate!.day.toString().padLeft(2, '0')}/${inv.expiryDate!.month.toString().padLeft(2, '0')}/${inv.expiryDate!.year}"
                   : "N/A";
 
-              String currentStatus = _calculateStatus(item);
+              // Tính toán trạng thái động theo định mức của chính nó
+              String currentStatus = _calculateStatus(inv, minStock);
 
               return DataRow(cells: [
-                DataCell(Text(item.medicineId.substring(0, 8.clamp(0, item.medicineId.length)) + '...',style: const TextStyle(color: kTextMuted, fontSize: 12))),
-                DataCell(Text(item.medicineName, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13))),
+                DataCell(Text(inv.medicineId.substring(0, 8.clamp(0, inv.medicineId.length)) + '...', style: const TextStyle(color: kTextMuted, fontSize: 12))),
+                DataCell(Text(inv.medicineName, style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark, fontSize: 13))),
                 DataCell(Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(4)),
-                  child: Text(item.batchNumber, style: const TextStyle(fontWeight: FontWeight.w600, color: kTextDark, fontFamily: 'monospace'))
+                  child: Text(inv.batchNumber, style: const TextStyle(fontWeight: FontWeight.w600, color: kTextDark, fontFamily: 'monospace'))
                 )),
-                DataCell(Text('${item.currentQuantity}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue))),
-                DataCell(Text('${item.originalQuantity}', style: const TextStyle(color: kTextMuted))),
-                DataCell(Text('${formatMoney(item.importPrice)} đ')),
+                // Hiển thị số lượng kèm đơn vị tính động của thuốc (Ví dụ: 15 Hộp, 120 Viên)
+                DataCell(Text('${inv.currentQuantity} $unit', style: TextStyle(fontWeight: FontWeight.bold, color: currentStatus == 'Sắp hết' ? kWarningOrange : Colors.blue))),
+                DataCell(Text('${inv.originalQuantity} $unit', style: const TextStyle(color: kTextMuted))),
+                DataCell(Text('${formatMoney(inv.importPrice)} đ')),
                 DataCell(Text(expiryStr, style: TextStyle(color: currentStatus == 'Hết hạn' ? kDangerRed : kTextDark, fontWeight: currentStatus == 'Hết hạn' ? FontWeight.bold : FontWeight.normal))),
                 DataCell(_buildStatusBadge(currentStatus)),
                 DataCell(
@@ -313,20 +373,21 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
                       showDialog(
                         context: context,
                         builder: (context) => InventoryDetailDialog(data: {
-                         'id': item.id,
-        'medicineId': item.medicineId,
-        'name': item.medicineName,
-        'batchNumber': item.batchNumber,
-        'stock': item.currentQuantity,
-        'originalQuantity': item.originalQuantity,
-        'import_price': item.importPrice,
-        'expiry_date': expiryStr,
-        'importReceiptId': item.importReceiptId,
-        'status': item.status,
-        'manufacturer': item.manufacturer,
-        'selling_price': item.exportPrice,
-        'min_stock': item.minStock,
-        'group': item.groupName,
+                          'id': inv.id,
+                          'medicineId': inv.medicineId,
+                          'name': inv.medicineName,
+                          'batchNumber': inv.batchNumber,
+                          'stock': inv.currentQuantity,
+                          'originalQuantity': inv.originalQuantity,
+                          'import_price': inv.importPrice,
+                          'expiry_date': expiryStr,
+                          'importReceiptId': inv.importReceiptId,
+                          'status': inv.status,
+                          'manufacturer': inv.manufacturer,
+                          'selling_price': inv.exportPrice,
+                          'min_stock': minStock, // Truyền minStock thực tế đã map
+                          'unit': unit,          // Truyền đơn vị tính thực tế đã map
+                          'group': inv.groupName,
                         }),
                       );
                     },
@@ -349,7 +410,7 @@ class _MedicineInventoryPageState extends State<MedicineInventoryPage> {
     } else if (status == 'Hết hàng') {
       bg = const Color(0xFFFEF2F2); text = const Color(0xFF991B1B);
     } else {
-      bg = const Color(0xFFE2E8F0); text = const Color(0xFF475569); // Hết hạn / Khóa
+      bg = const Color(0xFFE2E8F0); text = const Color(0xFF475569);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

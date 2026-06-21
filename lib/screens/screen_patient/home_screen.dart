@@ -9,7 +9,7 @@ import '../../providers/home_provider.dart';
 import '../../providers/specialty_provider.dart';
 import '../../providers/doctor_provider.dart';
 import '../../providers/auth_provider.dart';
-
+import 'customer_messenger_screen.dart';
 // ── Design Tokens 2026 ─────────────────────────────────────────────────────
 const Color _kPrimary = Color(0xFF2563EB);
 const Color _kPrimaryDark = Color(0xFF1E3A8A);
@@ -18,7 +18,7 @@ const Color _kBackground = Color(0xFFF8FAFC);
 
 const Color _kTextPrimary = Color(0xFF0F172A);
 const Color _kTextSecondary = Color(0xFF64748B);
-
+const Color kSecondaryColor = Color(0xFF2563EB);
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -62,8 +62,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+  
     return Scaffold(
       backgroundColor: _kBackground,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+       showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.15), // Làm mờ nhẹ nền dashboard bên dưới
+      builder: (BuildContext context) {
+        return const CustomerMessengerScreen();
+      },
+    );
+        },
+        backgroundColor: kSecondaryColor,
+        elevation: 4,
+        icon: const Icon(Icons.forum_rounded, color: Colors.white, size: 20),
+        label: const Text(
+          "Hỗ trợ khách hàng",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+        ),
+      ),
       body: CustomScrollView(
         controller: _scrollController,
         physics: const ClampingScrollPhysics(),
@@ -430,6 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     );
                   },
+                  
                   options: CarouselOptions(
                     height: 220,
                     autoPlay: true,
