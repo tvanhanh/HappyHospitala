@@ -6,6 +6,7 @@ import 'dart:convert';
 import '../../models/access_request_model.dart';
 import 'dart:io';
 import '../../services/api_access_request.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Hệ màu Light Mode thống nhất
 const Color _kBgLight = Color(0xFFF8FAFC);
@@ -33,7 +34,7 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
   int _currentSubTab = 0; 
   bool _isLoading = false;
   bool _isDownloadingPdf = false;
-  
+  String _currentUserId = "";
   // Kết quả trả về từ API thật
   VerificationResult? _verificationResult;
   bool _hasError = false;
@@ -43,22 +44,33 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
   final AccessRequestApiService _requestApiService = AccessRequestApiService();
   bool _isFetchingRequests = false;
 
-  @override
-  void initState() {
-    super.initState();
+@override
+void initState() {
+  super.initState();
+  _initUserAndRequests();
+}
+  Future<void> _initUserAndRequests() async {
+  final prefs = await SharedPreferences.getInstance();
+  setState(() {
+    // Thay 'userId' hoặc 'id' bằng key bạn đã lưu lúc đăng nhập thành công
+    _currentUserId = prefs.getString('userId') ?? ''; 
+  });
+
+  print("========= CURRENT USER ID =========");
+  print("User ID hiện tại: $_currentUserId");
+  print("===================================");
+
+  if (widget.recordData != null) {
     print("========= DATALOG TỪ TRANG TRƯỚC TRUYỀN SANG =========");
-    if (widget.recordData != null) {
-      print(jsonEncode(widget.recordData)); 
-    } else {
-      print("⚠️ CẢNH BÁO: Không nhận được bất kỳ dữ liệu recordData nào!");
-    }
+    print(jsonEncode(widget.recordData)); 
     print("======================================================");
-    
-    if (widget.recordData != null && widget.recordData?['_id'] != null) {
+    if (widget.recordData?['_id'] != null) {
       _verifyController.text = widget.recordData?['_id'];
     }
-    _loadRequestsFromServer();
   }
+  _loadRequestsFromServer();
+}
+  
 
   // Hàm kéo lịch sử yêu cầu từ Server MongoDB về
   Future<void> _loadRequestsFromServer() async {
@@ -85,8 +97,10 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
   }
 }
   // Hàm xử lý xem/tải tệp tin PDF bảo mật chính xác quyền truy cập
-  Future<void> _handleViewPdfReal() async {
-    final String currentRecordId = widget.recordData?['_id']?.toString() ?? _verifyController.text.trim();
+  Future<void> _handleViewPdfReal(String? recordId) async {
+   final String currentRecordId = (recordId != null && recordId.isNotEmpty)
+      ? recordId
+      : (widget.recordData?['_id']?.toString() ?? _verifyController.text.trim());
     if (currentRecordId.isEmpty) return;
 
     setState(() {
@@ -94,13 +108,16 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
     });
 
     try {
-      final File? pdfFile = await MedicalRecordBlockchainService.downloadSecurePdf(currentRecordId);
+     await MedicalRecordBlockchainService.downloadSecurePdf(currentRecordId);
       
-      if (pdfFile != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Tải file hồ sơ gốc thành công! Đang mở..."), backgroundColor: _kGreenSuccess),
-        );
-      }
+     if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Tải file hồ sơ gốc thành công! Hãy kiểm tra thư mục Tải xuống (Downloads)."), 
+          backgroundColor: _kGreenSuccess
+        ),
+      );
+    }
     } catch (e) {
       if (mounted) {
         showDialog(
@@ -195,6 +212,7 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
               requestedRecordId: currentRecordId,
               status: "pending",
               time: "Vừa xong",
+              allowedStaffs: const [],
               createdAt: DateTime.now(),
             ));
           });
@@ -445,7 +463,7 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _isDownloadingPdf ? null : _handleViewPdfReal,
+              onPressed: _isDownloadingPdf ? null : () => _handleViewPdfReal(null),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _kPrimaryBlue,
                 foregroundColor: Colors.white,
@@ -540,145 +558,175 @@ class _VerifyIntegritySectionState extends State<VerifyIntegritySection> {
 
   // --- HIỂN THỊ DANH SÁCH THEO MODEL TĨNH TỪ ĐƯỜNG TRUYỀN API THỰC TẾ ---
   Widget _buildRequestTabContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Lịch sử yêu cầu đã gửi tới bệnh nhân", style: TextStyle(fontSize: 13, color: _kTextGray)),
-            ElevatedButton.icon(
-              onPressed: _showNewRequestDialog,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kAccentBlue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                elevation: 0,
-              ),
-              icon: const Icon(Icons.lock_open_outlined, size: 16),
-              label: const Text("Gửi yêu cầu mới", style: TextStyle(fontWeight: FontWeight.bold)),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text("Lịch sử yêu cầu đã gửi tới bệnh nhân", style: TextStyle(fontSize: 13, color: _kTextGray)),
+          ElevatedButton.icon(
+            onPressed: _showNewRequestDialog,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kAccentBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              elevation: 0,
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            icon: const Icon(Icons.lock_open_outlined, size: 16),
+            label: const Text("Gửi yêu cầu mới", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+      const SizedBox(height: 16),
 
-        // 🚀 Đã sửa: Kiểm tra nếu trạng thái đang kéo API từ Node.js thì hiện hiệu ứng xoay tròn
-        _isFetchingRequests
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: CircularProgressIndicator(color: _kAccentBlue),
-                ),
-              )
-            : _sentRequests.isEmpty
-                ? Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 40),
-                    decoration: BoxDecoration(
-                      color: _kCardLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade100),
-                    ),
-                    child: const Column(
-                      children: [
-                        Icon(Icons.history_toggle_off_rounded, size: 48, color: _kTextGray),
-                        SizedBox(height: 12),
-                        Text(
-                          "Chưa có yêu cầu truy cập nào được khởi tạo.",
-                          style: TextStyle(fontSize: 14, color: _kTextDark, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Nhấn nút 'Gửi yêu cầu mới' ở góc trên để xin quyền.",
-                          style: TextStyle(fontSize: 12, color: _kTextGray),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _sentRequests.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      // 🚀 Đã cấu hình: req lúc này là 1 instance an toàn của AccessRequestModel
-                      final req = _sentRequests[index];
-                      
-                      final String status = req.status.toLowerCase();
-                      final String displayTime = req.time?.isNotEmpty == true 
-                          ? req.time! 
-                          : "Vừa xong";
+      _isFetchingRequests
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: CircularProgressIndicator(color: _kAccentBlue),
+              ),
+            )
+          : _sentRequests.isEmpty
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  decoration: BoxDecoration(
+                    color: _kCardLight,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                  ),
+                  child: const Column(
+                    children: [
+                      Icon(Icons.history_toggle_off_rounded, size: 48, color: _kTextGray),
+                      SizedBox(height: 12),
+                      Text(
+                        "Chưa có yêu cầu truy cập nào được khởi tạo.",
+                        style: TextStyle(fontSize: 14, color: _kTextDark, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Nhấn nút 'Gửi yêu cầu mới' ở góc trên để xin quyền.",
+                        style: TextStyle(fontSize: 12, color: _kTextGray),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _sentRequests.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final req = _sentRequests[index];
+                    final String status = req.status.toLowerCase();
+                    final String displayTime = req.time?.isNotEmpty == true ? req.time! : "Vừa xong";
 
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _kCardLight,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade100),
-                          boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 6, offset: const Offset(0, 2))],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(req.requestId, style: const TextStyle(fontSize: 12, color: _kTextGray, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: (status == 'completed' || status == 'approved') 
-                                            ? _kGreenSuccess.withOpacity(0.08) 
-                                            : (status == 'rejected')
-                                                ? _kRedDanger.withOpacity(0.08)
-                                                : _kWarningYellow.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: (status == 'completed' || status == 'approved') 
-                                              ? _kGreenSuccess.withOpacity(0.3) 
-                                              : (status == 'rejected')
-                                                  ? _kRedDanger.withOpacity(0.3)
-                                                  : _kWarningYellow.withOpacity(0.3)
-                                        ),
-                                      ),
-                                      child: Text(
-                                        (status == 'completed' || status == 'approved') 
-                                            ? "Đã phê duyệt" 
-                                            : (status == 'rejected') 
-                                                ? "Từ chối" 
-                                                : "Chờ xác nhận", 
-                                        style: TextStyle(
-                                          fontSize: 11, 
-                                          fontWeight: FontWeight.bold, 
-                                          color: (status == 'completed' || status == 'approved') 
-                                              ? _kGreenSuccess 
-                                              : (status == 'rejected')
-                                                  ? _kRedDanger
-                                                  : _kWarningYellow
-                                        )
+                    // 1. Kiểm tra trạng thái duyệt thành công
+                    final bool isApproved = (status == 'completed' || status == 'approved');
+                   
+                final bool isUserAllowed = req.doctorId.trim() == _currentUserId.trim();
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _kCardLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade100),
+                        boxShadow: [BoxShadow(color: Colors.grey.shade100, blurRadius: 6, offset: const Offset(0, 2))],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(req.requestId, style: const TextStyle(fontSize: 12, color: _kTextGray, fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: isApproved
+                                          ? _kGreenSuccess.withOpacity(0.08) 
+                                          : (status == 'rejected' ? _kRedDanger.withOpacity(0.08) : _kWarningYellow.withOpacity(0.08)),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isApproved
+                                            ? _kGreenSuccess.withOpacity(0.3) 
+                                            : (status == 'rejected' ? _kRedDanger.withOpacity(0.3) : _kWarningYellow.withOpacity(0.3))
                                       ),
                                     ),
+                                    child: Text(
+                                      isApproved
+                                          ? "Đã phê duyệt" 
+                                          : (status == 'rejected' ? "Từ chối" : "Chờ xác nhận"), 
+                                      style: TextStyle(
+                                        fontSize: 11, 
+                                        fontWeight: FontWeight.bold, 
+                                        color: isApproved ? _kGreenSuccess : (status == 'rejected' ? _kRedDanger : _kWarningYellow)
+                                      )
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(displayTime, style: const TextStyle(fontSize: 12, color: _kTextGray)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          
+                          // Sử dụng Row để tách biệt Thông tin bên trái và Nút bấm bên phải
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Bệnh nhân: ${req.patientName}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kTextDark)),
+                                    const SizedBox(height: 4),
+                                    Text("Mã định danh (ID): ${req.patientId}", style: const TextStyle(fontSize: 11, color: _kTextGray, fontFamily: 'monospace')),
+                                    const SizedBox(height: 8),
+                                    Text(req.reason, style: const TextStyle(fontSize: 13, color: _kTextGray, height: 1.4)),
                                   ],
                                 ),
-                                Text(displayTime, style: const TextStyle(fontSize: 12, color: _kTextGray)),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text("Bệnh nhân: ${req.patientName}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _kTextDark)),
-                            const SizedBox(height: 4),
-                            Text("Mã định danh (ID): ${req.patientId}", style: const TextStyle(fontSize: 11, color: _kTextGray, fontFamily: 'monospace')),
-                            const SizedBox(height: 8),
-                            Text(req.reason, style: const TextStyle(fontSize: 13, color: _kTextGray, height: 1.4)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-      ],
-    );
-  }
+                              ),
+                              
+                              // Nút bấm XEM HỒ SƠ xuất hiện khi thỏa mãn điều kiện
+                              if (isApproved && isUserAllowed)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
+                                  child: ElevatedButton.icon(
+                                    onPressed: _isDownloadingPdf ? null : () => _handleViewPdfReal(req.requestedRecordId),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _kGreenSuccess,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      elevation: 0,
+                                    ),
+                                    icon: const Icon(Icons.picture_as_pdf, size: 14),
+                                    label: const Text("Xem hồ sơ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                                )
+                              else if (isApproved && !isUserAllowed)
+                                // Trường hợp đã duyệt nhưng ID cá nhân này không nằm trong danh sách phân quyền allowedStaffs
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8.0),
+                                  child: Text(
+                                    "Chưa phân quyền",
+                                    style: TextStyle(fontSize: 11, color: _kRedDanger, fontStyle: FontStyle.italic),
+                                  ),
+                                )
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+    ],
+  );
+}
 }

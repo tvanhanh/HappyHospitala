@@ -454,6 +454,7 @@ export const approveAccessRequest = async (req: Request, res: Response) => {
   try {
     // 🔑 Thêm status vào body để xử lý cả từ chối trực tiếp
     const { recordId, staffId, status = "approved" } = req.body; 
+    
     const currentUserId = req.user?.id; 
 
     const record = await MedicalRecord.findById(recordId);
@@ -567,21 +568,38 @@ export const respondToAccessRequest = async (req: Request, res: Response): Promi
 };
 export const viewMedicalRecordPdf = async (req: Request, res: Response) => {
   try {
-    const { recordId } = req.params;
+  const { recordId } = req.params;
     const currentUserId = req.user?.id;
     if (!currentUserId) {
       res.status(401).json({ error: "Yêu cầu xác thực! Vui lòng đăng nhập lại." });
       return;
     }
+    
     // 1. Tìm hồ sơ bệnh án
     const record = await MedicalRecord.findById(recordId);
     if (!record) {
       res.status(404).json({ error: "Không tìm thấy hồ sơ bệnh án" });
       return;
     }
-    const isOwner = record.patientId.toString() === currentUserId;
-    const isAuthorized = record.allowedStaffs?.includes(currentUserId); // Mảng chứa ID các bác sĩ được phép
 
+    const isOwner = record.patientId.toString() === currentUserId;
+    let isAuthorized = record.allowedStaffs?.includes(currentUserId); // Mảng chứa ID các bác sĩ được phép
+
+    // 🎯 THÊM LOGIC KIỂM TRA BẢNG ACCESS REQUEST TẠI ĐÂY
+    // Nếu chưa được phân quyền trong mảng allowedStaffs, check xem có yêu cầu nào đã duyệt không
+    if (!isOwner && !isAuthorized) {
+      const approvedRequest = await AccessRequest.findOne({
+        requestedRecordId: recordId,
+        doctorId: currentUserId,
+        status: "approved" // Hoặc "completed" tùy thuộc vào text lưu dưới DB của bạn
+      });
+
+      if (approvedRequest) {
+        isAuthorized = true; // Hợp lệ! Đánh dấu chuẩn quyền truy cập
+      }
+    }
+
+    // Kiểm tra lại lần cuối sau khi đã quét cả 2 bảng
     if (!isOwner && !isAuthorized) {
       res.status(403).json({ 
         error: "Truy cập bị từ chối! Bạn chưa nhận được sự cho phép từ bệnh nhân này để xem tài liệu gốc." 

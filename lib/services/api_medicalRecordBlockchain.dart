@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:universal_html/html.dart' as html;
 
 class MedicalRecordBlockchainService {
   static Future<Map<String, dynamic>> addMedicalRecord({
@@ -222,38 +223,53 @@ static Future<List<Map<String, dynamic>>> searchMedicalRecordsByPatientId(
     }
     return [];
   }
-static Future<File?> downloadSecurePdf(String recordId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-      final url = Uri.parse('$baseUrl/api/auth/download-pdf/$recordId');
+static Future<void> downloadSecurePdf(String recordId) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final url = Uri.parse('$baseUrl/api/auth/download-pdf/$recordId');
 
-      print("📂 Đang tải PDF bảo mật từ: $url");
+    print("📂 [Web] Đang tải PDF bảo mật từ: $url");
 
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-        final dir = await getTemporaryDirectory();
-        final file = File('${dir.path}/record_$recordId.pdf');
-        await file.writeAsBytes(bytes, flush: true);
-        return file;
-      } else if (response.statusCode == 403) {
-        final data = jsonDecode(response.body);
-        throw Exception(data['error'] ?? "Bạn chưa được cấp quyền xem tài liệu gốc này.");
-      } else {
-        throw Exception("Lỗi máy chủ (${response.statusCode}): Không thể tải file PDF gốc.");
-      }
-    } catch (e) {
-      print("❌ Lỗi downloadSecurePdf: $e");
-      rethrow;
+    // Gửi Request kèm Header Authorization lên Backend
+    final response = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final bytes = response.bodyBytes;
+
+      // 🎯 XỬ LÝ TRÊN TRÌNH DUYỆT WEB: Chuyển luồng byte thành Blob file
+      final blob = html.Blob([bytes], 'application/pdf');
+      final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+      
+      // Tạo một thẻ <a> ẩn để kích hoạt trình duyệt tự động tải xuống
+      final anchor = html.AnchorElement(href: blobUrl)
+        ..setAttribute("download", "record_$recordId.pdf")
+        ..style.display = 'none';
+      
+      html.document.body?.children.add(anchor);
+      anchor.click(); // Kích hoạt lệnh click để download file
+      
+      // Dọn dẹp bộ nhớ đệm của trình duyệt sau khi tải xong
+      anchor.remove();
+      html.Url.revokeObjectUrl(blobUrl);
+      
+    } else if (response.statusCode == 403) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['error'] ?? "Bạn chưa được cấp quyền xem tài liệu gốc này.");
+    } else {
+      throw Exception("Lỗi máy chủ (${response.statusCode}): Không thể tải file PDF gốc.");
     }
-    }
-    static Future<bool> respondToAccessRequest({
+  } catch (e) {
+    print("❌ Lỗi downloadSecurePdf trên Web: $e");
+    rethrow;
+  }
+}    static Future<bool> respondToAccessRequest({
     required String recordId,
     required String staffId,
     required String status, // Nhận vào: "approved" hoặc "rejected"
