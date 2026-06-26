@@ -162,7 +162,7 @@ class _PharmacistProfileScreenState extends State<PharmacistProfileScreen> {
                             const SizedBox(height: 16),
                             _buildInfoRow('📧 Email:', 'nguyenthib@hospital.com'),
                             _buildInfoRow('📱 Điện thoại:', '+84 901 234 567'),
-                            _buildInfoRow('🏥 Cơ sở:', 'Phòng khám ABC'),
+                            _buildInfoRow('🏥 Cơ sở:', 'HappyClinic'),
                             const Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
                               child: Divider(color: kBorderColor),

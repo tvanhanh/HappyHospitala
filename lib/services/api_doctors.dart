@@ -72,12 +72,19 @@ class DoctorService {
 
         final List data = body is List ? body : body['data'] ?? [];
 
-        return data.map<Map<String, dynamic>>((e) {
-          return {
-            '_id': e['_id'] ?? '',
-            'name': e['fullName'] ?? '',
-            'email': e['email'] ?? '',
-            'profile': {},
+        return data.map<Map<String, dynamic>>((dynamic e) {
+          final map = e as Map;
+          return <String, dynamic>{
+            '_id': map['_id'] ?? '',
+            'name': map['name'] ?? '',
+            'email': map['email'] ?? '',
+            'profile': <String, dynamic>{
+              'avatar': map['avatar'] ?? '',
+              'specialty': map['specialty'] ?? '',
+              'experience': map['experience_years']?.toString() ?? '0',
+              'price': map['consultationFee'] ?? 0,
+              'description': map['bio'] ?? '',
+            },
           };
         }).toList();
       }
@@ -174,7 +181,7 @@ class DoctorService {
     }
   }
 
-  static Future<String> approveDoctor(String userId, String departmentId,
+  static Future<String> approveDoctor(String userId, String specialtyId,
       String specialtyName, String roomId) async {
     try {
       final url = Uri.parse('$baseUrl/api/admin/doctors/approve');
@@ -189,7 +196,7 @@ class DoctorService {
         },
         body: jsonEncode({
           "userId": userId,
-          "departmentId": departmentId,
+          "specialtyId": specialtyId,
           "specialty": specialtyName,
           "roomId": roomId,
         }),
@@ -247,10 +254,11 @@ class DoctorService {
         final List data = jsonDecode(response.body);
         return data.map<Map<String, dynamic>>((e) {
           final user = e['userId'] is Map ? e['userId'] : {};
-          final dept = e['departmentId'] is Map ? e['departmentId'] : {};
+          final dept = e['specialtyId'] is Map ? e['specialtyId'] : {};
           final room = e['roomId'] is Map ? e['roomId'] : {};
           return {
-            '_id': user['_id'] ?? e['_id'] ?? '',
+            '_id': e['_id'], // Đây là DoctorId (655) - dùng cho lịch
+            'user_id': user['_id'],
             'name':
                 user['fullName'] ?? e['doctorName'] ?? e['name'] ?? 'Unknown',
             'email': user['email'] ?? e['email'] ?? '',
@@ -259,10 +267,9 @@ class DoctorService {
                 e['specialty'] ??
                 e['specialization'] ??
                 'Chưa phân công',
-            'specialtyId_id':
-                dept['_id'] ?? e['departmentId'] ?? e['specialtyId'],
+            'specialtyId': dept['_id'] ?? e['specialtyId'] ?? e['specialtyId'],
             'room': room['roomNumber'] ?? e['room'] ?? 'Chưa phân công',
-            'roomId_id': room['_id'] ?? e['roomId'],
+            'roomId': room['_id'] ?? e['roomId'],
             'consultationFee': e['consultationFee'] ?? 0,
             'experience_years': e['experience_years'] ?? 0,
             'bio': e['bio'] ?? '',
@@ -409,7 +416,7 @@ class DoctorService {
   }
 
   static Future<List<dynamic>> getDoctorsByDepartment(
-    String departmentId,
+    String specialtyId,
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -417,7 +424,7 @@ class DoctorService {
       final token = prefs.getString("token");
 
       final url = Uri.parse(
-        "$baseUrl/api/doctors/api_doctors_by_department/$departmentId",
+        "$baseUrl/api/doctors/api_doctors_by_department/$specialtyId",
       );
 
       final response = await http.get(

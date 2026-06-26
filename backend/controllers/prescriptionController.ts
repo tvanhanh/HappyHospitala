@@ -17,6 +17,7 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
       gender,
       healthInsurance,
       medicines,
+      services,
       doctorId,   
       doctorName,
     }: IPrescription = req.body;
@@ -27,11 +28,11 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
         success: false,
         message: "Thiếu thông tin bắt buộc! (Lịch hẹn, chẩn đoán, mã BN, tên BN)"
       };
-    } else if (!medicines || medicines.length === 0) {
+    } else if ((!medicines || medicines.length === 0) && (!services || services.length === 0)) {
       statusCode = 400;
       responseData = {
         success: false,
-        message: "Không thể lưu đơn thuốc trống. Vui lòng thêm thuốc!"
+        message: "Không thể lưu đơn thuốc trống. Vui lòng thêm ít nhất một thuốc hoặc dịch vụ!"
       };
     } else {
       const newPrescription = new PrescriptionModel({
@@ -43,7 +44,8 @@ export const createPrescription = async (req: Request, res: Response): Promise<v
         birthDate: birthDate || null,
         gender: gender || null,
         healthInsurance: healthInsurance || null,
-        medicines,
+        medicines: medicines || [],
+        services: services || [],
         status: 'pending',
         doctorId,   
         doctorName

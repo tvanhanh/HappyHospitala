@@ -20,16 +20,15 @@ class SelectDoctorBySpecialtyScreen extends ConsumerWidget {
     final asyncDoctors = ref.watch(doctorsBySpecialtyProvider(specialtyId));
     final asyncSpecialties = ref.watch(specialtyProvider);
 
-    final String specialtyName = asyncSpecialties.when(
+    final Specialty specialtyObj = asyncSpecialties.when(
       data: (list) {
-        final spec = list.firstWhere(
+        return list.firstWhere(
           (s) => s.id == specialtyId,
           orElse: () => const Specialty(id: '', name: 'Chọn Bác Sĩ'),
         );
-        return spec.name;
       },
-      loading: () => 'Đang tải...',
-      error: (_, __) => 'Chọn Bác Sĩ',
+      loading: () => const Specialty(id: '', name: 'Đang tải...'),
+      error: (_, __) => const Specialty(id: '', name: 'Chọn Bác Sĩ'),
     );
 
     return Scaffold(
@@ -38,7 +37,31 @@ class SelectDoctorBySpecialtyScreen extends ConsumerWidget {
         backgroundColor: _kPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(specialtyName),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (specialtyObj.imageUrl.isNotEmpty && specialtyObj.imageUrl.startsWith('http')) ...[
+              Container(
+                width: 32,
+                height: 32,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.2),
+                ),
+                child: Image.network(
+                  specialtyObj.imageUrl,
+                  fit: BoxFit.contain,
+                  color: Colors.white,
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.medical_services, color: Colors.white, size: 20),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(specialtyObj.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
         centerTitle: true,
       ),
       body: asyncDoctors.when(

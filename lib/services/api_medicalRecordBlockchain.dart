@@ -19,8 +19,10 @@ class MedicalRecordBlockchainService {
     required String diagnosis,
     required String treatment,
     required List<XFile> attachments,
+    String? departmentName,
+    String? doctorName,
   }) async {
-    final url = Uri.parse("$baseUrl/auth/api/medicalrecord-blockchain");
+    final url = Uri.parse("$baseUrl/api/auth/api/medicalrecord-blockchain");
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString("token");
@@ -35,6 +37,13 @@ class MedicalRecordBlockchainService {
     request.fields["diagnosis"] = diagnosis;
     request.fields["treatment"] = treatment;
     request.fields["visitDate"] = visitDate.toIso8601String();
+
+    if (departmentName != null) {
+      request.fields["departmentName"] = departmentName;
+    }
+    if (doctorName != null) {
+      request.fields["doctorName"] = doctorName;
+    }
 
     // Add files
     for (final x in attachments) {
@@ -144,7 +153,7 @@ class MedicalRecordBlockchainService {
   }  static Future<Map<String, dynamic>?> getMedicalRecordDetail(String id) async {
   try {
     // ✅ 1. SỬA: Dùng trực tiếp tham số 'id' được truyền vào hàm
-    final url = Uri.parse('$baseUrl/auth/api/medical-records/$id');
+    final url = Uri.parse('$baseUrl/api/auth/api/medical-records/$id');
     
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');

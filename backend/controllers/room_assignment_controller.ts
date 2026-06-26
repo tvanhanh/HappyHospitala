@@ -27,10 +27,10 @@ export const assignDoctorToRoom = async (req: Request, res: Response) => {
     // Fetch Room to see if it is linked to a specialty
     const room = await Room.findById(roomId);
     if (room && room.specialtyId) {
-      // Update Doctor departmentId & roomId
+      // Update Doctor specialtyId & roomId
       await Doctor.findByIdAndUpdate(doctorId, {
         roomId: roomId,
-        departmentId: room.specialtyId
+        specialtyId: room.specialtyId
       });
 
       // Upsert to SpecialtyRoomDoctor table
@@ -40,10 +40,10 @@ export const assignDoctorToRoom = async (req: Request, res: Response) => {
         { upsert: true, new: true }
       );
     } else {
-      // Room has no specialty yet, just update doctor's roomId and unset departmentId
+      // Room has no specialty yet, just update doctor's roomId and unset specialtyId
       await Doctor.findByIdAndUpdate(doctorId, {
         roomId: roomId,
-        $unset: { departmentId: 1 }
+        $unset: { specialtyId: 1 }
       });
     }
 
@@ -78,9 +78,9 @@ export const removeAssignment = async (req: Request, res: Response) => {
     // Delete corresponding SpecialtyRoomDoctor record
     await SpecialtyRoomDoctor.deleteMany({ doctorId: assignment.doctorId, roomId: assignment.roomId });
 
-    // Unset roomId and departmentId in Doctor model
+    // Unset roomId and specialtyId in Doctor model
     await Doctor.findByIdAndUpdate(assignment.doctorId, {
-      $unset: { roomId: 1, departmentId: 1 }
+      $unset: { roomId: 1, specialtyId: 1 }
     });
 
     res.status(200).json({ message: "Assignment removed" });

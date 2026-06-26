@@ -1,17 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const kPrimaryColor = Color(0xFF0D47A1);
 const kTextColor = Color(0xFF333333);
 const kSecondaryColor = Color(0xFF1976D2);
 
-class ReceptionistDrawer extends StatelessWidget {
+class ReceptionistDrawer extends StatefulWidget {
   final String selectedMenu;
 
   const ReceptionistDrawer({
     super.key,
     required this.selectedMenu,
   });
+
+  @override
+  State<ReceptionistDrawer> createState() => _ReceptionistDrawerState();
+}
+
+class _ReceptionistDrawerState extends State<ReceptionistDrawer> {
+  String _receptionistName = "Lễ tân";
+  String _avatarUrl = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReceptionistName();
+  }
+
+  Future<void> _loadReceptionistName() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _receptionistName = prefs.getString("name") ?? "Lễ tân";
+        _avatarUrl = prefs.getString("avatarUrl") ?? prefs.getString("avatar") ?? "";
+      });
+    }
+  }
 
   // HÀM HIỂN THỊ DIALOG XÁC NHẬN ĐĂNG XUẤT
   void _showLogoutDialog(BuildContext context) {
@@ -82,21 +107,24 @@ class ReceptionistDrawer extends StatelessWidget {
       child: Column(
         children: [
           UserAccountsDrawerHeader(
-            accountName: const Text(
-              "Nguyễn Thị Lan",
-              style: TextStyle(
+            accountName: Text(
+              _receptionistName,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
             ),
             accountEmail: const Text("Lễ tân"),
-            currentAccountPicture: const CircleAvatar(
+            currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
-              child: Icon(
-                Icons.person,
-                size: 40,
-                color: kPrimaryColor,
-              ),
+              backgroundImage: _avatarUrl.isNotEmpty ? NetworkImage(_avatarUrl) : null,
+              child: _avatarUrl.isEmpty
+                  ? const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: kPrimaryColor,
+                    )
+                  : null,
             ),
             decoration: const BoxDecoration(
               color: kSecondaryColor,
@@ -129,12 +157,6 @@ class ReceptionistDrawer extends StatelessWidget {
                   Icons.access_time,
                   "Danh sách chờ khám",
                   "/receptionist/waiting-list",
-                ),
-                _item(
-                  context,
-                  Icons.folder_shared,
-                  "Hồ sơ bệnh án",
-                  "/receptionist/medical-records",
                 ),
                 const Divider(),
                 _item(
@@ -172,7 +194,7 @@ class ReceptionistDrawer extends StatelessWidget {
     String route, {
     bool isLogoutItem = false, // Thêm biến optional nhận biết nút đăng xuất
   }) {
-    final selected = selectedMenu == title;
+    final selected = widget.selectedMenu == title;
 
     return ListTile(
       leading: Icon(

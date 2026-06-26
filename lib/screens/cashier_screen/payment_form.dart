@@ -56,14 +56,19 @@ class _PaymentFormState extends State<PaymentForm> {
       finalTotalPrice: finalTotal,
       medicines: prescription.medicines.map((med) {
         return BillMedicineItem(
-          id: med.medicineId ?? '',
+          id: med.medicineId,
           name: med.name,
           quantity: med.quantity,
-          sellingPrice: med.sellingPrice ?? 0,
-          unit: (med.unit != null && med.unit!.isNotEmpty) ? med.unit! : 'Đơn vị',
+          sellingPrice: med.sellingPrice,
+          unit: (med.unit.isNotEmpty) ? med.unit : 'Đơn vị',
         );
       }).toList(),
-      services: [], 
+      services: prescription.services.map((svc) {
+        return BillServiceItem(
+          name: svc.name,
+          sellingPrice: svc.price,
+        );
+      }).toList(),
     );
 
     try {
@@ -144,10 +149,10 @@ class _PaymentFormState extends State<PaymentForm> {
     String patientId = p.patientId;     
     String timeArrived = "Hôm nay"; 
     
-    List<dynamic> services = []; 
+    List<PrescribedService> services = p.services; 
     List<PrescribedMedicine> medicines = p.medicines;
 
-    int totalServicesPrice = 0; 
+    int totalServicesPrice = services.fold(0, (sum, item) => sum + item.price); 
     
     int totalMedicinesPrice = medicines.fold(0, (sum, item) {
       int qty = int.tryParse(item.quantity) ?? 0;
@@ -225,9 +230,9 @@ class _PaymentFormState extends State<PaymentForm> {
                     const Text('Không có dịch vụ nào chỉ định', style: TextStyle(color: Colors.grey, fontSize: 13)),
                   
                   ...services.map((svc) {
-                    int price = svc['sellingPrice'] ?? 0;
+                    int price = svc.price;
                     return _buildRowItem(
-                      svc['name'] ?? 'Dịch vụ chỉ định', 
+                      svc.name, 
                       _formatMoney(price)
                     );
                   }).toList(),

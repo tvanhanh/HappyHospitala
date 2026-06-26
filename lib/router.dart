@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_datlichkham/models/appointment.dart';
 import 'package:flutter_application_datlichkham/screens/screen_authencication/splash_screen.dart';
+import 'package:flutter_application_datlichkham/screens/screen_doctor/medical_qa_screen_doctor.dart';
 import 'package:flutter_application_datlichkham/screens/screen_doctor/medical_record_detail_page.dart';
 import 'package:flutter_application_datlichkham/screens/screen_doctor/appointment_detail_screen_doctor.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/appointment_detail_screen.dart';
@@ -19,10 +20,10 @@ import 'package:flutter_application_datlichkham/screens/screens_admin/security_s
 import 'package:flutter_application_datlichkham/screens/screens_common/doctor_detail_screen.dart';
 import 'package:flutter_application_datlichkham/screens/screen_doctor/medical_record_page.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 import 'screens/screen_authencication/login_screen.dart';
-import 'screens/screen_authencication/change_password_screen.dart';
 import 'screens/screen_authencication/change_password_page.dart';
 import 'screens/screen_authencication/confirmation_screen.dart';
 import 'screens/screen_authencication/forgot_password_screen.dart';
@@ -44,6 +45,8 @@ import 'screens/screen_patient/select_room_screen.dart';
 import 'screens/screen_patient/select_doctor_screen.dart';
 import 'screens/screen_patient/select_doctor_by_specialty_screen.dart';
 import 'screens/screen_patient/customer_messenger_screen.dart';
+import 'screens/screen_patient/ai_triage_screen.dart';
+import 'screens/screen_patient/medical_qa_screen.dart';
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 import 'screens/screens_admin/admin_dashboard.dart';
@@ -87,7 +90,6 @@ import 'screens/screen_doctor/appointment_detail_screen.dart';
 import 'screens/screen_doctor/PrescriptionScreen.dart';
 import 'screens/screen_doctor/VerifyIntegritySection.dart';
 
-
 import 'screens/pharmacy_screen2/add_medicine_screen.dart';
 import 'screens/pharmacy_screen2/dashboard.dart';
 import 'screens/pharmacy_screen2/medicine_stock_screen.dart';
@@ -99,9 +101,7 @@ import 'screens/pharmacy_screen2/MedicineImports_screen.dart';
 import 'screens/pharmacy_screen2/medicine_inventory_screen.dart';
 import 'screens/pharmacy_screen2/reports_screen.dart';
 
-
-
-// cashier 
+// cashier
 import 'screens/cashier_screen/CashierDashboard.dart';
 import 'screens/cashier_screen/notification_panel.dart';
 import 'screens/cashier_screen/payment_form.dart';
@@ -111,13 +111,74 @@ import 'screens/cashier_screen/security_page.dart';
 import 'screens/cashier_screen/settings_panel.dart';
 import 'screens/cashier_screen/system_page.dart';
 
-
-
-
-
-
 final GoRouter router = GoRouter(
   initialLocation: '/',
+  redirect: (context, state) async {
+    final prefs = await SharedPreferences.getInstance();
+    final role = prefs.getString('role');
+    final token = prefs.getString('token');
+
+    final path = state.uri.path;
+    final isAuthRoute = path.startsWith('/auth') || path == '/';
+
+    // 1. Nếu chưa đăng nhập và không nằm ở màn hình public (login/splash), bắt ép về login
+    if (token == null && !isAuthRoute) {
+      return '/auth/login';
+    }
+
+    // 2. Phân quyền (RBAC) - Khóa người dùng truy cập nhầm trang của Role khác
+    if (token != null && role != null) {
+      final roleHomePaths = {
+        'patient': '/home',
+        'doctor': '/doctor',
+        'admin': '/admin',
+        'receptionist': '/receptionist/dashboard',
+        'cashier': '/cashier/dashboard',
+        'pharmacy': '/pharmacy/dashboard',
+      };
+
+      // Định nghĩa các không gian mạng (namespace) riêng tư của từng Role
+      final roleNamespaces = {
+        'admin': ['/admin'],
+        'doctor': ['/doctor'],
+        'receptionist': ['/receptionist', '/staff'],
+        'cashier': ['/cashier'],
+        'pharmacy': ['/pharmacy'],
+        'patient': [
+          '/home',
+          '/booking',
+          '/patient_apointment',
+          '/chat_support',
+          '/patient'
+        ],
+      };
+
+      // Thuật toán khóa chặt: Nếu đường dẫn hiện tại thuộc về một Role khác -> Đá về nhà
+      for (var entry in roleNamespaces.entries) {
+        final targetRole = entry.key;
+        final namespaces = entry.value;
+
+        // Nếu tài khoản hiện tại không phải là targetRole
+        if (role != targetRole) {
+          for (var ns in namespaces) {
+            // Mà lại cố tình truy cập vào URL của targetRole đó (khớp chính xác hoặc đường dẫn con của namespace đó)
+            if (path == ns || path.startsWith('$ns/')) {
+              return roleHomePaths[role] ??
+                  '/'; // Lập tức đá về trang Home của chính họ
+            }
+          }
+        }
+      }
+
+      // 3. Nếu đã đăng nhập mà cố tình vào lại trang Login thì đẩy về màn hình chính tương ứng
+      // Đã tắt để phục vụ test nhiều tài khoản / tránh auto-login
+      // if (path == '/auth/login' || path == '/auth/register' || path == '/') {
+      //   return roleHomePaths[role] ?? '/';
+      // }
+    }
+
+    return null; // Cho phép đi tiếp
+  },
   routes: [
     // ── PUBLIC & AUTH ──────────────────────────────────────────
     GoRoute(
@@ -126,9 +187,23 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/auth',
-      builder: (context, state) => LoginScreen(),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return LoginScreen(
+          email: extra?['email'],
+          password: extra?['password'],
+        );
+      },
       routes: [
-        GoRoute(path: 'login', builder: (context, state) => LoginScreen()),
+        GoRoute(
+            path: 'login',
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>?;
+              return LoginScreen(
+                email: extra?['email'],
+                password: extra?['password'],
+              );
+            }),
         GoRoute(
             path: 'register', builder: (context, state) => RegisterScreen()),
         GoRoute(
@@ -136,7 +211,7 @@ final GoRouter router = GoRouter(
             builder: (context, state) => ForgotPasswordScreen()),
         GoRoute(
             path: 'change_password_reset',
-            builder: (context, state) => const ChangePasswordScreen()),
+            builder: (context, state) => const ForgotPasswordScreen()),
         GoRoute(
           path: 'change_password_page',
           builder: (context, state) {
@@ -155,7 +230,7 @@ final GoRouter router = GoRouter(
     GoRoute(
         path: '/patient_apointment',
         builder: (context, state) => PatientAppointmentsScreen()),
-         GoRoute(
+    GoRoute(
         path: '/chat_support',
         builder: (context, state) => CustomerMessengerScreen()),
     GoRoute(
@@ -207,8 +282,12 @@ final GoRouter router = GoRouter(
           builder: (context, state) => const HomeScreen(),
           routes: [
             GoRoute(
-                path: 'doctor_list',
-                builder: (context, state) => PatientDoctorListScreen()),
+              path: 'doctor_list',
+              builder: (context, state) {
+                final specialty = state.uri.queryParameters['specialty'];
+                return PatientDoctorListScreen(initialSpecialty: specialty);
+              },
+            ),
             GoRoute(
                 path: 'book-appointment',
                 builder: (context, state) => const BookAppointmentScreen(),
@@ -260,11 +339,22 @@ final GoRouter router = GoRouter(
             GoRoute(
                 path: 'chat',
                 builder: (context, state) => const ChatListScreen()),
+            GoRoute(
+              path: 'ai-triage',
+              builder: (context, state) => const AiTriageScreen(),
+            ),
           ],
+        ),
+        GoRoute(
+          path: '/qa',
+          builder: (context, state) => const MedicalQAScreen(),
         ),
       ],
     ),
-
+    GoRoute(
+      path: '/qa-specialty',
+      builder: (context, state) => const MedicalQADoctorScreen(),
+    ),
     GoRoute(
       path: '/medical-record',
       builder: (context, state) {
@@ -317,46 +407,43 @@ final GoRouter router = GoRouter(
       path: '/receptionist/patient-management',
       builder: (context, state) => const PatientManagementScreen(),
     ),
-  //   GoRoute(
-  //     path: '/receptionist/appointment-management',
-  //      builder: (context, state) {
-  //   return AppointmentScreen(
-  //     appointments: [],
-  //   );
-  // },
-  //   ),
-   
+    //   GoRoute(
+    //     path: '/receptionist/appointment-management',
+    //      builder: (context, state) {
+    //   return AppointmentScreen(
+    //     appointments: [],
+    //   );
+    // },
+    //   ),
+
     GoRoute(
       path: '/receptionist/notification',
       builder: (context, state) => const NotificationScreen(),
-    
     ),
     GoRoute(
       path: '/receptionist/waiting-list',
       builder: (context, state) => const ListWaitingScreen(),
-    
     ),
     GoRoute(
-  path: '/receptionist/medical-records',
-  builder: (context, state) =>
-      const MedicalRecordsScreen(),
-),
-// 
+      path: '/receptionist/medical-records',
+      builder: (context, state) => const MedicalRecordsScreen(),
+    ),
+//
     //Doctor
-     GoRoute(
-            path: '/doctor/prescription',
-  builder: (context, state) {
-   
-    final args = state.extra as Map<String, dynamic>? ?? {};
+    GoRoute(
+      path: '/doctor/prescription',
+      builder: (context, state) {
+        final args = state.extra as Map<String, dynamic>? ?? {};
 
-    return PrescriptionScreen(
-      appointment: args['appointment'], 
-      diagnosis: args['diagnosis'] ?? '',
-    );
-  },),
-  GoRoute(
-                path: '/doctor/verifyblock',
-                builder: (context, state) =>VerifyIntegritySection()),
+        return PrescriptionScreen(
+          appointment: args['appointment'],
+          diagnosis: args['diagnosis'] ?? '',
+        );
+      },
+    ),
+    GoRoute(
+        path: '/doctor/verifyblock',
+        builder: (context, state) => VerifyIntegritySection()),
     GoRoute(
       path: '/doctor',
       builder: (context, state) => DoctorDashboard(),
@@ -437,12 +524,11 @@ final GoRouter router = GoRouter(
         GoRoute(
             path: 'medical-records',
             builder: (context, state) => const MedicalRecordsScreen()),
-            
       ],
     ),
     GoRoute(
-            path:'/receptionist/messenger',
-            builder: (context, state) => const ReceptionistMessengerScreen()),
+        path: '/receptionist/messenger',
+        builder: (context, state) => const ReceptionistMessengerScreen()),
     GoRoute(
         path: '/staff',
         builder: (context, state) => const ReceptionistDashboard()),
@@ -450,34 +536,33 @@ final GoRouter router = GoRouter(
     // ── CASHIER & PHARMACY ─────────────────────────────────────
     GoRoute(
         path: '/cashier/dashboard',
-        builder: (context, state) => const CashierScreen ()),
+        builder: (context, state) => const CashierScreen()),
     GoRoute(
         path: '/cashier/notification',
-        builder: (context, state) => const NotificationPanel ()),
+        builder: (context, state) => const NotificationPanel()),
     GoRoute(
         path: '/cashier/payment',
-        builder: (context, state) => const PaymentForm ()),
+        builder: (context, state) => const PaymentForm()),
     GoRoute(
         path: '/cashier/printer',
-        builder: (context, state) => const PrinterPage ()),
-   GoRoute(
+        builder: (context, state) => const PrinterPage()),
+    GoRoute(
         path: '/cashier/profile',
-        builder: (context, state) => const ProfilePage ()),
-   GoRoute(
+        builder: (context, state) => const ProfilePage()),
+    GoRoute(
         path: '/cashier/security',
-        builder: (context, state) => const SecurityPage ()),
-   GoRoute(
+        builder: (context, state) => const SecurityPage()),
+    GoRoute(
         path: '/cashier/setting',
-        builder: (context, state) => const SettingsPanel ()),
-     GoRoute(
+        builder: (context, state) => const SettingsPanel()),
+    GoRoute(
         path: '/cashier/system',
-        builder: (context, state) => const SystemPage ()),
-
+        builder: (context, state) => const SystemPage()),
 
     GoRoute(
         path: '/pharmacy/dashboard',
         builder: (context, state) => const PharmaCareDashboardScreen()),
-     GoRoute(
+    GoRoute(
         path: '/pharmacy/medicine-stock',
         builder: (context, state) => const MedicineStockScreen()),
     GoRoute(
@@ -486,31 +571,30 @@ final GoRouter router = GoRouter(
     GoRoute(
         path: '/pharmacy/profile',
         builder: (context, state) => const PharmacistProfileScreen()),
-   GoRoute(
+    GoRoute(
         path: '/pharmacy/suppliers',
         builder: (context, state) => const PharmaCareDashboardScreen()),
-   GoRoute(
+    GoRoute(
         path: '/pharmacy/medical-records',
         builder: (context, state) => const PharmaCareDashboardScreen()),
-   GoRoute(
+    GoRoute(
         path: '/pharmacy/settings',
         builder: (context, state) => const PharmacistSettingsPage()),
     GoRoute(
         path: '/pharmacy/inventory',
-        builder: (context, state) => const MedicineInventoryPage ()),
-  GoRoute(
+        builder: (context, state) => const MedicineInventoryPage()),
+    GoRoute(
         path: '/pharmacy/report',
-        builder: (context, state) => const ReportsPage ()),
-   GoRoute(
+        builder: (context, state) => const ReportsPage()),
+    GoRoute(
         path: '/pharmacy/medicineimport',
         builder: (context, state) => const MedicineImportsPage()),
-   GoRoute(
+    GoRoute(
         path: '/pharmacy/logout',
         builder: (context, state) => const PharmaCareDashboardScreen()),
-   
-   
-   
+
     // ── SHARED ───────────────────────────────────────────────────
+    GoRoute(path: '/qa', builder: (context, state) => const MedicalQAScreen()),
     GoRoute(
         path: '/medical-record-detail/:recordId',
         builder: (context, state) => MedicalRecordDetailPage(

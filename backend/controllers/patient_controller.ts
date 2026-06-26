@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
+import Patient from '../models/Patient';
 
 export const getPatients = async (req: Request, res: Response) => {
   try {
@@ -29,7 +30,18 @@ export const getPatients = async (req: Request, res: Response) => {
       .select('-password') // Bỏ đi trường password cho bảo mật
       .sort({ createdAt: -1 });
 
-    res.status(200).json(patients);
+    // Ghép thêm thông tin BHYT (healthInsuranceCode) từ collection Patient
+    const patientsWithInsurance = await Promise.all(
+      patients.map(async (user) => {
+        const patientDoc = await Patient.findOne({ userId: user._id });
+        return {
+          ...user.toObject(),
+          healthInsurance: patientDoc?.healthInsuranceCode || "",
+        };
+      })
+    );
+
+    res.status(200).json(patientsWithInsurance);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

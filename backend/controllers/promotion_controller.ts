@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import Promotion from "../models/Promotion";
+
 import Appointment from "../models/Appointment";
+import Promotion from "../models/Promotion";
 
 // ── GET ALL ─────────────────────────────────────────────────────────────────
 export const getAllPromotions = async (req: Request, res: Response): Promise<any> => {

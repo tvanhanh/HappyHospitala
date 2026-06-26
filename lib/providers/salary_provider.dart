@@ -25,7 +25,7 @@ class SalaryProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/salaries?month=$month&year=$year'),
+        Uri.parse('$baseUrl/api/salaries?month=$month&year=$year'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -73,7 +73,7 @@ class SalaryProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/salaries/generate'),
+        Uri.parse('$baseUrl/api/salaries/generate'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ class SalaryProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.patch(
-        Uri.parse('$baseUrl/salaries/$id/pay'),
+        Uri.parse('$baseUrl/api/salaries/$id/pay'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

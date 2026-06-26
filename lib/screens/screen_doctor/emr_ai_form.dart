@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:csv/csv.dart';
@@ -6,7 +5,6 @@ import 'package:flutter_application_datlichkham/services/api_medicalRecord.dart'
 
 import '../../models/appointment.dart';
 import '../../services/api_aiService.dart';
-import '../../services/api_medicalRecordBlockchain.dart';
 import '../../services/api_appointment.dart';
 import 'PrescriptionScreen.dart';
 
@@ -40,6 +38,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
   final _ldlController = TextEditingController();
   final _vldlController = TextEditingController();
   final _bmiController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _genderController = TextEditingController();
 
   final _statusController = TextEditingController(text: "Không mắc bệnh");
   final _treatmentController = TextEditingController(
@@ -50,12 +50,17 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
   // CSV test data auto-fill
   List<List<dynamic>> _csvDataset = [];
   int _csvCurrentIndex = 0;
-  String? _aiDiagnosisResult;
+
+  // AI result state
+  Map<String, dynamic>? _aiResult;
   String _aiSuggestedStatus = "Không mắc bệnh";
 
   @override
   void initState() {
     super.initState();
+    final patientAge = widget.calculateAge(widget.appointment.birthDate);
+    _ageController.text = (patientAge > 0 ? patientAge : 30).toString();
+    _genderController.text = widget.appointment.gender.isNotEmpty ? widget.appointment.gender : "Nam";
     _loadCSV();
   }
 
@@ -107,10 +112,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         departmentName: widget.appointment.departmentName.isNotEmpty
             ? widget.appointment.departmentName
             : widget.appointment.doctorSpecialty,
-        gender: widget.appointment.gender.isNotEmpty ? widget.appointment.gender : "Nam",
-        age: widget.calculateAge(widget.appointment.birthDate) > 0
-            ? widget.calculateAge(widget.appointment.birthDate)
-            : 30,
+        gender: _genderController.text.isNotEmpty ? _genderController.text : "Nam",
+        age: int.tryParse(_ageController.text) ?? 30,
         urea: double.tryParse(_ureaController.text),
         creatinine: double.tryParse(_creatinineController.text),
         hba1c: double.tryParse(_hba1cController.text),
@@ -194,6 +197,18 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     setState(() {
       final row = _csvDataset[_csvCurrentIndex];
       _csvCurrentIndex = (_csvCurrentIndex + 1) % _csvDataset.length;
+      
+      // Parse Gender: 0 -> Female ("Nữ"), 1 -> Male ("Nam")
+      final csvGenderVal = row[0];
+      if (csvGenderVal.toString() == "1") {
+        _genderController.text = "Nữ";
+      } else {
+        _genderController.text = "Nam";
+      }
+      
+      // Parse AGE
+      _ageController.text = row[1].toString();
+      
       _ureaController.text = row[2].toString();
       _creatinineController.text = row[3].toString();
       _hba1cController.text = row[4].toString();
@@ -204,30 +219,6 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       _vldlController.text = row[9].toString();
       _bmiController.text = row[10].toString();
     });
-  }
-
-  String _formatResult(dynamic data) {
-    if (data == null) return "";
-    if (data is String) {
-      try {
-        final decoded = jsonDecode(data);
-        return _formatResult(decoded);
-      } catch (_) {
-        return data.replaceAll(RegExp(r'[{}]'), '').trim();
-      }
-    }
-    if (data is Map) {
-      return data.entries.map((e) {
-        if (e.key.toString().toLowerCase().contains("xác suất")) {
-          return "${e.key}:\n${e.value}";
-        }
-        return "${e.key}: ${e.value}";
-      }).join("\n\n");
-    }
-    if (data is List) {
-      return data.map((e) => _formatResult(e)).join("\n");
-    }
-    return data.toString();
   }
 
   Future<void> _runAIPrediction() async {
@@ -250,8 +241,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     final double? vldl = double.tryParse(_vldlController.text);
     final double? bmi = double.tryParse(_bmiController.text);
 
-    final int age = widget.calculateAge(widget.appointment.birthDate);
-    final String safeGender = widget.appointment.gender.toLowerCase().contains("nam") ? "M" : "F";
+    final int age = int.tryParse(_ageController.text) ?? 30;
+    final String safeGender = _genderController.text.toLowerCase().contains("nam") ? "M" : "F";
 
     final patientData = {
       "Gender": safeGender,
@@ -270,25 +261,22 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     try {
       final response = await AIService.predictDisease(patientData);
       if (!mounted) return;
-      String pred = response.toString();
-      String exactPred = pred;
-      final match = RegExp(r'Dự\s*đoán\s*[:=]\s*([^,}]+)', caseSensitive: false).firstMatch(pred);
-      if (match != null) {
-        exactPred = match.group(1)!.trim();
-      } else {
-        exactPred = pred.replaceAll(RegExp(r'[{}]'), '').trim();
+
+      if (response.containsKey('error')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi AI: ${response['error']}"), backgroundColor: Colors.red),
+        );
+        return;
       }
 
-      if (exactPred.contains("Mắc bệnh") && !exactPred.contains("Không")) {
-        exactPred = "Mắc bệnh tiểu đường";
-      } else if (exactPred.contains("Không mắc bệnh")) {
-        exactPred = "Không mắc bệnh tiểu đường";
-      }
-
+      final label = (response['prediction_label'] ?? '').toString();
       setState(() {
-        _aiDiagnosisResult = response;
-        _aiSuggestedStatus = exactPred;
-        _statusController.text = exactPred;
+        _aiResult = response;
+        _aiSuggestedStatus = label.isNotEmpty ? label : 'Không xác định';
+        _statusController.text = _aiSuggestedStatus;
+        if (response.containsKey('clinical_advice')) {
+          _treatmentController.text = (response['clinical_advice'] ?? '').toString();
+        }
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi chạy AI: $e")));
@@ -310,6 +298,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     _vldlController.dispose();
     _bmiController.dispose();
     _treatmentController.dispose();
+    _ageController.dispose();
+    _genderController.dispose();
     super.dispose();
   }
 
@@ -384,6 +374,12 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
                           const SizedBox(height: 16),
                           Row(children: [
+                            Expanded(child: _modernTextFieldNoUnit(_ageController, "Tuổi")),
+                            const SizedBox(width: 12),
+                            Expanded(child: _modernTextFieldNoUnit(_genderController, "Giới tính (Nam/Nữ)"))
+                          ]),
+                          const SizedBox(height: 12),
+                          Row(children: [
                             Expanded(child: _modernField(_ureaController, "Urea", "mmol/L")),
                             const SizedBox(width: 12),
                             Expanded(child: _modernField(_creatinineController, "Cr", "µmol/L"))
@@ -428,24 +424,9 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 4, shadowColor: const Color(0xFF8B5CF6).withOpacity(0.5)),
                       ),
                     ),
-                    if (_aiDiagnosisResult != null) ...[
+                    if (_aiResult != null) ...[
                       const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: _aiSuggestedStatus.contains("Không") ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: _aiSuggestedStatus.contains("Không") ? const Color(0xFF86EFAC) : const Color(0xFFFECACA)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(_aiSuggestedStatus.contains("Không") ? Icons.check_circle : Icons.warning_rounded, color: _aiSuggestedStatus.contains("Không") ? Colors.green : Colors.red, size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text("Kết quả AI:\n$_aiSuggestedStatus", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: _aiSuggestedStatus.contains("Không") ? Colors.green.shade800 : Colors.red.shade800))),
-                          ],
-                        ),
-                      )
+                      _buildAIResultCard(_aiResult!),
                     ],
                     const SizedBox(height: 24),
                     _modernTextField(_statusController, "Chẩn đoán lâm sàng", maxLines: 1),
@@ -532,6 +513,21 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     );
   }
 
+  Widget _modernTextFieldNoUnit(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+        filled: true, fillColor: const Color(0xFFF1F5F9),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
+      ),
+      validator: (v) => (v == null || v.isEmpty) ? "!" : null,
+    );
+  }
+
   Widget _modernTextField(TextEditingController controller, String label, {int maxLines = 1}) {
     return TextFormField(
       controller: controller,
@@ -547,4 +543,212 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       validator: (v) => (v == null || v.trim().isEmpty) ? "Vui lòng nhập thông tin" : null,
     );
   }
-}
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 🤖 AI Result Card — Hiển thị kết quả chẩn đoán tiểu đường từ Custom KNN
+  // ─────────────────────────────────────────────────────────────────────────
+  Widget _buildAIResultCard(Map<String, dynamic> result) {
+    final dynamic rawPred     = result['prediction'];
+    int predCode = 0;
+    if (rawPred is num) {
+      predCode = rawPred.toInt();
+    } else if (rawPred is String) {
+      final parsed = int.tryParse(rawPred);
+      if (parsed != null) {
+        predCode = parsed;
+      } else if (rawPred.toLowerCase().contains("tiền") || rawPred.toLowerCase().contains("p")) {
+        predCode = 1;
+      } else if (rawPred.toLowerCase().contains("mắc") || rawPred.toLowerCase().contains("y") || rawPred.toLowerCase().contains("diabet")) {
+        predCode = 2;
+      }
+    }
+    final String predLabel    = (result['prediction_label'] ?? '').toString();
+    final bool ruleTriggered  = result['rule_triggered'] == true;
+    final String advice       = (result['clinical_advice'] ?? '').toString();
+    final Map<String, dynamic> probs = result['probabilities'] is Map
+        ? Map<String, dynamic>.from(result['probabilities'] as Map)
+        : {};
+
+    // Colour coding
+    final Color headerBg, headerBorder, iconColor, labelColor;
+    final IconData headerIcon;
+    switch (predCode) {
+      case 0:
+        headerBg     = const Color(0xFFF0FDF4);
+        headerBorder = const Color(0xFF86EFAC);
+        iconColor    = const Color(0xFF16A34A);
+        labelColor   = const Color(0xFF166534);
+        headerIcon   = Icons.check_circle_rounded;
+        break;
+      case 1:
+        headerBg     = const Color(0xFFFFFBEB);
+        headerBorder = const Color(0xFFFCD34D);
+        iconColor    = const Color(0xFFD97706);
+        labelColor   = const Color(0xFF92400E);
+        headerIcon   = Icons.info_rounded;
+        break;
+      default: // 2 = Diabetes
+        headerBg     = const Color(0xFFFEF2F2);
+        headerBorder = const Color(0xFFFECACA);
+        iconColor    = const Color(0xFFDC2626);
+        labelColor   = const Color(0xFF991B1B);
+        headerIcon   = Icons.warning_rounded;
+    }
+
+    // Parse probability strings "XX.XX%" → double
+    double parsePct(String? s) {
+      if (s == null) return 0.0;
+      return double.tryParse(s.replaceAll('%', '').trim()) ?? 0.0;
+    }
+
+    final double pNormal      = parsePct(probs['Normal']?.toString());
+    final double pPrediabetes = parsePct(probs['Prediabetes']?.toString());
+    final double pDiabetes    = parsePct(probs['Diabetes']?.toString());
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: iconColor.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: headerBorder, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ────────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: headerBg,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+            ),
+            child: Row(
+              children: [
+                Icon(headerIcon, color: iconColor, size: 26),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Kết quả chẩn đoán AI — Custom KNN",
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        predLabel,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: labelColor),
+                      ),
+                    ],
+                  ),
+                ),
+                // WHO/ADA rule badge
+                if (ruleTriggered)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDC2626),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      "WHO ≥6.5%",
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Probability Bars ──────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Xác suất (Custom KNN)",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 12),
+                _buildProbabilityBar("Bình thường",    pNormal,      const Color(0xFF22C55E)),
+                const SizedBox(height: 8),
+                _buildProbabilityBar("Tiền tiểu đường", pPrediabetes, const Color(0xFFF59E0B)),
+                const SizedBox(height: 8),
+                _buildProbabilityBar("Tiểu đường",     pDiabetes,    const Color(0xFFEF4444)),
+              ],
+            ),
+          ),
+
+          // ── Clinical Advice ───────────────────────────────────────────
+          if (advice.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.tips_and_updates_rounded, size: 18, color: Color(0xFF6366F1)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        advice,
+                        style: const TextStyle(fontSize: 12.5, color: Color(0xFF334155), height: 1.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProbabilityBar(String label, double pct, Color barColor) {
+    final double fraction = (pct / 100.0).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12.5, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+            Text("${pct.toStringAsFixed(2)}%",
+                style: TextStyle(fontSize: 12.5, color: barColor, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        LayoutBuilder(builder: (ctx, constraints) {
+          return Stack(
+            children: [
+              Container(
+                height: 8,
+                width: constraints.maxWidth,
+                decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(4)),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOut,
+                height: 8,
+                width: constraints.maxWidth * fraction,
+                decoration: BoxDecoration(
+                  color: barColor,
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [BoxShadow(color: barColor.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))],
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+}

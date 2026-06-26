@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:url_strategy/url_strategy.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'providers/auth_provider.dart';
 import 'services/socket_service.dart';
 import 'router.dart';
@@ -12,6 +13,13 @@ void main() async {
   setPathUrlStrategy();
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('vi', null);
+  
+  try {
+    await GoogleSignIn.instance.initialize();
+  } catch (e) {
+    debugPrint("Google Sign In global init error: $e");
+  }
+
   // Wrap with ProviderScope — required for all Riverpod providers.
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -39,7 +47,7 @@ class MyApp extends ConsumerWidget {
     // Thay đổi MaterialApp thành MaterialApp.router
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Smart Clinic - Đặt lịch khám bệnh',
+      title: 'HappyClinic - Đặt lịch khám bệnh',
 
       // Kết nối với cấu hình GoRouter
       routerConfig: router,

@@ -5,6 +5,7 @@ class MessageModel {
   final String? imageUrl;
   final DateTime timestamp;
   final bool isMe; // Đánh dấu tin nhắn do chính user hiện tại gửi
+  final String roomId;
 
   MessageModel({
     required this.id,
@@ -13,6 +14,7 @@ class MessageModel {
     this.imageUrl,
     required this.timestamp,
     required this.isMe,
+    required this.roomId,
   });
 
   // Chuyển đổi dữ liệu từ JSON (khi gọi API từ Backend về)
@@ -39,6 +41,7 @@ class MessageModel {
       imageUrl: imageUrl,
       timestamp: timestamp,
       isMe: senderId == currentUserId,
+      roomId: json['roomId']?.toString() ?? '',
     );
   }
 
@@ -50,6 +53,7 @@ class MessageModel {
       'text': text,
       'imageUrl': imageUrl,
       'timestamp': timestamp.toIso8601String(),
+      'roomId': roomId,
     };
   }
 
@@ -61,6 +65,7 @@ class MessageModel {
     String? imageUrl,
     DateTime? timestamp,
     bool? isMe,
+    String? roomId,
   }) {
     return MessageModel(
       id: id ?? this.id,
@@ -69,6 +74,7 @@ class MessageModel {
       imageUrl: imageUrl ?? this.imageUrl,
       timestamp: timestamp ?? this.timestamp,
       isMe: isMe ?? this.isMe,
+      roomId: roomId ?? this.roomId,
     );
   }
 }

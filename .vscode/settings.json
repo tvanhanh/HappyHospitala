@@ -4,5 +4,20 @@
         "lib/models"
     ],
     "java.configuration.updateBuildConfiguration": "disabled",
-    "java.compile.nullAnalysis.mode": "disabled"
+    "java.compile.nullAnalysis.mode": "disabled",
+    "terminal.integrated.allowedLinkSchemes": [
+        "file",
+        "http",
+        "https",
+        "mailto",
+        "vscode",
+        "vscode-insiders",
+        "Trust"
+    ],
+    "python.analysis.extraPaths": [
+        "./ai_backend"
+    ],
+    "python.autoComplete.extraPaths": [
+        "./ai_backend"
+    ]
 }

@@ -27,6 +27,7 @@ class ApiPrescription {
     String? gender,          
     String? healthInsurance,
     required List<Map<String, dynamic>> medicines,
+    List<Map<String, dynamic>>? services,
     String? doctorId,    
     String? doctorName,
   }) async {
@@ -43,6 +44,7 @@ class ApiPrescription {
         "gender": gender,
         "healthInsurance": healthInsurance, 
         "medicines": medicines,
+        "services": services ?? [],
         "doctorId": doctorId,      
         "doctorName": doctorName,
       };

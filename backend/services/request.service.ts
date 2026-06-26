@@ -40,7 +40,7 @@ export const fetchRequestsByReceiverAndStatus = async (receiverId: string, statu
             }
         },
 
-        // 3. [LOOKUP 2]: Nối sang bảng 'doctors' để lấy mã phòng ban (departmentId)
+        // 3. [LOOKUP 2]: Nối sang bảng 'doctors' để lấy mã phòng ban (specialtyId)
         {
             $lookup: {
                 from: 'doctors', // ⚠️ Kiểm tra lại chính xác tên collection bác sĩ của bạn
@@ -53,17 +53,17 @@ export const fetchRequestsByReceiverAndStatus = async (receiverId: string, statu
                             }
                         }
                     },
-                    { $project: { departmentId: 1, _id: 0 } }
+                    { $project: { specialtyId: 1, _id: 0 } }
                 ],
                 as: 'doctorProfileInfo'
             }
         },
-        // 4. Phẳng hóa dữ liệu departmentId tạm thời để làm đầu vào cho Lookup tiếp theo
+        // 4. Phẳng hóa dữ liệu specialtyId tạm thời để làm đầu vào cho Lookup tiếp theo
         {
             $addFields: {
-                // Ép kiểu departmentId vừa lấy được từ dạng String/ObjectId trong mảng về thành ObjectId chuẩn
+                // Ép kiểu specialtyId vừa lấy được từ dạng String/ObjectId trong mảng về thành ObjectId chuẩn
                 tempDeptId: {
-                    $toObjectId: { $arrayElemAt: ['$doctorProfileInfo.departmentId', 0] }
+                    $toObjectId: { $arrayElemAt: ['$doctorProfileInfo.specialtyId', 0] }
                 }
             }
         },

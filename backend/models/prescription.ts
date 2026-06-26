@@ -1,5 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 export type PrescriptionStatus = 'pending' | 'completed' | 'cancelled'|'paid';
+
 export interface IPrescribedMedicine {
   id: string; 
   name: string;
@@ -7,6 +8,12 @@ export interface IPrescribedMedicine {
   usage: string;
   sellingPrice: number;
   unit: string;
+}
+
+export interface IPrescribedService {
+  id: string;
+  name: string;
+  price: number;
 }
 
 // Interface chính cho Đơn thuốc (Kế thừa Document của Mongoose)
@@ -20,6 +27,7 @@ export interface IPrescription extends Document {
   gender?: string | null;          
   healthInsurance?: string | null; 
   medicines: IPrescribedMedicine[];
+  services: IPrescribedService[];
   status :PrescriptionStatus;
   doctorId: string;
   doctorName: string;
@@ -34,7 +42,12 @@ const PrescribedMedicineSchema = new Schema<IPrescribedMedicine>({
   usage: { type: String, required: true },
   sellingPrice: { type: Number, required: true },
   unit: { type: String, required: true }
+}, { _id: false });
 
+const PrescribedServiceSchema = new Schema<IPrescribedService>({
+  id: { type: String, required: true },
+  name: { type: String, required: true },
+  price: { type: Number, required: true }
 }, { _id: false });
 
 // Schema chính cho Prescription
@@ -50,7 +63,8 @@ const PrescriptionSchema = new Schema<IPrescription>({
   healthInsurance: { type: String, default: null },
   
   medicines: { type: [PrescribedMedicineSchema], required: true },
-status: { 
+  services: { type: [PrescribedServiceSchema], default: [] },
+  status: { 
     type: String, 
     enum: ['pending', 'completed', 'cancelled', 'paid'], 
     default: 'pending' 

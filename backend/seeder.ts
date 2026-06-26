@@ -13,20 +13,20 @@ const seedData = async () => {
     await connectDB();
     console.log("Connected to Database. Clearing old data...");
 
-    // Clear existing collections
+    // // Clear existing collections
     await Specialty.deleteMany();
     await Room.deleteMany();
-    // Only delete existing admin accounts to prevent duplicates without deleting regular users/doctors
-    await User.deleteMany({ role: "admin" });
+
 
     // Seed Specialties
     const specialties = [
-      { name: "Da liễu (Dermatology)", description: "Khám và điều trị các bệnh về da", imageUrl: "https://cdn-icons-png.flaticon.com/512/2864/2864303.png" },
-      { name: "Tim mạch (Cardiology)", description: "Chăm sóc sức khỏe tim mạch", imageUrl: "https://cdn-icons-png.flaticon.com/512/883/883407.png" },
-      { name: "Thần kinh (Neurology)", description: "Chẩn đoán và điều trị bệnh thần kinh", imageUrl: "https://cdn-icons-png.flaticon.com/512/2093/2093077.png" },
-      { name: "Nhi khoa (Pediatrics)", description: "Khám bệnh cho trẻ em", imageUrl: "https://cdn-icons-png.flaticon.com/512/2966/2966453.png" },
-      { name: "Nha khoa (Dentistry)", description: "Chăm sóc răng miệng", imageUrl: "https://cdn-icons-png.flaticon.com/512/2818/2818366.png" },
-      { name: "Mắt (Ophthalmology)", description: "Khám và điều trị các bệnh về mắt", imageUrl: "https://cdn-icons-png.flaticon.com/512/1086/1086478.png" },
+      { name: "Da liễu", description: "Khám và điều trị các bệnh về da", imageUrl: "https://cdn-icons-png.flaticon.com/128/10154/10154433.png" },
+      { name: "Tim mạch", description: "Chăm sóc sức khỏe tim mạch", imageUrl: "https://cdn-icons-png.flaticon.com/128/10154/10154414.png" },
+      { name: "Thần kinh", description: "Chẩn đoán và điều trị bệnh thần kinh", imageUrl: "https://cdn-icons-png.flaticon.com/128/2491/2491401.png" },
+      { name: "Nhi khoa", description: "Khám bệnh cho trẻ em", imageUrl: "https://cdn-icons-png.flaticon.com/128/5996/5996306.png" },
+      { name: "Nha khoa", description: "Chăm sóc răng miệng", imageUrl: "https://cdn-icons-png.flaticon.com/128/2818/2818366.png" },
+      { name: "Mắt", description: "Khám và điều trị các bệnh về mắt", imageUrl: "https://cdn-icons-png.flaticon.com/128/1694/1694439.png" },
+       { name: "Nội tiết", description: "Khám và điều trị các bệnh về mắt", imageUrl: "https://cdn-icons-png.flaticon.com/128/4785/4785772.png" },
     ];
     await Specialty.insertMany(specialties);
     console.log("Specialties seeded!");
@@ -48,10 +48,10 @@ const seedData = async () => {
     console.log("Rooms seeded!");
 
     // Seed Admin User
-    const hashedPassword = await bcrypt.hash("password123", 10);
+    const hashedPassword = await bcrypt.hash("123456", 10);
     const adminUser = new User({
       name: "Admin Quản Trị",
-      email: "admin@clinic.com",
+      email: "admin@gmail.com",
       password: hashedPassword,
       role: "admin",
       status: "activity",

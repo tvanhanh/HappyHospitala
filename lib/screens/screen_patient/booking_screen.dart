@@ -292,6 +292,135 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             ),
             const SizedBox(height: 20),
 
+            // ── Consultation Type Card ────────────────────────────────────
+            _SectionLabel(
+              icon: Icons.contactless_outlined,
+              label: 'Hình thức tư vấn *',
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => ref
+                        .read(bookingProvider(widget.doctorId).notifier)
+                        .setAppointmentType('offline'),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: bookingState.appointmentType == 'offline'
+                            ? _kPrimary.withOpacity(0.08)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: bookingState.appointmentType == 'offline'
+                              ? _kPrimary
+                              : Colors.grey.shade300,
+                          width: bookingState.appointmentType == 'offline' ? 2 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.local_hospital_rounded,
+                            color: bookingState.appointmentType == 'offline'
+                                ? _kPrimary
+                                : Colors.grey.shade600,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Khám Trực Tiếp',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tại phòng khám',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => ref
+                        .read(bookingProvider(widget.doctorId).notifier)
+                        .setAppointmentType('online'),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: bookingState.appointmentType == 'online'
+                            ? _kPrimary.withOpacity(0.08)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: bookingState.appointmentType == 'online'
+                              ? _kPrimary
+                              : Colors.grey.shade300,
+                          width: bookingState.appointmentType == 'online' ? 2 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.video_chat_rounded,
+                            color: bookingState.appointmentType == 'online'
+                                ? _kPrimary
+                                : Colors.grey.shade600,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Tư Vấn Online',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Trò chuyện trực tuyến',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
             // ── Visit Reason Field ─────────────────────────────────────────
             _SectionLabel(
               icon: Icons.note_alt_outlined,
@@ -325,6 +454,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             _DatePickerRow(
               selectedDate: _selectedDate,
               onDateSelected: (d) => setState(() => _selectedDate = d),
+              doctorId: widget.doctorId,
             ),
             const SizedBox(height: 20),
 
@@ -340,26 +470,6 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             ),
             const SizedBox(height: 28),
 
-            // ── Payment Method Selector ────────────────────────────────────
-            _SectionLabel(
-              icon: Icons.payment_rounded,
-              label: 'Phương thức thanh toán *',
-            ),
-            const SizedBox(height: 10),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 2.3,
-              children: [
-                _buildPaymentMethodOption('cash', 'Tiền mặt', Icons.payments_rounded),
-                _buildPaymentMethodOption('banking', 'Chuyển khoản', Icons.account_balance_rounded),
-                _buildPaymentMethodOption('vnpay', 'Cổng VNPAY', Icons.credit_card_rounded),
-                _buildPaymentMethodOption('momo', 'Ví MoMo', Icons.wallet_rounded),
-              ],
-            ),
             const SizedBox(height: 28),
 
             // ── Clinic Address & Map section ─────────────────────────────
@@ -514,7 +624,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
+                  color:
+                      isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
                 ),
               ),
             ),
@@ -777,9 +888,9 @@ class _DoctorSummaryCard extends StatelessWidget {
 
     // Specialty Name
     String specialtyName = doctor['specialty']?.toString() ?? '';
-    if (specialtyName.isEmpty && doctor['departmentId'] != null) {
-      if (doctor['departmentId'] is Map) {
-        specialtyName = doctor['departmentId']['name']?.toString() ?? '';
+    if (specialtyName.isEmpty && doctor['specialtyId'] != null) {
+      if (doctor['specialtyId'] is Map) {
+        specialtyName = doctor['specialtyId']['name']?.toString() ?? '';
       }
     }
     if (specialtyName.isEmpty) {
@@ -1243,108 +1354,153 @@ class _ImageUploadSection extends ConsumerWidget {
 }
 
 /// Horizontal date chip row for selecting a booking date.
-class _DatePickerRow extends StatelessWidget {
+class _DatePickerRow extends ConsumerWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onDateSelected;
+  final String doctorId;
 
   const _DatePickerRow({
     required this.selectedDate,
     required this.onDateSelected,
+    required this.doctorId,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final schedulesAsync = ref.watch(doctorScheduleListProvider(doctorId));
     final today = DateTime.now();
     // Show next 14 days
     final days = List.generate(14, (i) => today.add(Duration(days: i)));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Scrollable date chips
-        SizedBox(
-          height: 80,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: days.length,
-            itemBuilder: (ctx, i) {
-              final day = days[i];
-              final isSelected = day.year == selectedDate.year &&
-                  day.month == selectedDate.month &&
-                  day.day == selectedDate.day;
-              final isToday = day.day == today.day && day.month == today.month;
+    return schedulesAsync.when(
+      loading: () => const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+      error: (e, _) => SizedBox(height: 100, child: Center(child: Text('Lỗi: $e'))),
+      data: (schedules) {
+        // Auto-select first available date if current is invalid
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final isSelectedValid = schedules.any((s) {
+            if (s['date'] == null) return false;
+            final d = DateTime.parse(s['date']).toLocal();
+            return d.year == selectedDate.year && d.month == selectedDate.month && d.day == selectedDate.day;
+          });
+          
+          if (!isSelectedValid) {
+            for (final day in days) {
+              final isValid = schedules.any((s) {
+                if (s['date'] == null) return false;
+                final d = DateTime.parse(s['date']).toLocal();
+                return d.year == day.year && d.month == day.month && d.day == day.day;
+              });
+              if (isValid) {
+                onDateSelected(day);
+                break;
+              }
+            }
+          }
+        });
 
-              return GestureDetector(
-                onTap: () => onDateSelected(day),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(right: 10),
-                  width: 60,
-                  decoration: BoxDecoration(
-                    color: isSelected ? _kPrimary : _kSurface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSelected ? _kPrimary : Colors.grey.shade300,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: _kPrimary.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            )
-                          ]
-                        : [],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        DateFormat('E', 'vi_VN').format(day).toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isSelected
-                              ? Colors.white70
-                              : Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Scrollable date chips
+            SizedBox(
+              height: 80,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: days.length,
+                itemBuilder: (ctx, i) {
+                  final day = days[i];
+                  final isSelected = day.year == selectedDate.year &&
+                      day.month == selectedDate.month &&
+                      day.day == selectedDate.day;
+                  final isToday = day.day == today.day && day.month == today.month;
+
+                  // Check if this day has a schedule
+                  final hasSchedule = schedules.any((s) {
+                    if (s['date'] == null) return false;
+                    final d = DateTime.parse(s['date']).toLocal();
+                    return d.year == day.year && d.month == day.month && d.day == day.day;
+                  });
+
+                  return GestureDetector(
+                    onTap: hasSchedule ? () => onDateSelected(day) : null,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: 10),
+                      width: 60,
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                            ? _kPrimary 
+                            : (hasSchedule ? _kSurface : Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSelected 
+                              ? _kPrimary 
+                              : (hasSchedule ? Colors.grey.shade300 : Colors.transparent),
                         ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: _kPrimary.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : [],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        day.day.toString(),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF1A1A2E),
-                        ),
-                      ),
-                      if (isToday)
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected ? Colors.white : _kPrimary,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            DateFormat('E', 'vi_VN').format(day).toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isSelected
+                                  ? Colors.white70
+                                  : (hasSchedule ? Colors.grey.shade500 : Colors.grey.shade400),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          DateFormat('MMMM yyyy', 'vi_VN').format(selectedDate),
-          style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 13,
-              fontWeight: FontWeight.w500),
-        ),
-      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            day.day.toString(),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : (hasSchedule ? const Color(0xFF1A1A2E) : Colors.grey.shade400),
+                            ),
+                          ),
+                          if (isToday)
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected 
+                                    ? Colors.white 
+                                    : (hasSchedule ? _kPrimary : Colors.grey.shade400),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              DateFormat('MMMM yyyy', 'vi_VN').format(selectedDate),
+              style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1373,6 +1529,21 @@ class _TimeSlotGrid extends ConsumerWidget {
         '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
     final bookedSlotsAsync =
         ref.watch(bookedSlotsProvider((doctorId: doctorId, date: dateStr)));
+    final schedulesAsync = ref.watch(doctorScheduleListProvider(doctorId));
+
+    if (schedulesAsync.isLoading) {
+      return const Center(
+          child: Padding(
+        padding: EdgeInsets.all(20.0),
+        child: CircularProgressIndicator(color: _kPrimary),
+      ));
+    }
+
+    if (schedulesAsync.hasError) {
+      return Center(child: Text('Lỗi tải lịch bác sĩ: ${schedulesAsync.error}'));
+    }
+
+    final schedules = schedulesAsync.value ?? [];
 
     return bookedSlotsAsync.when(
       loading: () => const Center(
@@ -1382,7 +1553,7 @@ class _TimeSlotGrid extends ConsumerWidget {
       )),
       error: (err, _) => Center(child: Text('Lỗi tải khung giờ: $err')),
       data: (bookedSlots) {
-        final slots = getAvailableSlots(selectedDate, bookedSlots);
+        final slots = getAvailableSlots(selectedDate, bookedSlots, schedules);
 
         if (slots.isEmpty) {
           return Container(
@@ -1398,7 +1569,7 @@ class _TimeSlotGrid extends ConsumerWidget {
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
-                    'Không còn ca khám trong ngày hôm nay hoặc giờ đã được đặt hết.\nVui lòng chọn ngày khác.',
+                    'Không còn ca khám trong ngày này hoặc giờ đã được đặt hết.\nVui lòng chọn ngày khác.',
                     style: TextStyle(color: Colors.orange),
                   ),
                 ),
@@ -1406,6 +1577,22 @@ class _TimeSlotGrid extends ConsumerWidget {
             ),
           );
         }
+
+        bool hasEveningShift = schedules.any((s) {
+          if (s['date'] == null) return false;
+          final d = DateTime.parse(s['date']).toLocal();
+          return d.year == selectedDate.year &&
+                 d.month == selectedDate.month &&
+                 d.day == selectedDate.day &&
+                 (s['shift'] == 'Tối' || s['shift'] == 'Cả ngày');
+        });
+
+        // Nếu có ca tối (Tối), ca tối tính từ 17:00. Ngược lại, tính từ 18:00 (để 17:00, 17:15 vào ca chiều)
+        final eveningStartHour = hasEveningShift ? 17 : 18;
+
+        final morningSlots = slots.where((s) => s.hour < 12).toList();
+        final afternoonSlots = slots.where((s) => s.hour >= 12 && s.hour < eveningStartHour).toList();
+        final eveningSlots = slots.where((s) => s.hour >= eveningStartHour).toList();
 
         return Container(
           padding: const EdgeInsets.all(14),
@@ -1424,20 +1611,35 @@ class _TimeSlotGrid extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Morning slots
-              _SlotGroup(
-                label: '☀️ Buổi sáng',
-                slots: slots.where((s) => s.hour < 12).toList(),
-                selectedSlot: bookingState.timeSlot,
-                onSelect: notifier.selectTimeSlot,
-              ),
-              const SizedBox(height: 14),
+              if (morningSlots.isNotEmpty) ...[
+                _SlotGroup(
+                  label: '☀️ Buổi sáng',
+                  slots: morningSlots,
+                  selectedSlot: bookingState.timeSlot,
+                  onSelect: notifier.selectTimeSlot,
+                ),
+                if (afternoonSlots.isNotEmpty || eveningSlots.isNotEmpty)
+                  const SizedBox(height: 14),
+              ],
               // Afternoon slots
-              _SlotGroup(
-                label: '🌤️ Buổi chiều',
-                slots: slots.where((s) => s.hour >= 13).toList(),
-                selectedSlot: bookingState.timeSlot,
-                onSelect: notifier.selectTimeSlot,
-              ),
+              if (afternoonSlots.isNotEmpty) ...[
+                _SlotGroup(
+                  label: '🌤️ Buổi chiều',
+                  slots: afternoonSlots,
+                  selectedSlot: bookingState.timeSlot,
+                  onSelect: notifier.selectTimeSlot,
+                ),
+                if (eveningSlots.isNotEmpty)
+                  const SizedBox(height: 14),
+              ],
+              // Evening slots
+              if (eveningSlots.isNotEmpty)
+                _SlotGroup(
+                  label: '🌙 Buổi tối (Ngoài giờ)',
+                  slots: eveningSlots,
+                  selectedSlot: bookingState.timeSlot,
+                  onSelect: notifier.selectTimeSlot,
+                ),
             ],
           ),
         );
@@ -1480,7 +1682,8 @@ class _SlotGroup extends StatelessWidget {
             const double spacing = 10.0;
             const int crossAxisCount = 4;
             final double totalSpacing = spacing * (crossAxisCount - 1);
-            final double itemWidth = (constraints.maxWidth - totalSpacing) / crossAxisCount;
+            final double itemWidth =
+                (constraints.maxWidth - totalSpacing) / crossAxisCount;
 
             return Wrap(
               spacing: spacing,
@@ -1529,7 +1732,9 @@ class _SlotGroup extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: isSelected ? Colors.white : Colors.grey.shade800,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey.shade800,
                           ),
                         ),
                       ],
@@ -1661,7 +1866,7 @@ class _SubmitButton extends ConsumerWidget {
                   // ignore error, proceed with booking
                 }
 
-                // Robust extraction of doctorId and departmentId
+                // Robust extraction of doctorId and specialtyId
                 // 1. Lấy Doctor ID
                 final String resolvedDocId = doctor['_id']?.toString() ??
                     doctor['id']?.toString() ??
@@ -1671,8 +1876,7 @@ class _SubmitButton extends ConsumerWidget {
                 String resolvedDeptId = '';
 
                 // Bước 2.1: Thử lấy ở vòng ngoài
-                dynamic rawDept =
-                    doctor['departmentId'] ?? doctor['department'];
+                dynamic rawDept = doctor['specialtyId'] ?? doctor['department'];
 
                 // Bước 2.2: Nếu ngoài bị null, chui vào trong roomId để "moi" specialtyId ra (Dựa theo JSON thực tế)
                 if (rawDept == null && doctor['roomId'] is Map) {
@@ -1712,7 +1916,7 @@ class _SubmitButton extends ConsumerWidget {
 
                 ref.read(bookingProvider(doctorId).notifier).submitBooking(
                       doctorId: resolvedDocId,
-                      departmentId: resolvedDeptId,
+                      specialtyId: resolvedDeptId,
                       patientName: patientName,
                       phone: phone,
                       gender: gender,
@@ -1721,7 +1925,7 @@ class _SubmitButton extends ConsumerWidget {
                       allergies: allergies,
                       cccd: identityCard,
                       birthDate: dateOfBirth,
-                      paymentMethod: paymentMethod,
+                      paymentMethod: 'cash', // Mặc định thanh toán tại quầy
                     );
               },
         child: isSubmitting

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../screens/screen_authencication/login_screen.dart';
 import '../screens/screen_authencication/register_screen.dart';
 import '../screens/screen_patient/faq_screen.dart';
@@ -101,9 +102,9 @@ class _HeaderState extends State<Header> {
         if (value == 'logout') {
           // Xử lý đăng xuất
         } else if (value == 'change_password') {
-          // Điều hướng đổi mật khẩu
+          context.go('/auth/change_password_page');
         } else if (value == 'forgot_password') {
-          // Điều hướng quên mật khẩu
+          context.go('/auth/forgot_password');
         }
       },
       itemBuilder: (context) => [

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import '../../widgets/receptionist_drawer.dart';
 import '../../services/api_medicalRecordBlockchain.dart'; 
 import '../screen_doctor/VerifyIntegritySection.dart'; 
@@ -34,6 +36,22 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
   String _searchQuery = '';
   int _selectedIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  String _userRole = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRole();
+  }
+
+  Future<void> _checkRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _userRole = prefs.getString('role') ?? '';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -43,6 +61,84 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_userRole == 'receptionist') {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        appBar: widget.showAppBar
+            ? AppBar(
+                title: const Text(
+                  "Hồ Sơ Bệnh Án",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+              )
+            : null,
+        drawer: widget.showDrawer
+            ? const ReceptionistDrawer(
+                selectedMenu: "Hồ sơ bệnh án",
+              )
+            : null,
+        body: Center(
+          child: Container(
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  color: Colors.redAccent,
+                  size: 64,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Quyền truy cập bị hạn chế",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Theo quy định bảo mật thông tin y tế (HIPAA), nhân viên Lễ tân không có quyền truy cập để xem chi tiết bệnh án, chỉ số xét nghiệm lâm sàng hoặc đơn thuốc của bệnh nhân.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF64748B),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => context.go('/receptionist/dashboard'),
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  label: const Text("Quay lại Trang chủ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kSecondaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final asyncRecords = ref.watch(medicalRecordsProvider);
 
     final mainBody = asyncRecords.when(
@@ -230,11 +326,10 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
                   final name = rec['patientName'] ?? 'Không rõ';
                   final diag = rec['diagnosis'] ?? 'Chưa chẩn đoán';
                   final date = rec['visitDate'] ?? rec['examinationDate'] ?? 'N/A';
-                  
                   String cleanDate = date;
                   final parsedDate = MedicalRecordService.tryParseDateTime(date);
                   if (parsedDate != null) {
-                    cleanDate = DateFormat('dd/MM/yyyy').format(parsedDate);
+                    cleanDate = DateFormat('dd/MM/yyyy').format(parsedDate.toLocal());
                   }
 
                   return DropdownMenuItem<int>(
@@ -414,7 +509,7 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               String cleanDate = date;
               final parsedDate = MedicalRecordService.tryParseDateTime(date);
               if (parsedDate != null) {
-                cleanDate = DateFormat('dd/MM/yyyy HH:mm').format(parsedDate);
+                cleanDate = DateFormat('dd/MM/yyyy HH:mm').format(parsedDate.toLocal());
               }
 
               return DataRow(

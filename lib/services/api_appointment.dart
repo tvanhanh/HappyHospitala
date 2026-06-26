@@ -5,6 +5,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config.dart';
 
 class AppointmentApi {
+  static Future<List<dynamic>> getDoctorSchedules(String doctorId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("token");
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/schedules/doctor/$doctorId'),
+        headers: {
+          "Content-Type": "application/json",
+          if (token != null) "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   static Future<List<String>> getBookedSlots(
       {required String doctorId, required String date}) async {
     try {
@@ -61,7 +81,7 @@ class AppointmentApi {
   // ================= CREATE APPOINTMENT =================
   static Future<Map<String, dynamic>> addAppointment({
     required String doctorId,
-    required String departmentId,
+    required String specialtyId,
     String? patientName,
     String? phone,
     String? cccd,
@@ -76,6 +96,7 @@ class AppointmentApi {
     String? timeSlot,
     String? imageUrl,
     String? paymentMethod,
+    String? appointmentType,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -86,7 +107,7 @@ class AppointmentApi {
 
       final Map<String, dynamic> body = {
         "doctor": doctorId,
-        "department": departmentId,
+        "department": specialtyId,
       };
 
       void addIfNotEmpty(String key, String? value) {
@@ -108,12 +129,13 @@ class AppointmentApi {
       addIfNotEmpty("time", time);
       addIfNotEmpty("timeSlot", timeSlot);
       addIfNotEmpty("paymentMethod", paymentMethod);
+      addIfNotEmpty("appointmentType", appointmentType);
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         body["imageUrl"] = imageUrl;
       }
       // print("===== BODY GỬI LÊN SERVER =====");
-     // print(jsonEncode(body));
+      // print(jsonEncode(body));
       final res = await http.post(
         Uri.parse("$baseUrl/api/appointments/add"),
         headers: {
@@ -153,8 +175,6 @@ class AppointmentApi {
 
     final body = jsonDecode(res.body);
 
-
-
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
       //print(res.body);
@@ -179,7 +199,6 @@ class AppointmentApi {
 
     final body = jsonDecode(res.body);
 
-
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
       //print(res.body);
@@ -202,8 +221,6 @@ class AppointmentApi {
     );
 
     final body = jsonDecode(res.body);
-
-  
 
     if (res.statusCode == 200 && body["success"] == true) {
       final list = body["data"] as List;
@@ -312,6 +329,115 @@ class AppointmentApi {
     } catch (e) {
       print("Error in checkInAppointment: $e");
       return false;
+    }
+  }
+
+  static Future<bool> submitPreVisitData({
+    required String appointmentId,
+    required double height,
+    required double weight,
+    required double bloodSugar,
+    required String preVisitQuestionnaire,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return false;
+
+      final res = await http.patch(
+        Uri.parse("$baseUrl/api/appointments/$appointmentId/pre-visit"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "height": height,
+          "weight": weight,
+          "bloodSugar": bloodSugar,
+          "preVisitQuestionnaire": preVisitQuestionnaire,
+        }),
+      );
+      final data = jsonDecode(res.body);
+      return res.statusCode == 200 && data["success"] == true;
+    } catch (e) {
+      print("Error in submitPreVisitData: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> lockSession({
+    required String appointmentId,
+    required String diagnosis,
+    required String treatment,
+    required String ePrescription,
+  }) async {
+    try {
+      final token = await _getToken();
+      if (token == null) return false;
+
+      final res = await http.post(
+        Uri.parse("$baseUrl/api/appointments/$appointmentId/lock-session"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "diagnosis": diagnosis,
+          "treatment": treatment,
+          "ePrescription": ePrescription,
+        }),
+      );
+      final data = jsonDecode(res.body);
+      return res.statusCode == 200 && data["success"] == true;
+    } catch (e) {
+      print("Error in lockSession: $e");
+      return false;
+    }
+  }
+
+  // ================= TRIAGE HANDOFFS =================
+  static Future<List<dynamic>> getTriageHandoffs() async {
+    try {
+      final token = await _getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/ai/handoffs'),
+        headers: {
+          "Content-Type": "application/json",
+          if (token != null) "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data['success'] == true) {
+          return data['data'] as List<dynamic>;
+        }
+      }
+      return [];
+    } catch (e) {
+      print("💥 Lỗi getTriageHandoffs: $e");
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> initiateHandoffChat(String patientId) async {
+    try {
+      final token = await _getToken();
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/ai/initiate-chat'),
+        headers: {
+          "Content-Type": "application/json",
+          if (token != null) "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"patientId": patientId}),
+      );
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return {
+        "success": response.statusCode == 200 && data['success'] == true,
+        "message": data['message'] ?? "",
+        "data": data['data']
+      };
+    } catch (e) {
+      print("💥 Lỗi initiateHandoffChat: $e");
+      return {"success": false, "message": e.toString()};
     }
   }
 

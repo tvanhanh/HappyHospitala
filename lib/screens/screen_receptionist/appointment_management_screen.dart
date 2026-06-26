@@ -8,6 +8,8 @@ import '../../widgets/receptionist_drawer.dart';
 import '../../providers/auth_provider.dart';
 import 'notificationScreen.dart';
 import '../../widgets/appointment_form_dialog.dart';
+import '../../services/api_appointment.dart';
+
 class ReceptionistCheckListScreen extends ConsumerStatefulWidget {
   const ReceptionistCheckListScreen({super.key});
 
@@ -19,17 +21,44 @@ class ReceptionistCheckListScreen extends ConsumerStatefulWidget {
 class _ReceptionistDashboardScreenState
     extends ConsumerState<ReceptionistCheckListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  Appointment? _selectedAppointment;
+
+  // Scheduler & calendar view state
+  String _schedulerViewMode = "day"; // "day", "week", "month"
+  List<Appointment> _allAppointments = [];
+  bool _loadingAll = false;
 
   @override
   void initState() {
     super.initState();
-    // Fetch appointments for today on init ONLY if the list is empty (prevents infinite loop)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = ref.read(receptionistProvider);
-      if (state.appointments.isEmpty) {
-        ref.read(receptionistProvider.notifier).fetchAppointments(state.selectedDate);
-      }
+      ref.read(receptionistProvider.notifier).fetchAppointments(state.selectedDate);
+      _loadAllAppointments();
+      ref.read(receptionistProvider.notifier).fetchTriageHandoffs();
     });
+  }
+
+  Future<void> _loadAllAppointments() async {
+    if (!mounted) return;
+    setState(() {
+      _loadingAll = true;
+    });
+    try {
+      final list = await AppointmentApi.getAllAppointments();
+      if (mounted) {
+        setState(() {
+          _allAppointments = list;
+          _loadingAll = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingAll = false;
+        });
+      }
+    }
   }
 
   @override
@@ -254,6 +283,475 @@ class _ReceptionistDashboardScreenState
     );
   }
 
+  void _selectAppointment(Appointment appt) {
+    setState(() {
+      _selectedAppointment = appt;
+    });
+    
+    final width = MediaQuery.of(context).size.width;
+    if (width < 1000) {
+      _showDetailDialog(appt);
+    }
+  }
+
+  void _showDetailDialog(Appointment appt) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            width: 450,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: SelectionArea(
+              child: _buildAdministrativeDetailPanel(appt, isDialog: true),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  DateTime _findFirstDayOfWeek(DateTime date) {
+    return date.subtract(Duration(days: date.weekday - 1));
+  }
+
+  String _getWeekdayName(int weekday) {
+    switch (weekday) {
+      case 1: return "Thứ 2";
+      case 2: return "Thứ 3";
+      case 3: return "Thứ 4";
+      case 4: return "Thứ 5";
+      case 5: return "Thứ 6";
+      case 6: return "Thứ 7";
+      case 7: return "Chủ Nhật";
+      default: return "";
+    }
+  }
+
+  void _shiftDate(int days) {
+    final state = ref.read(receptionistProvider);
+    final newDate = state.selectedDate.add(Duration(days: days));
+    ref.read(receptionistProvider.notifier).fetchAppointments(newDate);
+  }
+
+  void _shiftMonth(int months) {
+    final state = ref.read(receptionistProvider);
+    final newDate = DateTime(state.selectedDate.year, state.selectedDate.month + months, state.selectedDate.day);
+    ref.read(receptionistProvider.notifier).fetchAppointments(newDate);
+  }
+
+  String _getNavigationLabel(DateTime date) {
+    if (_schedulerViewMode == "day") {
+      return "Ngày ${DateFormat('dd/MM/yyyy').format(date)}";
+    } else if (_schedulerViewMode == "week") {
+      final start = _findFirstDayOfWeek(date);
+      final end = start.add(const Duration(days: 6));
+      return "Tuần ${DateFormat('dd/MM').format(start)} - ${DateFormat('dd/MM/yyyy').format(end)}";
+    } else {
+      return "Tháng ${DateFormat('MM/yyyy').format(date)}";
+    }
+  }
+
+  Widget _buildViewModeButton(String mode, String label, IconData icon) {
+    final isActive = _schedulerViewMode == mode;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          setState(() {
+            _schedulerViewMode = mode;
+          });
+          if (mode != "day") {
+            _loadAllAppointments();
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF0D47A1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isActive
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF0D47A1).withOpacity(0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isActive ? Colors.white : const Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 13,
+                  color: isActive ? Colors.white : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekScheduler(DateTime selectedDate) {
+    final startOfWeek = _findFirstDayOfWeek(selectedDate);
+    final days = List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 700;
+        
+        if (isMobile) {
+          return Column(
+            children: days.map((day) => _buildWeekDayRow(day)).toList(),
+          );
+        } else {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: days.map((day) => Expanded(child: _buildWeekDayColumn(day))).toList(),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildWeekDayColumn(DateTime day) {
+    final dayStr = DateFormat('yyyy-MM-dd').format(day);
+    final isToday = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final isSelected = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(ref.read(receptionistProvider).selectedDate);
+    
+    final dayAppointments = _allAppointments.where((appt) => appt.date == dayStr).toList();
+
+    return GestureDetector(
+      onTap: () {
+        ref.read(receptionistProvider.notifier).fetchAppointments(day);
+        setState(() {
+          _schedulerViewMode = "day";
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1976D2).withOpacity(0.04) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF1976D2) : (isToday ? const Color(0xFF2E7D32) : const Color(0xFFE2E8F0)),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _getWeekdayName(day.weekday),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: isSelected ? const Color(0xFF1976D2) : const Color(0xFF222222),
+              ),
+            ),
+            Text(
+              DateFormat('dd/MM').format(day),
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey.shade500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            if (dayAppointments.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    "Trống",
+                    style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  ),
+                ),
+              )
+            else
+              ...dayAppointments.take(3).map((appt) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4.0),
+                  child: _buildMiniAppointmentCardCompact(appt),
+                );
+              }),
+            if (dayAppointments.length > 3)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  "+${dayAppointments.length - 3} lịch",
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeekDayRow(DateTime day) {
+    final dayStr = DateFormat('yyyy-MM-dd').format(day);
+    final dayAppointments = _allAppointments.where((appt) => appt.date == dayStr).toList();
+    final isToday = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
+    return InkWell(
+      onTap: () {
+        ref.read(receptionistProvider.notifier).fetchAppointments(day);
+        setState(() {
+          _schedulerViewMode = "day";
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 90,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _getWeekdayName(day.weekday),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isToday ? const Color(0xFF2E7D32) : const Color(0xFF222222),
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('dd/MM/yyyy').format(day),
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: dayAppointments.isEmpty
+                  ? Text("Trống", style: TextStyle(color: Colors.grey.shade400, fontSize: 12))
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: dayAppointments.map((appt) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6.0),
+                            child: _buildMiniAppointmentCardCompact(appt),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMiniAppointmentCardCompact(Appointment appt) {
+    Color statusColor = Colors.grey;
+    switch (appt.status) {
+      case 'pending': statusColor = Colors.orange; break;
+      case 'confirmed': statusColor = Colors.blue; break;
+      case 'checked_in': statusColor = const Color(0xFF1976D2); break;
+      case 'completed': statusColor = const Color(0xFF2E7D32); break;
+      case 'cancelled': statusColor = Colors.red; break;
+    }
+
+    return Container(
+      width: 110,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+        child: InkWell(
+          onTap: () => _selectAppointment(appt),
+          borderRadius: BorderRadius.circular(6),
+          child: Padding(
+            padding: const EdgeInsets.all(6.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        appt.patientName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF222222)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "${appt.time} • BS.${appt.doctorName.split(' ').last}",
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 9),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthScheduler(DateTime selectedDate) {
+    final firstDayOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
+    final lastDayOfMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0);
+    
+    final daysInMonth = lastDayOfMonth.day;
+    final weekdayOfFirstDay = firstDayOfMonth.weekday; // 1 = Monday, 7 = Sunday
+    
+    final paddingCells = weekdayOfFirstDay - 1;
+    final totalCells = paddingCells + daysInMonth;
+    final rowCount = (totalCells / 7).ceil();
+    
+    return Column(
+      children: [
+        Row(
+          children: List.generate(7, (index) {
+            final dayName = _getWeekdayName(index + 1);
+            return Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    dayName,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF222222)),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        const Divider(height: 1),
+        ...List.generate(rowCount, (rowIndex) {
+          return Row(
+            children: List.generate(7, (colIndex) {
+              final cellIndex = rowIndex * 7 + colIndex;
+              if (cellIndex < paddingCells || cellIndex >= totalCells) {
+                return const Expanded(child: SizedBox(height: 60));
+              }
+              
+              final dayNumber = cellIndex - paddingCells + 1;
+              final cellDate = DateTime(selectedDate.year, selectedDate.month, dayNumber);
+              final dateStr = DateFormat('yyyy-MM-dd').format(cellDate);
+              final isToday = dateStr == DateFormat('yyyy-MM-dd').format(DateTime.now());
+              final isSelected = dateStr == DateFormat('yyyy-MM-dd').format(ref.read(receptionistProvider).selectedDate);
+              
+              final dayAppointments = _allAppointments.where((appt) => appt.date == dateStr).toList();
+              
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    ref.read(receptionistProvider.notifier).fetchAppointments(cellDate);
+                    setState(() {
+                      _schedulerViewMode = "day";
+                    });
+                  },
+                  child: Container(
+                    height: 70,
+                    margin: const EdgeInsets.all(2),
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1976D2).withOpacity(0.04) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF1976D2) : (isToday ? const Color(0xFF2E7D32) : const Color(0xFFE2E8F0).withOpacity(0.5)),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dayNumber.toString(),
+                          style: TextStyle(
+                            fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 12,
+                            color: isSelected ? const Color(0xFF1976D2) : (isToday ? const Color(0xFF2E7D32) : const Color(0xFF222222)),
+                          ),
+                        ),
+                        const Spacer(),
+                        if (dayAppointments.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1976D2).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.circle, color: Color(0xFF1976D2), size: 6),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "${dayAppointments.length} ca",
+                                  style: const TextStyle(
+                                    color: Color(0xFF1976D2),
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          );
+        }),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final receptionistState = ref.watch(receptionistProvider);
@@ -270,12 +768,13 @@ class _ReceptionistDashboardScreenState
     // Filter appointments for each tab locally
     final checkedInList = appointments.where((a) => a.status == 'checked_in').toList();
     final toCheckInList = appointments.where((a) => ['pending', 'confirmed'].contains(a.status)).toList();
+    final triageHandoffs = receptionistState.triageHandoffs;
     final state = ref.watch(receptionistProvider);
     final userState = ref.watch(authProvider);
     
 
   return DefaultTabController(
-    length: 3,
+    length: 4,
     child: Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       
@@ -483,129 +982,296 @@ class _ReceptionistDashboardScreenState
                           ],
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
-                      // Modern TabBar for Queue Status
+                      // ─── VIEW MODE SWITCHER & NAVIGATION ───
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.grey.shade200, width: 1),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: TabBar(
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          dividerColor: Colors.transparent,
-                          labelColor: const Color(0xFF0D47A1),
-                          unselectedLabelColor: Colors.grey.shade600,
-                          indicator: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
+                        child: Row(
+                          children: [
+                            // View mode toggle buttons
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF0F4F8),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ],
-                          ),
-                          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                          tabs: [
-                            Tab(
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.hourglass_empty_rounded, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text("Chờ Check-in (${toCheckInList.length})"),
+                                  _buildViewModeButton("day", "Ngày", Icons.today_rounded),
+                                  _buildViewModeButton("week", "Tuần", Icons.view_week_rounded),
+                                  _buildViewModeButton("month", "Tháng", Icons.calendar_month_rounded),
                                 ],
                               ),
                             ),
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.queue_play_next_rounded, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text("Hàng chờ khám (${checkedInList.length})"),
-                                ],
+                            const SizedBox(width: 16),
+                            // Navigation: prev button
+                            Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () {
+                                  if (_schedulerViewMode == "day") _shiftDate(-1);
+                                  else if (_schedulerViewMode == "week") _shiftDate(-7);
+                                  else _shiftMonth(-1);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.chevron_left_rounded, size: 20, color: Color(0xFF64748B)),
+                                ),
                               ),
                             ),
-                            Tab(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.list_alt_rounded, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text("Tất cả (${appointments.length})"),
-                                ],
+                            const SizedBox(width: 8),
+                            // Date label
+                            InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                final now = DateTime.now();
+                                ref.read(receptionistProvider.notifier).fetchAppointments(now);
+                                _loadAllAppointments();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0D47A1).withOpacity(0.06),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _getNavigationLabel(receptionistState.selectedDate),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Color(0xFF0D47A1),
+                                  ),
+                                ),
                               ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Navigation: next button
+                            Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(8),
+                                onTap: () {
+                                  if (_schedulerViewMode == "day") _shiftDate(1);
+                                  else if (_schedulerViewMode == "week") _shiftDate(7);
+                                  else _shiftMonth(1);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF64748B)),
+                                ),
+                              ),
+                            ),
+                            const Spacer(),
+                            // Today button
+                            TextButton.icon(
+                              onPressed: () {
+                                final now = DateTime.now();
+                                ref.read(receptionistProvider.notifier).fetchAppointments(now);
+                                _loadAllAppointments();
+                              },
+                              icon: const Icon(Icons.today, size: 16, color: Color(0xFF0D47A1)),
+                              label: const Text("Hôm nay", style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.w600, fontSize: 12)),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Queue lists wrapped with RefreshIndicator
-                      Expanded(
-                        child: receptionistState.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : TabBarView(
-                                children: [
-                                  // Tab 1: To Check-in List
-                                  RefreshIndicator(
-                                    onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
-                                    child: toCheckInList.isEmpty
-                                        ? _buildEmptyState("Không có bệnh nhân chờ check-in.")
-                                        : isDesktop
-                                            ? _buildDesktopTableView(toCheckInList)
-                                            : ListView.builder(
-                                                physics: const AlwaysScrollableScrollPhysics(),
-                                                itemCount: toCheckInList.length,
-                                                itemBuilder: (context, index) {
-                                                  return _buildAppointmentCard(toCheckInList[index]);
-                                                },
-                                              ),
-                                  ),
-                                  // Tab 2: Live Queue (Checked-in)
-                                  RefreshIndicator(
-                                    onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
-                                    child: checkedInList.isEmpty
-                                        ? _buildEmptyState("Hàng chờ trực tiếp đang trống.")
-                                        : isDesktop
-                                            ? _buildDesktopTableView(checkedInList)
-                                            : ListView.builder(
-                                                physics: const AlwaysScrollableScrollPhysics(),
-                                                itemCount: checkedInList.length,
-                                                itemBuilder: (context, index) {
-                                                  return _buildAppointmentCard(checkedInList[index]);
-                                                },
-                                              ),
-                                  ),
-                                  // Tab 3: All Appointments
-                                  RefreshIndicator(
-                                    onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
-                                    child: appointments.isEmpty
-                                        ? _buildEmptyState("Không có lịch hẹn nào.")
-                                        : isDesktop
-                                            ? _buildDesktopTableView(appointments)
-                                            : ListView.builder(
-                                                physics: const AlwaysScrollableScrollPhysics(),
-                                                itemCount: appointments.length,
-                                                itemBuilder: (context, index) {
-                                                  return _buildAppointmentCard(appointments[index]);
-                                                },
-                                              ),
-                                  ),
-                                ],
+                      // ─── CONDITIONAL VIEW: Calendar or Day Tabs ───
+                      if (_schedulerViewMode == "week")
+                        Expanded(
+                          child: _loadingAll
+                              ? const Center(child: CircularProgressIndicator())
+                              : SingleChildScrollView(
+                                  child: _buildWeekScheduler(receptionistState.selectedDate),
+                                ),
+                        )
+                      else if (_schedulerViewMode == "month")
+                        Expanded(
+                          child: _loadingAll
+                              ? const Center(child: CircularProgressIndicator())
+                              : SingleChildScrollView(
+                                  child: _buildMonthScheduler(receptionistState.selectedDate),
+                                ),
+                        )
+                      else ...[
+                        // Day mode: show TabBar + TabBarView
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade200, width: 1),
+                          ),
+                          child: TabBar(
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.transparent,
+                            labelColor: const Color(0xFF0D47A1),
+                            unselectedLabelColor: Colors.grey.shade600,
+                            indicator: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                            tabs: [
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.hourglass_empty_rounded, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text("Chờ Check-in (${toCheckInList.length})"),
+                                  ],
+                                ),
                               ),
-                      ),
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.queue_play_next_rounded, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text("Hàng chờ khám (${checkedInList.length})"),
+                                  ],
+                                ),
+                              ),
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.list_alt_rounded, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text("Tất cả (${appointments.length})"),
+                                  ],
+                                ),
+                              ),
+                              Tab(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.support_agent_rounded, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text("Bàn giao (${triageHandoffs.length})"),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: receptionistState.isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : TabBarView(
+                                  children: [
+                                    // Tab 1: To Check-in List
+                                    RefreshIndicator(
+                                      onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
+                                      child: toCheckInList.isEmpty
+                                          ? _buildEmptyState("Không có bệnh nhân chờ check-in.")
+                                          : isDesktop
+                                              ? _buildDesktopTableView(toCheckInList)
+                                              : ListView.builder(
+                                                  physics: const AlwaysScrollableScrollPhysics(),
+                                                  itemCount: toCheckInList.length,
+                                                  itemBuilder: (context, index) {
+                                                    return _buildAppointmentCard(toCheckInList[index]);
+                                                  },
+                                                ),
+                                    ),
+                                    // Tab 2: Live Queue (Checked-in)
+                                    RefreshIndicator(
+                                      onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
+                                      child: checkedInList.isEmpty
+                                          ? _buildEmptyState("Hàng chờ trực tiếp đang trống.")
+                                          : isDesktop
+                                              ? _buildDesktopTableView(checkedInList)
+                                              : ListView.builder(
+                                                  physics: const AlwaysScrollableScrollPhysics(),
+                                                  itemCount: checkedInList.length,
+                                                  itemBuilder: (context, index) {
+                                                    return _buildAppointmentCard(checkedInList[index]);
+                                                  },
+                                                ),
+                                    ),
+                                    // Tab 3: All Appointments
+                                    RefreshIndicator(
+                                      onRefresh: () => ref.read(receptionistProvider.notifier).fetchAppointments(receptionistState.selectedDate),
+                                      child: appointments.isEmpty
+                                          ? _buildEmptyState("Không có lịch hẹn nào.")
+                                          : isDesktop
+                                              ? _buildDesktopTableView(appointments)
+                                              : ListView.builder(
+                                                  physics: const AlwaysScrollableScrollPhysics(),
+                                                  itemCount: appointments.length,
+                                                  itemBuilder: (context, index) {
+                                                    return _buildAppointmentCard(appointments[index]);
+                                                  },
+                                                ),
+                                    ),
+                                    // Tab 4: Triage Handoffs
+                                    receptionistState.isHandoffLoading
+                                        ? const Center(child: CircularProgressIndicator())
+                                        : triageHandoffs.isEmpty
+                                            ? _buildEmptyState("Không có yêu cầu bàn giao nào.")
+                                            : _buildTriageHandoffsList(triageHandoffs),
+                                  ],
+                                ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
+            // ─── ADMINISTRATIVE DETAIL PANEL (Desktop split-screen) ───
+            if (isDesktop && _selectedAppointment != null)
+              Container(
+                width: 420,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(left: BorderSide(color: Colors.grey.shade200, width: 1)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(-2, 0),
+                    ),
+                  ],
+                ),
+                child: _buildAdministrativeDetailPanel(_selectedAppointment!),
+              ),
           ],
         ),
       ),
@@ -660,7 +1326,7 @@ class _ReceptionistDashboardScreenState
   }
 
   Widget _buildSidebarProfile(BuildContext context, authState) {
-    final name = authState.name ?? "Lễ tân Smart Clinic";
+    final name = authState.name ?? "Lễ tân HappyClinic";
     final avatarUrl = authState.avatarUrl;
 
     return Container(
@@ -1288,13 +1954,15 @@ class _ReceptionistDashboardScreenState
     return Container(
       margin: const EdgeInsets.only(top: 8),
       child: Material(
-        color: Colors.white,
+        color: _selectedAppointment?.id == appointment.id
+            ? const Color(0xFF0D47A1).withOpacity(0.05)
+            : Colors.white,
         borderRadius: BorderRadius.circular(12),
         elevation: 0,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           hoverColor: const Color(0xFF0D47A1).withOpacity(0.02),
-          onTap: isCanCheckIn ? () => _showCheckInDialog(context, appointment) : null,
+          onTap: () => setState(() => _selectedAppointment = appointment),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: BoxDecoration(
@@ -1519,4 +2187,431 @@ class _ReceptionistDashboardScreenState
       ),
     );
   }
-}
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TRIAGE HANDOFFS LIST (Tab 4)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildTriageHandoffsList(List<TriageHandoff> handoffs) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: handoffs.length,
+      itemBuilder: (context, index) {
+        final handoff = handoffs[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFFA000).withOpacity(0.3), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              decoration: const BoxDecoration(
+                border: Border(left: BorderSide(color: Color(0xFFFFA000), width: 5)),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: const Color(0xFFFFA000).withOpacity(0.1),
+                        radius: 22,
+                        child: const Icon(Icons.support_agent_rounded, color: Color(0xFFFFA000), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              handoff.patientName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF222222)),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(Icons.phone, size: 12, color: Colors.grey.shade500),
+                                const SizedBox(width: 4),
+                                Text(handoff.patientPhone, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                const SizedBox(width: 12),
+                                Text(
+                                  "${handoff.patientGender} • ${handoff.patientDOB}",
+                                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFF57C00)),
+                            SizedBox(width: 4),
+                            Text("Cần hỗ trợ", style: TextStyle(color: Color(0xFFF57C00), fontWeight: FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Symptoms preview
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200, width: 0.5),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 14, color: Colors.grey.shade500),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            handoff.symptomsPreview,
+                            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Action button
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final success = await ref
+                            .read(receptionistProvider.notifier)
+                            .acceptHandoffChat(handoff.patientId);
+                        if (success && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Đã tiếp nhận cuộc trò chuyện với ${handoff.patientName}"),
+                              backgroundColor: const Color(0xFF2E7D32),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          context.push('/receptionist/messenger');
+                        }
+                      },
+                      icon: const Icon(Icons.headset_mic_outlined, size: 16, color: Colors.white),
+                      label: const Text(
+                        "Tiếp nhận cuộc trò chuyện",
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF57C00),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ADMINISTRATIVE DETAIL PANEL (Desktop split-screen right side)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildAdministrativeDetailPanel(Appointment appointment, {bool isDialog = false}) {
+    final status = appointment.status;
+    final isCanCheckIn = ['pending', 'confirmed'].contains(status);
+    final typeLabel = appointment.appointmentType == 'online' ? '🎥 Khám Online (Video)' : '🏥 Khám tại phòng khám';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with close button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Chi tiết Hành chính",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0D47A1)),
+              ),
+              IconButton(
+                onPressed: isDialog
+                    ? () => Navigator.of(context).pop()
+                    : () => setState(() => _selectedAppointment = null),
+                icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                tooltip: isDialog ? "Đóng hộp thoại" : "Đóng bảng chi tiết",
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // Patient Avatar & Name
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFF1976D2).withOpacity(0.08),
+                radius: 28,
+                child: const Icon(Icons.person, color: Color(0xFF1976D2), size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.patientName,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF222222)),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: _getStatusBgColor(status),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _getStatusLabel(status),
+                            style: TextStyle(color: _getStatusTextColor(status), fontWeight: FontWeight.bold, fontSize: 11),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: appointment.appointmentType == 'online'
+                                ? const Color(0xFFE3F2FD)
+                                : const Color(0xFFF3E5F5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            appointment.appointmentType == 'online' ? 'Online' : 'Tại PK',
+                            style: TextStyle(
+                              color: appointment.appointmentType == 'online'
+                                  ? const Color(0xFF0D47A1)
+                                  : const Color(0xFF7B1FA2),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Demographics Section
+          const Text(
+            "THÔNG TIN NHÂN KHẨU",
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 12),
+          _buildDetailInfoRow(Icons.phone, "Số điện thoại", appointment.phone),
+          _buildDetailInfoRow(Icons.credit_card, "CCCD/CMND", appointment.cccd.isNotEmpty ? appointment.cccd : "Chưa cập nhật"),
+          _buildDetailInfoRow(Icons.cake_outlined, "Ngày sinh", appointment.birthDate.isNotEmpty ? appointment.birthDate : "Chưa rõ"),
+          _buildDetailInfoRow(Icons.wc_rounded, "Giới tính", appointment.gender.isNotEmpty ? appointment.gender : "Chưa rõ"),
+          _buildDetailInfoRow(Icons.location_on_outlined, "Địa chỉ", appointment.address.isNotEmpty ? appointment.address : "Chưa cập nhật"),
+          const SizedBox(height: 8),
+          const Divider(),
+          const SizedBox(height: 12),
+
+          // Appointment Info Section
+          const Text(
+            "THÔNG TIN LỊCH HẸN",
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+          ),
+          const SizedBox(height: 12),
+          _buildDetailInfoRow(Icons.medical_services_outlined, "Bác sĩ", appointment.doctorName),
+          _buildDetailInfoRow(
+            Icons.local_hospital_outlined,
+            "Chuyên khoa",
+            appointment.departmentName.isNotEmpty ? appointment.departmentName : appointment.doctorSpecialty,
+          ),
+          _buildDetailInfoRow(Icons.access_time_rounded, "Giờ hẹn", "${appointment.time} - ${appointment.date}"),
+          _buildDetailInfoRow(Icons.category_outlined, "Hình thức", typeLabel),
+          _buildDetailInfoRow(
+            Icons.assignment_outlined,
+            "Triệu chứng",
+            appointment.reason.isNotEmpty ? appointment.reason : "Không mô tả",
+          ),
+          const SizedBox(height: 16),
+
+          // Check-in Action Button
+          if (isCanCheckIn) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _showCheckInDialog(context, appointment),
+                icon: const Icon(Icons.verified_user_outlined, size: 18, color: Colors.white),
+                label: const Text(
+                  "📍 Xác nhận Check-in",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2E7D32),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ] else if (status == 'checked_in') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFC8E6C9)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Bệnh nhân đã Check-In.\nĐang trong hàng chờ khám Bác sĩ.",
+                      style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Confirm appointment button (pending → confirmed)
+          if (status == 'pending') ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final success = await ref
+                      .read(receptionistProvider.notifier)
+                      .confirmAppointment(appointment.id);
+                  if (success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Đã xác nhận lịch hẹn cho ${appointment.patientName}"),
+                        backgroundColor: const Color(0xFF0D47A1),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    // Refresh the selected appointment with the new status
+                    setState(() {
+                      _selectedAppointment = appointment.copyWith(status: 'confirmed');
+                    });
+                  }
+                },
+                icon: const Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF0D47A1)),
+                label: const Text(
+                  "Xác nhận lịch hẹn",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0D47A1)),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF0D47A1)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Secure UI Guard (HIPAA Compliance)
+          _buildSecureGuard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade400),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 100,
+            child: Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Color(0xFF333333), fontWeight: FontWeight.w600, fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURE UI GUARD (HIPAA/Data Privacy Compliance Placeholder)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildSecureGuard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAFA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.lock_outline, size: 36, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          Text(
+            "🔒 Quyền truy cập bị hạn chế",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Nội dung bệnh án, Đơn thuốc điện tử và các dữ liệu AI/CNN/KNN chỉ được hiển thị cho Bác sĩ đã xác thực.\n\nLễ tân chỉ có quyền truy cập dữ liệu Hành chính / Hóa đơn.",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}

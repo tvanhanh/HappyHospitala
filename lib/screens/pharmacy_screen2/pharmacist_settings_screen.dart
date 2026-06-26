@@ -164,7 +164,7 @@ class _PharmacistSettingsPageState extends State<PharmacistSettingsPage> {
                               children: [
                                 _buildDetailRow('📧 Email', 'nguyenthib@hospital.com'),
                                 _buildDetailRow('📱 Số điện thoại', '+84 901 234 567'),
-                                _buildDetailRow('🏥 Cơ sở làm việc', 'Phòng khám ABC'),
+                                _buildDetailRow('🏥 Cơ sở làm việc', 'HappyClinic'),
                               ],
                             ),
                             const SizedBox(height: 32),

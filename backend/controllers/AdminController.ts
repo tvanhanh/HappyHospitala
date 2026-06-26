@@ -45,7 +45,7 @@ export const getChartData = async (req: Request, res: Response) => {
     const specialties = await Specialty.find();
     const chartData = await Promise.all(
       specialties.map(async (spec) => {
-    const count = await Doctor.countDocuments({ departmentId: spec._id });
+    const count = await Doctor.countDocuments({ specialtyId: spec._id });
         return { name: spec.name, count };
       })
     );
@@ -155,13 +155,13 @@ export const getPendingDoctors = async (req: Request, res: Response) => {
     // 1. Fetch Doctor profiles that are PENDING_APPROVAL or HIDDEN
     const pendingProfiles = await Doctor.find({
       profile_status: { $in: ['PENDING_APPROVAL', 'HIDDEN'] }
-    }).populate('userId', '-password').populate('departmentId');
+    }).populate('userId', '-password').populate('specialtyId');
 
     // 2. Format response to include user info + profile info
     const formattedPendingDoctors = pendingProfiles.map((doc: any) => {
       const user = doc.userId;
       if (!user) return null;
-      const department = doc.departmentId;
+      const department = doc.specialtyId;
       const specialtyName = doc.specialty || department?.name || department?.departmentName || '';
       return {
         _id: user._id,
@@ -191,12 +191,12 @@ export const getRejectedDoctors = async (req: Request, res: Response) => {
   try {
     const rejectedProfiles = await Doctor.find({
       profile_status: 'REJECTED'
-    }).populate('userId', '-password').populate('departmentId');
+    }).populate('userId', '-password').populate('specialtyId');
 
     const formattedRejectedDoctors = rejectedProfiles.map((doc: any) => {
       const user = doc.userId;
       if (!user) return null;
-      const department = doc.departmentId;
+      const department = doc.specialtyId;
       const specialtyName = doc.specialty || department?.name || department?.departmentName || '';
       return {
         _id: user._id,
@@ -223,61 +223,42 @@ export const getRejectedDoctors = async (req: Request, res: Response) => {
   }
 };
 
-export const approveDoctor = async (req: Request, res: Response) => {
+export const approveDoctor = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { userId, departmentId, roomId, specialty } = req.body;
+    const { userId, specialtyId, specialty } = req.body; // Bỏ roomId ra khỏi đây
     
     const user = await User.findById(userId);
     if (!user || user.role !== 'doctor') {
-      return res.status(404).json({ message: "Không tìm thấy User hoặc User không phải Bác sĩ" });
+      res.status(404).json({ message: "Không tìm thấy User hoặc User không phải Bác sĩ" });
+      return;
     }
 
-    const specialtyDoc = departmentId ? await Specialty.findById(departmentId) : null;
+    const specialtyDoc = specialtyId ? await Specialty.findById(specialtyId) : null;
     const specialtyName = specialty || specialtyDoc?.name || undefined;
 
     let doctor = await Doctor.findOne({ userId: user._id });
     if (doctor) {
       if (doctor.profile_status === 'ACTIVE') {
-        return res.status(400).json({ message: "Bác sĩ này đã được duyệt trước đó!" });
+        res.status(400).json({ message: "Bác sĩ này đã được duyệt trước đó!" });
+        return;
       }
-      doctor.departmentId = departmentId;
-      if (roomId) doctor.roomId = roomId;
+      doctor.specialtyId = specialtyId;
       if (specialtyName) doctor.specialty = specialtyName;
       doctor.profile_status = 'ACTIVE';
       await doctor.save();
     } else {
       doctor = new Doctor({
         userId: user._id,
-        departmentId: departmentId,
-        roomId: roomId || undefined,
+        specialtyId: specialtyId,
         specialty: specialtyName,
         profile_status: 'ACTIVE'
       });
       await doctor.save();
     }
 
-    // Update base User status to active
+    // Update base User status
     user.status = 'activity';
     await user.save();
-
-    if (roomId) {
-      const assignment = new RoomAssignment({
-        doctorId: doctor._id,
-        roomId: roomId,
-        status: 'active'
-      });
-      await assignment.save();
-
-      // Upsert mapping in SpecialtyRoomDoctor if departmentId/specialtyId is also assigned
-      if (departmentId) {
-        await SpecialtyRoomDoctor.findOneAndUpdate(
-          { specialtyId: departmentId, roomId: roomId, doctorId: doctor._id },
-          { specialtyId: departmentId, roomId: roomId, doctorId: doctor._id },
-          { upsert: true, new: true }
-        );
-      }
-    }
-
     res.status(200).json({ 
       message: "Phê duyệt Bác sĩ thành công", 
       doctor 
@@ -286,7 +267,6 @@ export const approveDoctor = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 export const rejectDoctor = async (req: Request, res: Response) => {
   try {
     const { userId, reason } = req.body;
@@ -314,7 +294,7 @@ export const rejectDoctor = async (req: Request, res: Response) => {
 
 export const getActiveDoctors = async (req: Request, res: Response) => {
   try {
-    const activeDoctors = await Doctor.find().populate('departmentId', 'name').populate('userId', 'fullName email phone avatar').lean();
+    const activeDoctors = await Doctor.find().populate('specialtyId', 'name').populate('userId', 'fullName email phone avatar').lean();
     
     const assignments = await RoomAssignment.find({ status: 'active' }).populate('roomId', 'roomNumber');
     
@@ -341,7 +321,7 @@ export const updateDoctorFee = async (req: Request, res: Response) => {
       { userId: id },
       { consultationFee },
       { new: true }
-    ).populate('departmentId', 'name').populate('userId', 'fullName email').lean();
+    ).populate('specialtyId', 'name').populate('userId', 'fullName email').lean();
 
     if (!doctor) {
       return res.status(404).json({ message: "Không tìm thấy bác sĩ" });

@@ -6,6 +6,7 @@ import '../models/message_model.dart';
 import 'config.dart';
 import '../providers/auth_provider.dart';
 import '../models/room_mes_model.dart';
+import 'socket_service.dart';
 
 // 1. Khởi tạo AsyncNotifierProvider quản lý danh sách tin nhắn động (Cột giữa)
 final chatServiceProvider = AsyncNotifierProvider<MessageService, List<MessageModel>>(() {
@@ -36,7 +37,70 @@ class MessageService extends AsyncNotifier<List<MessageModel>> {
     if (authState.userId == null || authState.userId!.isEmpty) {
       return [];
     }
+    
+    _initSocketListeners();
+    
     return _fetchMessagesFromAPI();
+  }
+
+  void _initSocketListeners() {
+    final socket = SocketService.instance;
+    final currentUserId = _getCurrentUserId();
+
+    socket.off(SocketEvents.newMessage);
+    socket.on(SocketEvents.newMessage, (data) {
+      if (data == null) return;
+      try {
+        final msg = MessageModel.fromJson(data, currentUserId);
+        
+        // Kiểm tra xem tin nhắn này có thuộc phòng hiện tại không
+        if (_currentRoomId == null || msg.roomId == _currentRoomId) {
+          if (state.hasValue) {
+            final currentMessages = state.value!;
+            // Tránh thêm trùng lặp nếu mình vừa gửi và đã tự add vào local state
+            if (!currentMessages.any((m) => m.id == msg.id)) {
+              state = AsyncData([...currentMessages, msg]);
+            }
+          }
+        }
+        
+        // Luôn cập nhật cột trái
+        ref.read(chatRoomsProvider.notifier).updateLastMessageLocal(
+          msg.roomId, 
+          msg.text.isNotEmpty ? msg.text : (msg.imageUrl != null ? "📷 Hình ảnh/Tệp" : "Tin nhắn mới")
+        );
+      } catch (e) {
+        print('💥 Lỗi parse tin nhắn mới (Socket): $e');
+      }
+    });
+
+    socket.off(SocketEvents.messageUpdated);
+    socket.on(SocketEvents.messageUpdated, (data) {
+      if (data == null) return;
+      try {
+        final updatedMsg = MessageModel.fromJson(data, currentUserId);
+        if (state.hasValue) {
+          state = AsyncData([
+            for (final msg in state.value!)
+              if (msg.id == updatedMsg.id) updatedMsg else msg
+          ]);
+        }
+      } catch (e) {
+        print('💥 Lỗi cập nhật tin nhắn (Socket): $e');
+      }
+    });
+
+    socket.off(SocketEvents.messageDeleted);
+    socket.on(SocketEvents.messageDeleted, (data) {
+      if (data == null || data['messageId'] == null) return;
+      final String messageId = data['messageId'];
+      if (state.hasValue) {
+        state = AsyncData([
+          for (final msg in state.value!)
+            if (msg.id != messageId) msg
+        ]);
+      }
+    });
   }
 
   /// Hàm kích hoạt đổi phòng dành riêng cho Lễ tân

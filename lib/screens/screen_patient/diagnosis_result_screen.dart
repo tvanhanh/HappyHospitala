@@ -74,7 +74,7 @@ class _DiagnosisResultScreenState extends State<DiagnosisResultScreen> {
                                 if (createdVal.isEmpty) return '';
                                 final parsed = MedicalRecordService.tryParseDateTime(createdVal);
                                 if (parsed != null) {
-                                  return DateFormat('dd/MM/yyyy HH:mm').format(parsed);
+                                  return DateFormat('dd/MM/yyyy HH:mm').format(parsed.toLocal());
                                 }
                                 return createdVal.split('T')[0];
                               }()}',

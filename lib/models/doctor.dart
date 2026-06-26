@@ -18,8 +18,7 @@ class Doctor {
   final String email;
   final String description;
   final double rating;
-  final String departmentId;
-  final String? specialtyId;
+  final String specialtyId;
   final String? roomId;
   final Specialty? specialtyDetails;
   final Room? roomDetails;
@@ -34,8 +33,7 @@ class Doctor {
     this.email = '',
     this.description = '',
     this.rating = 4.8,
-    this.departmentId = '',
-    this.specialtyId,
+    this.specialtyId = '',
     this.roomId,
     this.specialtyDetails,
     this.roomDetails,
@@ -50,24 +48,33 @@ class Doctor {
       name: json['name']?.toString() ?? json['doctorName']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       avatar: profile['avatar']?.toString() ?? json['avatar']?.toString() ?? '',
-      specialty: profile['specialty']?.toString() ?? json['specialty']?.toString() ?? '',
-      experience: profile['experience']?.toString() ?? json['experience']?.toString() ?? '',
+      specialty: profile['specialty']?.toString() ??
+          json['specialty']?.toString() ??
+          '',
+      experience: profile['experience']?.toString() ??
+          json['experience']?.toString() ??
+          '',
       price: profile['price']?.toString() ?? json['price']?.toString() ?? '',
-      description: profile['description']?.toString() ?? json['description']?.toString() ?? '',
-      rating: (profile['rating'] as num?)?.toDouble() ?? (json['rating'] as num?)?.toDouble() ?? 4.8,
-      departmentId: json['departmentId']?.toString() ?? '',
-      specialtyId: json['specialtyId'] is String 
-          ? json['specialtyId'] 
-          : (json['specialtyId'] is Map ? json['specialtyId']['_id']?.toString() : null),
-      roomId: json['roomId'] is String 
-          ? json['roomId'] 
-          : (json['roomId'] is Map ? json['roomId']['_id']?.toString() : null),
-      specialtyDetails: json['specialtyId'] is Map 
-          ? Specialty.fromJson(json['specialtyId']) 
+      description: profile['description']?.toString() ??
+          json['description']?.toString() ??
+          '',
+      rating: (profile['rating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          4.8,
+      specialtyId: json['specialtyId'] is String
+          ? json['specialtyId']
+          : (json['specialtyId'] is Map
+              ? json['specialtyId']['_id']?.toString()
+              : json['specialtyId_id']?.toString() ?? ''),
+      roomId: json['roomId'] is String
+          ? json['roomId']
+          : (json['roomId'] is Map 
+              ? json['roomId']['_id']?.toString() 
+              : json['roomId_id']?.toString()),
+      specialtyDetails: json['specialtyId'] is Map
+          ? Specialty.fromJson(json['specialtyId'])
           : null,
-      roomDetails: json['roomId'] is Map 
-          ? Room.fromJson(json['roomId']) 
-          : null,
+      roomDetails: json['roomId'] is Map ? Room.fromJson(json['roomId']) : null,
     );
   }
 
@@ -83,7 +90,7 @@ class Doctor {
           'description': description,
           'rating': rating,
         },
-        'departmentId': departmentId,
+        'specialtyId': specialtyId,
         'specialtyId': specialtyId ?? specialtyDetails?.id,
         'roomId': roomId ?? roomDetails?.id,
       };

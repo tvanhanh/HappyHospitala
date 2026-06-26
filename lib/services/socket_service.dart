@@ -28,7 +28,7 @@ library;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../services/config.dart';
 
-/// Singleton Socket.IO service for Smart Clinic real-time communication.
+/// Singleton Socket.IO service for HappyClinic real-time communication.
 ///
 /// Usage:
 /// ```dart
@@ -287,4 +287,14 @@ abstract class SocketEvents {
 
   /// Server → Client: New invoice created, awaiting cashier processing.
   static const String newInvoice = 'new_invoice';
+
+  // ── Chat ─────────────────────────────────────────────────────────────────
+  /// Server → Client: New chat message received.
+  static const String newMessage = 'new_message';
+  
+  /// Server → Client: Chat message updated.
+  static const String messageUpdated = 'message_updated';
+  
+  /// Server → Client: Chat message deleted.
+  static const String messageDeleted = 'message_deleted';
 }

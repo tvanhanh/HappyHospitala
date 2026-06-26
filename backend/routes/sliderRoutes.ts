@@ -6,7 +6,7 @@ import {
   getAllSliders,
   getActiveSliders,
   createSlider,
-  toggleSlider,
+  updateSlider,
   deleteSlider,
 } from '../controllers/slider_controller';
 
@@ -47,7 +47,7 @@ router.post('/', (req, res, next) => {
   });
 }, createSlider); 
 
-router.patch('/:id', toggleSlider);
+router.patch('/:id', updateSlider);
 router.delete('/:id', deleteSlider);
 
 export default router;

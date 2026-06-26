@@ -23,7 +23,7 @@ final patientProvider = FutureProvider.family<List<Map<String, dynamic>>, String
 
   if (res.statusCode == 200) {
     final List body = jsonDecode(res.body);
-    return body.cast<Map<String, dynamic>>();
+    return body.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map)).toList();
   } else {
     throw Exception('Failed to load patients');
   }

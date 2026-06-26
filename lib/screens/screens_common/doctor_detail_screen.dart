@@ -79,33 +79,33 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
     }
 
     final d = doctor!;
-    
+
     // Adaptive parsing to support both populated Doctor schema model and old User model
     final bool isNewFormat = d.containsKey('userId') && d['userId'] is Map;
     final String docId = d['_id']?.toString() ?? widget.doctorId;
-    
-    final Map<String, dynamic> userMap = isNewFormat 
-        ? (d['userId'] as Map<String, dynamic>) 
-        : d;
-        
+
+    final Map<String, dynamic> userMap =
+        isNewFormat ? (d['userId'] as Map<String, dynamic>) : d;
+
     final String name = userMap['fullName'] ?? userMap['name'] ?? 'Bác sĩ';
     final String email = userMap['email'] ?? '';
     final String phone = userMap['phoneNumber'] ?? userMap['phone'] ?? '';
     final String avatar = userMap['avatar'] ?? '';
-    
-    final String bio = d['bio'] ?? d['description'] ?? 'Chưa có giới thiệu tiểu sử.';
-    
+
+    final String bio =
+        d['bio'] ?? d['description'] ?? 'Chưa có giới thiệu tiểu sử.';
+
     // Specialty Name
     String specialtyName = d['specialty']?.toString() ?? '';
-    if (specialtyName.isEmpty && d['departmentId'] != null) {
-      if (d['departmentId'] is Map) {
-        specialtyName = d['departmentId']['name']?.toString() ?? '';
+    if (specialtyName.isEmpty && d['specialtyId'] != null) {
+      if (d['specialtyId'] is Map) {
+        specialtyName = d['specialtyId']['name']?.toString() ?? '';
       }
     }
     if (specialtyName.isEmpty) {
       specialtyName = 'Chuyên khoa';
     }
-    
+
     // Room number location
     String roomNum = '';
     String roomFloor = '';
@@ -115,19 +115,20 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
         roomFloor = d['roomId']['floor']?.toString() ?? '';
       }
     }
-    
+
     // Experience years
     final dynamic expYears = d['experience_years'] ?? d['experience'] ?? 0;
-    
+
     // Fee / Price
     final dynamic fee = d['consultationFee'] ?? d['price'] ?? 0;
-    
+
     // Education list
-    final List<dynamic> educationList = d['education'] is List ? d['education'] : [];
-    
+    final List<dynamic> educationList =
+        d['education'] is List ? d['education'] : [];
+
     // Certifications list
-    final List<dynamic> certificationsList = d['certifications_urls'] is List 
-        ? d['certifications_urls'] 
+    final List<dynamic> certificationsList = d['certifications_urls'] is List
+        ? d['certifications_urls']
         : (d['certifications'] is List ? d['certifications'] : []);
 
     return Scaffold(
@@ -162,7 +163,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: _kPrimary.withOpacity(0.15), width: 4),
+                      border: Border.all(
+                          color: _kPrimary.withOpacity(0.15), width: 4),
                       boxShadow: [
                         BoxShadow(
                           color: _kPrimary.withOpacity(0.08),
@@ -193,7 +195,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: _kPrimary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
@@ -210,7 +213,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                       if (roomNum.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
@@ -218,10 +222,13 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.room_rounded, color: Colors.green, size: 12),
+                              const Icon(Icons.room_rounded,
+                                  color: Colors.green, size: 12),
                               const SizedBox(width: 2),
                               Text(
-                                roomFloor.isNotEmpty ? "Phòng $roomNum (Tầng $roomFloor)" : "Phòng $roomNum",
+                                roomFloor.isNotEmpty
+                                    ? "Phòng $roomNum (Tầng $roomFloor)"
+                                    : "Phòng $roomNum",
                                 style: const TextStyle(
                                   color: Colors.green,
                                   fontSize: 12,
@@ -237,7 +244,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 ],
               ),
             ),
-            
+
             // ── QUICK STATS ROW ──────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16),
@@ -397,7 +404,8 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 child: Column(
                   children: certificationsList.map<Widget>((cert) {
                     final certUrl = cert.toString();
-                    final isUrl = certUrl.startsWith('http') || certUrl.startsWith('https');
+                    final isUrl = certUrl.startsWith('http') ||
+                        certUrl.startsWith('https');
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: ListTile(
@@ -408,22 +416,32 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                             color: const Color(0xFFF59E0B).withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.verified_user_rounded, color: Color(0xFFF59E0B), size: 20),
+                          child: const Icon(Icons.verified_user_rounded,
+                              color: Color(0xFFF59E0B), size: 20),
                         ),
                         title: Text(
                           isUrl ? "Chứng chỉ chuyên môn" : certUrl,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: _kTextPrimary),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: _kTextPrimary),
                         ),
-                        subtitle: isUrl 
+                        subtitle: isUrl
                             ? Text(
                                 certUrl,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: _kPrimary, fontSize: 12, decoration: TextDecoration.underline),
+                                style: const TextStyle(
+                                    color: _kPrimary,
+                                    fontSize: 12,
+                                    decoration: TextDecoration.underline),
                               )
                             : null,
-                        trailing: isUrl ? const Icon(Icons.open_in_new_rounded, size: 16, color: _kPrimary) : null,
-                        onTap: isUrl 
+                        trailing: isUrl
+                            ? const Icon(Icons.open_in_new_rounded,
+                                size: 16, color: _kPrimary)
+                            : null,
+                        onTap: isUrl
                             ? () {
                                 // optional action
                               }
@@ -449,11 +467,12 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 children: [
                   _contactRow(Icons.email_outlined, "Email liên hệ", email),
                   const Divider(height: 24, thickness: 0.5),
-                  _contactRow(Icons.phone_outlined, "Số điện thoại", phone.isNotEmpty ? phone : "Chưa cập nhật"),
+                  _contactRow(Icons.phone_outlined, "Số điện thoại",
+                      phone.isNotEmpty ? phone : "Chưa cập nhật"),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 100), // Spacing for sticky bottom button
           ],
         ),

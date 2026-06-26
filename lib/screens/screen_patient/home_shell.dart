@@ -84,7 +84,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         location.startsWith('/patient/profile-screen')) {
       return 1;
     }
-    if (location.startsWith('/home/discussion') ||
+    if (location == '/qa' ||
+        location.startsWith('/qa?') ||
+        location.startsWith('/home/discussion') ||
         location.startsWith('/patient/chat')) {
       return 2;
     }
@@ -180,9 +182,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                   onTap: () => _navigate(context, 1),
                 ),
                 _BottomNavItem(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  activeIcon: Icons.chat_bubble_rounded,
-                  label: 'Thảo luận',
+                  icon: Icons.question_answer_outlined,
+                  activeIcon: Icons.question_answer_rounded,
+                  label: 'Góc tư vấn',
                   isActive: index == 2,
                   onTap: () => _navigate(context, 2),
                 ),
@@ -212,7 +214,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final routes = [
       '/home',
       '/home/profile',
-      '/home/discussion',
+      '/qa',
       '/home/appointments',
       '/patient/medical-records',
     ];
@@ -233,9 +235,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           label: Text('Hồ sơ'),
         ),
         const NavigationRailDestination(
-          icon: Icon(Icons.chat_bubble_outline_rounded),
-          selectedIcon: Icon(Icons.chat_bubble_rounded),
-          label: Text('Thảo luận'),
+          icon: Icon(Icons.question_answer_outlined),
+          selectedIcon: Icon(Icons.question_answer_rounded),
+          label: Text('Góc tư vấn'),
         ),
         const NavigationRailDestination(
           icon: Icon(Icons.calendar_today_outlined),
@@ -273,14 +275,14 @@ class _BottomNavItem extends StatelessWidget {
         final routes = [
           '/home',
           '/home/profile',
-          '/home/discussion',
+          '/qa',
           '/home/appointments',
           '/patient/medical-records',
         ];
         final labels = [
           'Trang chủ',
           'Hồ sơ',
-          'Thảo luận',
+          'Góc tư vấn',
           'Lịch hẹn',
           'Kết quả'
         ];

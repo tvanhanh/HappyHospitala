@@ -105,7 +105,7 @@ class DepartmentService {
   // Xoá phòng ban
   static Future<String> deleteDepartment(String id) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_deleteDepartment/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_deleteDepartment/$id');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {

@@ -85,3 +85,30 @@ export const deleteSlider = async (req: Request, res: Response): Promise<void> =
     res.status(500).json({ message: 'Lỗi server', error: String(error) });
   }
 };
+
+// Cập nhật thông tin slider (title, subtitle, imageUrl)
+export const updateSlider = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { title, subtitle, imageUrl, isActive } = req.body;
+
+    const updateFields: Record<string, unknown> = {};
+    if (title !== undefined) updateFields.title = title;
+    if (subtitle !== undefined) updateFields.subtitle = subtitle;
+    if (imageUrl !== undefined) updateFields.imageUrl = imageUrl;
+    if (isActive !== undefined) updateFields.isActive = isActive;
+
+    const slider = await Slider.findByIdAndUpdate(
+      id,
+      { $set: updateFields },
+      { new: true }
+    );
+    if (!slider) {
+      res.status(404).json({ message: 'Không tìm thấy slider' });
+      return;
+    }
+    res.status(200).json({ message: 'Cập nhật thành công', data: slider });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: String(error) });
+  }
+};

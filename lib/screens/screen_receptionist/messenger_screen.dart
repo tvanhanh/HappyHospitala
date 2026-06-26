@@ -57,7 +57,8 @@ class WebNetworkAvatar extends StatelessWidget {
 }
 
 class ReceptionistMessengerScreen extends ConsumerStatefulWidget {
-  const ReceptionistMessengerScreen({super.key});
+  final String? initialRoomId;
+  const ReceptionistMessengerScreen({super.key, this.initialRoomId});
 
   @override
   ConsumerState<ReceptionistMessengerScreen> createState() => _ReceptionistMessengerScreenState();
@@ -66,7 +67,8 @@ class ReceptionistMessengerScreen extends ConsumerStatefulWidget {
 class _ReceptionistMessengerScreenState extends ConsumerState<ReceptionistMessengerScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  String? _selectedRoomId; 
+  String? _selectedRoomId;
+  bool _initialRoomApplied = false;
 
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -117,10 +119,19 @@ class _ReceptionistMessengerScreenState extends ConsumerState<ReceptionistMessen
       next.whenData((rooms) {
         if (_selectedRoomId == null && rooms.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            // If an initialRoomId was provided (handoff), prefer it over the default first room
+            String targetId = rooms[0].id;
+            if (!_initialRoomApplied && widget.initialRoomId != null) {
+              final match = rooms.where((r) => r.id == widget.initialRoomId);
+              if (match.isNotEmpty) {
+                targetId = match.first.id;
+              }
+              _initialRoomApplied = true;
+            }
             setState(() {
-              _selectedRoomId = rooms[0].id;
+              _selectedRoomId = targetId;
             });
-            ref.read(chatServiceProvider.notifier).changeRoom(rooms[0].id);
+            ref.read(chatServiceProvider.notifier).changeRoom(targetId);
           });
         }
       });
@@ -227,7 +238,7 @@ class _ReceptionistMessengerScreenState extends ConsumerState<ReceptionistMessen
                                                 ),
                                               ),
                                               Text(
-                                                DateFormat('hh:mm A').format(room.updatedAt),
+                                                DateFormat('hh:mm A').format(room.updatedAt.toLocal()),
                                                 style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
                                               ),
                                             ],
@@ -395,7 +406,7 @@ class _ReceptionistMessengerScreenState extends ConsumerState<ReceptionistMessen
                                       ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      DateFormat('hh:mm a').format(msg.timestamp),
+                                      DateFormat('hh:mm a').format(msg.timestamp.toLocal()),
                                       style: TextStyle(color: Colors.grey.shade400, fontSize: 10),
                                     ),
                                   ],

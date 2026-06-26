@@ -80,3 +80,29 @@ export const isAdmin = (
   }
   next();
 };
+
+// ================= DOCTOR CHECK =================
+export const isDoctor = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user || req.user.role !== "doctor") {
+    res.status(403).json({ message: "Chỉ bác sĩ mới được phép" });
+    return;
+  }
+  next();
+};
+
+// ================= PATIENT CHECK =================
+export const isPatient = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user || req.user.role !== "patient") {
+    res.status(403).json({ message: "Chỉ bệnh nhân mới được phép" });
+    return;
+  }
+  next();
+};

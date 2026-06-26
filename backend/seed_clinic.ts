@@ -8,7 +8,7 @@ import Doctor from "./models/Doctor";
 import Department from "./models/Departments";
 import Room from "./models/Room";
 import Specialty from "./models/Specialty";
-import Promotion from "./models/Promotion";
+import Promotion from "./models/MedicalPost";
 import { PremiumPackage } from "./models/PremiumPackage";
 import Advertisement from "./models/Advertisement";
 

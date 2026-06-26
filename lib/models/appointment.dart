@@ -36,6 +36,19 @@ class Appointment {
   final double finalFee;
   final String paymentMethod;
   final bool isPaid;
+  final String appointmentType;
+
+  // Pre-visit & Digital health workflow locking
+  final double height;
+  final double weight;
+  final double bloodSugar;
+  final String preVisitQuestionnaire;
+  final bool isPreVisitCompleted;
+  final bool isLocked;
+  final List<dynamic> preVisitChatHistory;
+  final String ePrescription;
+  final String diagnosis;
+  final String treatment;
 
   Appointment({
     required this.id,
@@ -64,11 +77,22 @@ class Appointment {
     required this.finalFee,
     required this.paymentMethod,
     required this.isPaid,
+    required this.appointmentType,
+    this.height = 0.0,
+    this.weight = 0.0,
+    this.bloodSugar = 0.0,
+    this.preVisitQuestionnaire = '',
+    this.isPreVisitCompleted = false,
+    this.isLocked = false,
+    this.preVisitChatHistory = const [],
+    this.ePrescription = '',
+    this.diagnosis = '',
+    this.treatment = '',
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     final doctor = json['doctor'];
-    final department = json['departmentId'] ?? json['department'];
+    final department = json['specialtyId'] ?? json['department'];
 
     final doctorUser = (doctor is Map) ? doctor['userId'] : null;
 
@@ -96,7 +120,11 @@ class Appointment {
           '', // 👈 Hứng dữ liệu (có thể chứa ký tự T trong ISO date)
       patientEmail: (json['patient'] is Map)
           ? (json['patient']['email']?.toString() ?? '')
-          : (json['patientEmail']?.toString() ?? (json['email']?.toString() ?? (json['phone'] != null && json['phone'].toString().isNotEmpty ? "${json['phone']}@happyhospital.com" : 'patient@happyhospital.com'))),
+          : (json['patientEmail']?.toString() ??
+              (json['email']?.toString() ??
+                  (json['phone'] != null && json['phone'].toString().isNotEmpty
+                      ? "${json['phone']}@happyhospital.com"
+                      : 'patient@happyhospital.com'))),
       patientAvatar: (json['patient'] is Map)
           ? (json['patient']['avatar']?.toString() ?? '')
           : (json['patientAvatar']?.toString() ?? ''),
@@ -125,12 +153,34 @@ class Appointment {
       finalFee: parseDouble(json['finalFee']),
       paymentMethod: json['paymentMethod'] ?? 'cash',
       isPaid: json['isPaid'] == true,
+      appointmentType: json['appointmentType']?.toString() ?? 'offline',
+      height: parseDouble(json['height']),
+      weight: parseDouble(json['weight']),
+      bloodSugar: parseDouble(json['bloodSugar']),
+      preVisitQuestionnaire: json['preVisitQuestionnaire']?.toString() ?? '',
+      isPreVisitCompleted: json['isPreVisitCompleted'] == true,
+      isLocked: json['isLocked'] == true,
+      preVisitChatHistory: json['preVisitChatHistory'] is List ? json['preVisitChatHistory'] as List : const [],
+      ePrescription: json['ePrescription']?.toString() ?? '',
+      diagnosis: json['diagnosis']?.toString() ?? '',
+      treatment: json['treatment']?.toString() ?? '',
     );
   }
 
   Appointment copyWith({
     String? status,
     bool? isPaid,
+    String? appointmentType,
+    double? height,
+    double? weight,
+    double? bloodSugar,
+    String? preVisitQuestionnaire,
+    bool? isPreVisitCompleted,
+    bool? isLocked,
+    List<dynamic>? preVisitChatHistory,
+    String? ePrescription,
+    String? diagnosis,
+    String? treatment,
   }) {
     return Appointment(
       id: id,
@@ -159,6 +209,17 @@ class Appointment {
       finalFee: finalFee,
       paymentMethod: paymentMethod,
       isPaid: isPaid ?? this.isPaid,
+      appointmentType: appointmentType ?? this.appointmentType,
+      height: height ?? this.height,
+      weight: weight ?? this.weight,
+      bloodSugar: bloodSugar ?? this.bloodSugar,
+      preVisitQuestionnaire: preVisitQuestionnaire ?? this.preVisitQuestionnaire,
+      isPreVisitCompleted: isPreVisitCompleted ?? this.isPreVisitCompleted,
+      isLocked: isLocked ?? this.isLocked,
+      preVisitChatHistory: preVisitChatHistory ?? this.preVisitChatHistory,
+      ePrescription: ePrescription ?? this.ePrescription,
+      diagnosis: diagnosis ?? this.diagnosis,
+      treatment: treatment ?? this.treatment,
     );
   }
 }

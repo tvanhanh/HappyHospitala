@@ -14,12 +14,12 @@ class PrescriptionModel {
   final String? healthInsurance; 
 
   final List<PrescribedMedicine> medicines;
+  final List<PrescribedService> services;
   final String doctorId;
   final String doctorName;
   final DateTime? createdAt;
   final String? paymentMethod;
   final int? totalPrice;
-  List<dynamic>? get services => [];
 
   PrescriptionModel({
     this.id,
@@ -33,12 +33,12 @@ class PrescriptionModel {
     this.gender,
     this.healthInsurance,
     required this.medicines,
+    required this.services,
     required this.doctorId,
     required this.doctorName,
     this.createdAt,
     this.paymentMethod,
     this.totalPrice
-    
   });
 
   factory PrescriptionModel.fromJson(Map<String, dynamic> json) {
@@ -49,8 +49,8 @@ class PrescriptionModel {
       status: json['status']?.toString() ?? 'pending',
       patientId: json['patientId']?.toString() ?? json['idBN']?.toString() ?? '',
       patientName: json['patientName']?.toString() ?? '',
-      patientPhone: json['patientPhone'] ?? json['phone'], // Tự động nhận null nếu không có
-      birthDate: json['birthDate'],                        // Tự động nhận null nếu không có
+      patientPhone: json['patientPhone'] ?? json['phone'],
+      birthDate: json['birthDate'],
       gender: json['gender']?.toString(),
       healthInsurance: json['healthInsurance'] ?? json['bhyt'],
       doctorId: json['doctorId']?.toString() ?? json['idBS']?.toString() ?? '',
@@ -60,10 +60,14 @@ class PrescriptionModel {
               json['medicines'].map((x) => PrescribedMedicine.fromJson(x)),
             )
           : [],
+      services: json['services'] != null
+          ? List<PrescribedService>.from(
+              json['services'].map((x) => PrescribedService.fromJson(x)),
+            )
+          : [],
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
       paymentMethod: json['paymentMethod'] ?? json['payment_method'],
       totalPrice: json['totalPrice'] ?? json['total_price'] ?? json['total'] ?? json['amount'],
-
     );
   }
 
@@ -75,15 +79,14 @@ class PrescriptionModel {
       'status': status,
       'patientId': patientId,
       'patientName': patientName,
-      // Khi gửi lên API, nếu null thì giữ nguyên null hoặc không gửi tùy thuộc Backend xử lý
       'patientPhone': patientPhone, 
       'birthDate': birthDate,
       'gender': gender,
       'healthInsurance': healthInsurance,
       'medicines': medicines.map((x) => x.toJson()).toList(),
+      'services': services.map((x) => x.toJson()).toList(),
       'doctorId': doctorId,
       'doctorName': doctorName,
-      
     };
   }
 }
@@ -123,6 +126,34 @@ class PrescribedMedicine {
       'usage': usage,
       'sellingPrice': sellingPrice,
       'unit': unit,
+    };
+  }
+}
+
+class PrescribedService {
+  final String serviceId;
+  final String name;
+  final int price;
+
+  PrescribedService({
+    required this.serviceId,
+    required this.name,
+    required this.price,
+  });
+
+  factory PrescribedService.fromJson(Map<String, dynamic> json) {
+    return PrescribedService(
+      serviceId: json['id']?.toString() ?? json['serviceId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      price: json['price'] is int ? json['price'] : (int.tryParse(json['price']?.toString() ?? '0') ?? 0),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': serviceId,
+      'name': name,
+      'price': price,
     };
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'; // Thêm Thư viện Ri
 import '../../services/api_doctors.dart';
 // import '../../services/api_department.dart'; // Bỏ nếu không dùng tới
 import '../../services/api_appointment.dart';
+
 import '../providers/specialty_provider.dart';
 
 // Đổi từ StatefulWidget sang ConsumerStatefulWidget để dùng được 'ref'
@@ -35,7 +36,7 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
   List<dynamic> departments = [];
   List<dynamic> doctors = [];
 
-  String? selectedDepartmentId;
+  String? selectedspecialtyId;
   String? selectedDoctorId;
 
   bool loadingDepartments = true;
@@ -45,7 +46,7 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
   void initState() {
     super.initState();
     // Gọi hàm load dữ liệu chuyên khoa từ Provider khi khởi tạo popup
-    loadSpeciality(); 
+    loadSpeciality();
   }
 
   @override
@@ -65,8 +66,9 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
   Future<void> loadSpeciality() async {
     try {
       final result = await ref.read(specialtyProvider.future);
+
       setState(() {
-        departments = result; 
+        departments = result;
         loadingDepartments = false;
       });
     } catch (e) {
@@ -77,34 +79,29 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
     }
   }
 
-  Future<void> loadDoctors(String departmentId) async {
-    print("loadDoctors: $departmentId");
-    setState(() {
-      loadingDoctors = true;
-      doctors = []; // Xóa danh sách bác sĩ cũ trước khi nạp mới
-      selectedDoctorId = null;
-    });
+  Future<void> loadDoctors(String specialtyId) async {
+    print("loadDoctors: $specialtyId");
 
     try {
-      final result = await DoctorService.getDoctorsBySpecialty(departmentId);
-      print("Doctors result: $result");
+      final result = await DoctorService.getDoctorsByDepartment(specialtyId);
+
+      print("Doctors result:");
+      print(result);
+
       setState(() {
-        doctors = result ?? [];
-        loadingDoctors = false;
+        doctors = result;
       });
     } catch (e) {
-      print("ERROR load bác sĩ: $e");
-      setState(() {
-        loadingDoctors = false;
-      });
+      print("ERROR: $e");
     }
   }
 
   Future<void> submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // check bắt buộc
     if (selectedDoctorId == null ||
-        selectedDepartmentId == null ||
+        selectedspecialtyId == null ||
         dateController.text.isEmpty ||
         timeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +120,7 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
 
       final result = await AppointmentApi.addAppointment(
         doctorId: selectedDoctorId!,
-        departmentId: selectedDepartmentId!,
+        specialtyId: selectedspecialtyId!,
         patientName: patientNameController.text,
         phone: phoneController.text,
         cccd: cccdController.text,
@@ -134,9 +131,9 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
         date: dateController.text,
         time: timeController.text,
       );
-      
+
       if (!mounted) return;
-      print("Kết quả thêm lịch hẹn: $result"); 
+      print("Kết quả thêm lịch hẹn: $result");
 
       if (result is Map && result["success"] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,7 +142,8 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Đóng và báo thành công về màn hình chính
+        Navigator.pop(
+            context, true); // Đóng và báo thành công về màn hình chính
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -182,7 +180,8 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
                   const Center(
                     child: Text(
                       "Đặt lịch khám mới",
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -287,54 +286,54 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
                     children: [
                       // DROPDOWN CHUYÊN KHOA
                       Expanded(
-  child: DropdownButtonFormField<String>(
-    value: selectedDepartmentId,
-    decoration: InputDecoration(
-      labelText: loadingDepartments ? "Đang tải chuyên khoa..." : "Chuyên khoa",
-      border: const OutlineInputBorder(),
-    ),
-    items: departments.map((department) {
-      // Đọc linh hoạt từ Map hoặc Object model
-      final id = department is Map ? department["id"] : department.id;
-      final name = department is Map ? department["departmentName"] : department.name;
-      
-      return DropdownMenuItem<String>(
-        // SỬA TẠI ĐÂY: Dùng đúng biến id và name vừa lấy ở trên
-        value: id?.toString(),
-        child: Text(name?.toString() ?? "Không rõ tên khoa"),
-      );
-    }).toList(),
-    onChanged: loadingDepartments ? null : (value) async {
-      print("Đã chọn khoa: $value");
-      setState(() {
-        selectedDepartmentId = value;
-      });
-      if (value != null) {
-        await loadDoctors(value);
-      }
-    },
-  ),
-),
+                        child: DropdownButtonFormField<String>(
+                          value: selectedspecialtyId,
+                          decoration: const InputDecoration(
+                            labelText: "Chuyên khoa",
+                            border: OutlineInputBorder(),
+                          ),
+                          items: departments.map((department) {
+                            return DropdownMenuItem<String>(
+                              value: department["id"],
+                              child: Text(
+                                department["departmentName"],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) async {
+                            print("Đã chọn khoa: $value");
+                            setState(() {
+                              selectedspecialtyId = value;
+                            });
+                            if (value != null) {
+                              await loadDoctors(value);
+                            }
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 15),
-                      // DROPDOWN BÁC SĨ
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: selectedDoctorId,
-                          decoration: InputDecoration(
-                            labelText: loadingDoctors ? "Đang tải danh sách..." : "Bác sĩ",
-                            border: const OutlineInputBorder(),
+                          decoration: const InputDecoration(
+                            labelText: "Bác sĩ",
+                            border: OutlineInputBorder(),
                           ),
                           items: doctors.map((doctor) {
                             return DropdownMenuItem<String>(
-                             value: doctor.id?.toString() ?? doctor.sId?.toString(), 
-        child: Text(doctor.name?.toString() ?? "Không rõ tên"),             
+                              value: doctor["_id"],
+                              child: Text(
+                                doctor["name"],
+                              ),
                             );
                           }).toList(),
-                          onChanged: doctors.isEmpty ? null : (value) {
-                            setState(() {
-                              selectedDoctorId = value;
-                            });
-                          },
+                          onChanged: doctors.isEmpty
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    selectedDoctorId = value;
+                                  });
+                                },
                         ),
                       ),
                     ],
@@ -384,7 +383,8 @@ class _AppointmentFormDialogState extends ConsumerState<AppointmentFormDialog> {
                             );
                             if (pickedTime != null) {
                               setState(() {
-                                timeController.text = pickedTime.format(context);
+                                timeController.text =
+                                    pickedTime.format(context);
                               });
                             }
                           },

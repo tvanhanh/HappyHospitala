@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/appointment.dart';
 import '../../services/api_appointment.dart';
+import 'chat_screen.dart';
+import 'virtual_clinic_screen.dart';
 
 class AppointmentDetailScreen extends StatefulWidget {
   final Appointment appointment;
@@ -19,10 +21,12 @@ class AppointmentDetailScreen extends StatefulWidget {
 class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
   final ScrollController _scrollController = ScrollController();
   double avatarOpacity = 1;
+  late Appointment _currentAppointment;
 
   @override
   void initState() {
     super.initState();
+    _currentAppointment = widget.appointment;
     _scrollController.addListener(() {
       final offset = _scrollController.offset;
       double newOpacity = 1 - (offset / 120);
@@ -98,7 +102,7 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appointment = widget.appointment;
+    final appointment = _currentAppointment;
     final statusColor = _statusColor(appointment.status);
     final statusTxt = _statusText(appointment.status);
 
@@ -245,8 +249,15 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                       const SizedBox(height: 12),
                       _buildInfoRow(Icons.calendar_today_outlined, "Ngày khám", appointment.date),
                       _buildInfoRow(Icons.access_time, "Giờ hẹn", appointment.time),
-                      _buildInfoRow(Icons.room_outlined, "Địa điểm", "Happy Clinic - 317 Trần Đại Nghĩa, Đà Nẵng"),
+                      _buildInfoRow(Icons.room_outlined, "Địa điểm", appointment.appointmentType == 'online' ? "Tư vấn trực tuyến qua Chat" : "Happy Clinic - 317 Trần Đại Nghĩa, Đà Nẵng"),
+                      _buildInfoRow(Icons.contactless_outlined, "Hình thức", appointment.appointmentType == 'online' ? "Tư vấn Online" : "Khám trực tiếp"),
                       const SizedBox(height: 24),
+
+                      // ----- ONLINE PRE-VISIT CLINICAL FORM -----
+                      if (appointment.appointmentType == 'online') ...[
+                        _buildPreVisitSection(context, appointment),
+                        const SizedBox(height: 24),
+                      ],
 
                       // ----- SECTION: PATIENT INFORMATION -----
                       _buildSectionHeader(
@@ -315,6 +326,40 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 30),
+
+                      // ----- ONLINE CONSULTATION VIRTUAL CLINIC BUTTON -----
+                      if (appointment.appointmentType == 'online' &&
+                          (appointment.status == 'confirmed' ||
+                           appointment.status == 'checked_in' ||
+                           appointment.status == 'in_progress')) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => VirtualClinicScreen(
+                                  appointment: appointment,
+                                  role: 'patient',
+                                ),
+                              ));
+                            },
+                            icon: const Icon(Icons.video_call_rounded, color: Colors.white),
+                            label: const Text(
+                              "VÀO PHÒNG KHÁM ẢO",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              elevation: 3,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // ----- ACTION BUTTON -----
                       if (appointment.status == "pending" || appointment.status == "confirmed")
@@ -625,6 +670,226 @@ class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPreVisitSection(BuildContext context, Appointment appointment) {
+    final hasCompleted = appointment.isPreVisitCompleted;
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: hasCompleted ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hasCompleted ? const Color(0xFFA5D6A7) : const Color(0xFFFFCC80),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                hasCompleted ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                color: hasCompleted ? Colors.green.shade700 : Colors.orange.shade700,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                hasCompleted
+                    ? "Dữ Liệu Lâm Sàng Đã Sẵn Sàng"
+                    : "Chuẩn Bị Dữ Liệu Lâm Sàng (Yêu cầu)",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: hasCompleted ? Colors.green.shade800 : Colors.orange.shade800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            hasCompleted
+                ? "Dữ liệu sinh hóa và tiền sử bệnh án đã được hệ thống tự động đóng gói gửi đến bác sĩ của bạn."
+                : "Vui lòng nhập chiều cao, cân nặng và chỉ số đường huyết gần nhất để bác sĩ có đủ thông tin chẩn đoán trong cuộc gọi khám bệnh trực tuyến.",
+            style: TextStyle(
+              fontSize: 13,
+              color: hasCompleted ? Colors.green.shade700 : Colors.orange.shade700,
+              height: 1.4,
+            ),
+          ),
+          if (hasCompleted) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 16,
+              runSpacing: 10,
+              children: [
+                _miniMetricItem("Chiều cao", "${appointment.height.toInt()} cm"),
+                _miniMetricItem("Cân nặng", "${appointment.weight.toInt()} kg"),
+                _miniMetricItem("Chỉ số đường huyết", "${appointment.bloodSugar} mmol/L"),
+                _miniMetricItem("BMI", ((appointment.height > 0) ? (appointment.weight / ((appointment.height / 100) * (appointment.height / 100))) : 0.0).toStringAsFixed(1)),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: () => _showPreVisitDialog(context, appointment),
+              icon: const Icon(Icons.edit_note_rounded, size: 18, color: Colors.white),
+              label: const Text("Nhập dữ liệu lâm sàng"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _miniMetricItem(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text("$label: ", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black54)),
+          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+        ],
+      ),
+    );
+  }
+
+  void _showPreVisitDialog(BuildContext context, Appointment appointment) {
+    final heightCtrl = TextEditingController();
+    final weightCtrl = TextEditingController();
+    final sugarCtrl = TextEditingController();
+    final questCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool submitting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.monitor_heart_outlined, color: Colors.orange),
+              SizedBox(width: 10),
+              Text("Khảo sát Tiền Lâm Sàng", style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Nhập các chỉ số và tiền sử sức khỏe trước khi bắt đầu tư vấn trực tuyến:"),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: heightCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Chiều cao (cm)", border: OutlineInputBorder()),
+                    validator: (v) => (v == null || double.tryParse(v) == null) ? "Vui lòng nhập chiều cao hợp lệ" : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: weightCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Cân nặng (kg)", border: OutlineInputBorder()),
+                    validator: (v) => (v == null || double.tryParse(v) == null) ? "Vui lòng nhập cân nặng hợp lệ" : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: sugarCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Đường huyết gần nhất (mmol/L)", border: OutlineInputBorder()),
+                    validator: (v) => (v == null || double.tryParse(v) == null) ? "Vui lòng nhập đường huyết hợp lệ" : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: questCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: "Tiền sử bệnh án hoặc mô tả triệu chứng",
+                      border: OutlineInputBorder(),
+                      hintText: "Ví dụ: Có người thân bị tiểu đường, dạo này thường xuyên thấy khát nước...",
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? "Vui lòng mô tả tiền sử sức khỏe" : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: submitting ? null : () => Navigator.pop(ctx),
+              child: const Text("Hủy bỏ"),
+            ),
+            ElevatedButton(
+              onPressed: submitting ? null : () async {
+                if (!formKey.currentState!.validate()) return;
+                setDialogState(() => submitting = true);
+
+                final h = double.parse(heightCtrl.text);
+                final w = double.parse(weightCtrl.text);
+                final s = double.parse(sugarCtrl.text);
+                final q = questCtrl.text.trim();
+
+                final success = await AppointmentApi.submitPreVisitData(
+                  appointmentId: appointment.id,
+                  height: h,
+                  weight: w,
+                  bloodSugar: s,
+                  preVisitQuestionnaire: q,
+                );
+
+                if (success) {
+                  setState(() {
+                    _currentAppointment = _currentAppointment.copyWith(
+                      isPreVisitCompleted: true,
+                      height: h,
+                      weight: w,
+                      bloodSugar: s,
+                      preVisitQuestionnaire: q,
+                    );
+                  });
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(backgroundColor: Colors.green, content: Text("🎉 Đã gửi thông tin tiền lâm sàng thành công!")),
+                    );
+                    Navigator.pop(ctx);
+                  }
+                } else {
+                  setDialogState(() => submitting = false);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(backgroundColor: Colors.red, content: Text("Lưu dữ liệu thất bại. Vui lòng thử lại!")),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade700, foregroundColor: Colors.white),
+              child: submitting
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Gửi thông tin"),
+            ),
+          ],
+        ),
       ),
     );
   }

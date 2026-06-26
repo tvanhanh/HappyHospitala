@@ -158,7 +158,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         title: const Text(
-          "Phòng khám ABC - Hệ thống quản lý",
+          "HappyClinic - Hệ thống quản lý",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [

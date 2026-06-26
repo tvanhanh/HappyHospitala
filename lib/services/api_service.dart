@@ -7,31 +7,112 @@ class ApiService {
   // Đăng ký người dùng
   static Future<String?> registerUser(
     String name,
-    String email,
+    String emailOrPhone,
     String password,
     String confirmPassword,
+    String otp,
   ) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/register');
+      final url = Uri.parse('$baseUrl/api/auth/register');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': name,
-          'email': email,
+          'email': emailOrPhone, // The backend still uses "email" for the field
           'password': password,
+          'confirmPassword': confirmPassword,
+          'otp': otp,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201) {
+        return null;
+      } else {
+        return data['message'] ?? 'Đăng ký thất bại';
+      }
+    } catch (e) {
+      return 'Không thể kết nối đến máy chủ';
+    }
+  }
+
+  // Gửi mã OTP đăng ký
+  static Future<String?> sendOtpRegister(String emailOrPhone) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/send-otp-register');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'emailOrPhone': emailOrPhone}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        if (data['otp'] != null) {
+          return "success:${data['otp']}";
+        }
+        return null; // Thành công
+      } else {
+        return data['message'] ?? 'Gửi OTP thất bại';
+      }
+    } catch (e) {
+      return 'Không thể kết nối đến máy chủ';
+    }
+  }
+
+  // Gửi mã OTP quên mật khẩu
+  static Future<String?> sendOtpForgot(String emailOrPhone) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/send-otp-forgot');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'emailOrPhone': emailOrPhone}),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        if (data['otp'] != null) {
+          return "success:${data['otp']}";
+        }
+        return null; // Thành công
+      } else {
+        return data['message'] ?? 'Gửi OTP thất bại';
+      }
+    } catch (e) {
+      return 'Không thể kết nối đến máy chủ';
+    }
+  }
+
+  // Đặt lại mật khẩu với OTP
+  static Future<String?> resetPassword(
+    String emailOrPhone,
+    String otp,
+    String newPassword,
+    String confirmPassword,
+  ) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/reset-password');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'emailOrPhone': emailOrPhone,
+          'otp': otp,
+          'newPassword': newPassword,
           'confirmPassword': confirmPassword,
         }),
       );
 
-      if (response.statusCode == 201) {
-        return null; // Đăng ký thành công
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return null; // Thành công
       } else {
-        final data = jsonDecode(response.body);
-        return data['message'] ?? 'Đăng ký thất bại';
+        return data['message'] ?? 'Đặt lại mật khẩu thất bại';
       }
     } catch (e) {
-      return 'Lỗi kết nối: $e';
+      return 'Không thể kết nối đến máy chủ';
     }
   }
 
@@ -44,7 +125,7 @@ class ApiService {
     String token,
   ) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/register-by-admin');
+      final url = Uri.parse('$baseUrl/api/auth/register-by-admin');
 
       final response = await http.post(
         url,
@@ -102,7 +183,7 @@ class ApiService {
       }
 
       // Gửi yêu cầu đổi mật khẩu
-      final url = Uri.parse('$baseUrl/auth/changePassword');
+      final url = Uri.parse('$baseUrl/api/auth/change-password');
       final response = await http.put(
         url,
         headers: {
@@ -113,7 +194,7 @@ class ApiService {
           'email': email, // xác minh người dùng đúng
           'oldPassword': oldPassword,
           'newPassword': newPassword,
-          'confirmPassword': confirmPassword,
+          'confirmNewPassword': confirmPassword,
         }),
       );
 
@@ -137,7 +218,7 @@ class ApiService {
     }
 
     final response = await http.patch(
-      Uri.parse("$baseUrl/auth/update_profile"),
+      Uri.parse("$baseUrl/api/auth/update_profile"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $token",
@@ -246,6 +327,8 @@ class ApiService {
           "specialty",
           data['user']?['profile']?['specialty'] ?? '',
         );
+        await prefs.setString('avatar', data['user']?['avatar'] ?? '');
+        await prefs.setString('avatarUrl', data['user']?['avatar'] ?? '');
 
         // Trả về thông tin token và role
         return {
@@ -266,11 +349,58 @@ class ApiService {
     }
   }
 
+  // Đăng nhập bằng Google
+  static Future<Map<String, dynamic>> googleLoginUser(String idToken) async {
+    try {
+      final url = Uri.parse('$baseUrl/api/auth/google-login');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'idToken': idToken,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+
+        // Lưu token vào SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token ?? '');
+        await prefs.setString('email', data['user']?['email'] ?? '');
+        await prefs.setString("role", data['user']?['role'] ?? '');
+        await prefs.setString('doctorId', data['user']?['id'] ?? '');
+        await prefs.setString('userId', data['user']?['id'] ?? '');
+        await prefs.setString("name", data['user']?['fullName'] ?? '');
+        // Cố gắng lưu avatar nếu có
+        if (data['user']?['avatar'] != null) {
+          await prefs.setString('avatar', data['user']['avatar']);
+        }
+
+        return {
+          'token': token,
+          'role': data['user']?['role'] ?? 'patient',
+          'user': data['user']
+        };
+      } else {
+        final data = jsonDecode(response.body);
+        return {
+          'error': data['message'] ?? 'Đăng nhập Google thất bại',
+        };
+      }
+    } catch (e) {
+      return {
+        'error': 'Lỗi kết nối: $e',
+      };
+    }
+  }
+
   // lấy thông tin tài khoản
 
   static Future<List<Map<String, dynamic>>> getUsers() async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_accountList');
+      final url = Uri.parse('$baseUrl/api/auth/api_accountList');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -310,7 +440,7 @@ class ApiService {
   // thay đổi role
   static Future<bool> changeUserRole(String id, String newRole) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_changeUserRole/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_changeUserRole/$id');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -339,7 +469,7 @@ class ApiService {
 
   static Future<bool> verifyOtp(String email, String otp) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/verify-otp');
+      final url = Uri.parse('$baseUrl/api/auth/verify-otp');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) return false;
@@ -366,7 +496,7 @@ class ApiService {
 
   static Future<bool> changePassWord(String email, String newPassword) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api-changePassWord');
+      final url = Uri.parse('$baseUrl/api/auth/api-changePassWord');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -398,7 +528,7 @@ class ApiService {
 
   static Future<List<Map<String, dynamic>>> getUserInfor(String id) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_getUserInfor/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_getUserInfor/$id');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -438,7 +568,7 @@ class ApiService {
       String healthInsurance,
       String avatar) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_updateUserInfor/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_updateUserInfor/$id');
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
       if (token == null) {
@@ -497,7 +627,7 @@ class ApiService {
 // mở, khóa tài khoản
   static Future<bool> toggleUserStatus(String id, String newStatus) async {
     try {
-      final url = Uri.parse('$baseUrl/auth/api_updateStatus/$id');
+      final url = Uri.parse('$baseUrl/api/auth/api_updateStatus/$id');
 
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
@@ -608,7 +738,7 @@ class ApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
-      final url = Uri.parse('$baseUrl/admin/users');
+      final url = Uri.parse('$baseUrl/api/admin/users');
       final response = await http.post(
         url,
         headers: {

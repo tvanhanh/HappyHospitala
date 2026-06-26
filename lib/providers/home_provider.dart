@@ -1,9 +1,4 @@
-/// Riverpod providers for the Patient Home Screen.
-///
-/// Exposes:
-/// - [featuredDoctorsProvider] — list of featured doctors from backend API
-/// - [homeSliderProvider] — dynamic slider images from backend DB
-/// - [specialtiesProvider] — medical specialties grid data
+
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -181,7 +176,7 @@ class SliderService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     final res = await http.get(
-      Uri.parse('$baseUrl/sliders/all'),
+      Uri.parse('$baseUrl/api/sliders/all'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -254,7 +249,7 @@ class SliderService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     final res = await http.patch(
-      Uri.parse('$baseUrl/sliders/$id'),
+      Uri.parse('$baseUrl/api/sliders/$id'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
@@ -269,12 +264,69 @@ class SliderService {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
     final res = await http.delete(
-      Uri.parse('$baseUrl/sliders/$id'),
+      Uri.parse('$baseUrl/api/sliders/$id'),
       headers: {
         'Content-Type': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       },
     );
     return res.statusCode == 200;
+  }
+
+  /// Updates title, subtitle (and optionally replaces the image) for a slider.
+  static Future<bool> updateSlider(
+    String id, {
+    required String title,
+    required String subtitle,
+    XFile? newImage,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      String? imageUrl;
+
+      // If a new image was selected — upload to Cloudinary first
+      if (newImage != null) {
+        const cloudName = 'dwlikpvh9';
+        const uploadPreset = 'asset_clinic';
+        final cloudUrl =
+            Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+        final cloudReq = http.MultipartRequest('POST', cloudUrl);
+        cloudReq.fields['upload_preset'] = uploadPreset;
+        cloudReq.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            await newImage.readAsBytes(),
+            filename: newImage.name,
+          ),
+        );
+        final cloudRes = await cloudReq.send();
+        if (cloudRes.statusCode != 200) return false;
+        final cloudJson =
+            jsonDecode(await cloudRes.stream.bytesToString());
+        imageUrl = cloudJson['secure_url'] as String?;
+        if (imageUrl == null) return false;
+      }
+
+      final body = <String, dynamic>{
+        'title': title,
+        'subtitle': subtitle,
+        if (imageUrl != null) 'imageUrl': imageUrl,
+      };
+
+      final res = await http.patch(
+        Uri.parse('$baseUrl/api/sliders/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      print('Exception in updateSlider: $e');
+      return false;
+    }
   }
 }

@@ -12,7 +12,7 @@ export interface IAppointment extends Document {
   gender?: string;
   address?: string;
   birthDate: Date,
-  departmentId: {
+  specialtyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Departments",
   },
@@ -30,6 +30,7 @@ export interface IAppointment extends Document {
   imageUrl?: string;
 
   status: "pending" | "confirmed" | "checked_in" | "in_progress" | "cancelled" | "completed" | "missed";
+  appointmentType?: "offline" | "online";
   // Fee & Payment
   originalFee?: number;       // Phí khám gốc (từ Doctor.consultationFee)
   discountAmount?: number;    // Số tiền giảm
@@ -39,6 +40,18 @@ export interface IAppointment extends Document {
   promotionCode?: string;     // Mã khuyến mãi đã áp dụng
   paymentMethod?: "cash" | "insurance" | "vnpay" | "momo" | "banking";
   isPaid?: boolean;
+
+  // Pre-visit & Digital health workflow locking
+  height?: number;
+  weight?: number;
+  bloodSugar?: number;
+  preVisitQuestionnaire?: string;
+  preVisitChatHistory?: any;
+  isPreVisitCompleted?: boolean;
+  isLocked?: boolean;
+  diagnosis?: string;
+  treatment?: string;
+  ePrescription?: string;
 }
 
 // ================= SCHEMA =================
@@ -64,7 +77,7 @@ const appointmentSchema = new Schema<IAppointment>(
     birthDate: { type: Date, default: null },
     gender: { type: String, default: null },
     address: { type: String, default: null },
-    departmentId: {
+    specialtyId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Departments",
     },
@@ -105,7 +118,24 @@ const appointmentSchema = new Schema<IAppointment>(
         "completed"
       ],
       default: "pending",
-    }
+    },
+    appointmentType: {
+      type: String,
+      enum: ["offline", "online"],
+      default: "offline",
+    },
+
+    // ===== PRE-VISIT & DIGITAL HEALTH WORKFLOW =====
+    height: { type: Number, default: null },
+    weight: { type: Number, default: null },
+    bloodSugar: { type: Number, default: null },
+    preVisitQuestionnaire: { type: String, default: null },
+    preVisitChatHistory: { type: Schema.Types.Mixed, default: null },
+    isPreVisitCompleted: { type: Boolean, default: false },
+    isLocked: { type: Boolean, default: false },
+    diagnosis: { type: String, default: null },
+    treatment: { type: String, default: null },
+    ePrescription: { type: String, default: null }
   },
   {
     timestamps: true,

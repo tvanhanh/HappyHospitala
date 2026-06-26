@@ -24,7 +24,8 @@ const Color _kBackground = Color(0xFFF4F6FA);
 /// Supports full-text search across name + specialty,
 /// and specialty filter chips for quick filtering.
 class PatientDoctorListScreen extends ConsumerStatefulWidget {
-  const PatientDoctorListScreen({super.key});
+  final String? initialSpecialty;
+  const PatientDoctorListScreen({super.key, this.initialSpecialty});
 
   @override
   ConsumerState<PatientDoctorListScreen> createState() =>
@@ -36,6 +37,12 @@ class _PatientDoctorListScreenState
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedSpecialty; // null = all specialties
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSpecialty = widget.initialSpecialty;
+  }
 
   @override
   void dispose() {
@@ -74,13 +81,14 @@ class _PatientDoctorListScreenState
       body: asyncDoctors.when(
         loading: () => _buildSkeletonLoading(),
         error: (err, _) => _buildErrorState(),
-        data: (doctors) {
+        data: (rawDoctors) {
+          final doctors = rawDoctors.map((d) => Map<String, dynamic>.from(d)).toList();
+
           // Extract unique specialties for filter chips
           final specialties = doctors
               .map((d) {
-                return (d['profile'] as Map<String, dynamic>?)?['specialty']
-                        ?.toString() ??
-                    '';
+                final profileMap = d['profile'] as Map?;
+                return profileMap?['specialty']?.toString() ?? '';
               })
               .where((s) => s.isNotEmpty)
               .toSet()
@@ -90,9 +98,8 @@ class _PatientDoctorListScreenState
           // Apply search + specialty filter
           final filtered = doctors.where((d) {
             final name = (d['name'] ?? '').toString().toLowerCase();
-            final spec = ((d['profile'] as Map<String, dynamic>?)?['specialty']
-                        ?.toString() ??
-                    '')
+            final profileMap = d['profile'] as Map?;
+            final spec = (profileMap?['specialty']?.toString() ?? '')
                 .toLowerCase();
             final matchesSearch = _searchQuery.isEmpty ||
                 name.contains(_searchQuery.toLowerCase()) ||
@@ -375,7 +382,7 @@ class _DoctorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = (doctor['profile'] as Map<String, dynamic>?) ?? {};
+    final profile = doctor['profile'] as Map? ?? {};
     final name = doctor['name']?.toString() ?? 'Bác sĩ';
     final avatar = profile['avatar']?.toString() ?? '';
     final specialty = profile['specialty']?.toString() ?? '';

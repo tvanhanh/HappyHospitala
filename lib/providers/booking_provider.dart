@@ -1,20 +1,4 @@
-/// Riverpod providers for the Patient Booking Flow.
-///
-/// This file centralizes ALL state for the booking flow:
-/// 1. [doctorListProvider] — fetches all available doctors for selection
-/// 2. [doctorDetailProvider] — fetches a single doctor's full profile
-/// 3. [bookingProvider] — manages the booking form state and submission
-///
-/// [BUG-10 FIX] — ERD TimeSlot unification:
-/// The ERD defines `timeSlot: DateTime` as a single combined ISO 8601 field.
-/// The old code used separate `date: String` + `time: String` fields.
-/// This provider unifies them: [BookingState] holds a single [DateTime] (`timeSlot`)
-/// and the API payload is sent as `"timeSlot": "2025-12-31T09:00:00.000Z"`.
-///
-/// [Booking-3] — Socket emission:
-/// After a successful booking, [BookingNotifier.submitBooking] emits
-/// [SocketEvents.newAppointment] so Receptionist/Staff dashboards receive
-/// real-time notifications without polling.
+
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -111,6 +95,9 @@ class BookingState {
   /// The booking data returned from the API on success (for the success dialog).
   final Map<String, dynamic>? successData;
 
+  /// Hình thức khám: offline hoặc online
+  final String appointmentType;
+
   /// Creates a [BookingState].
   const BookingState({
     this.timeSlot,
@@ -124,6 +111,7 @@ class BookingState {
     this.errorMessage,
     this.isSuccess = false,
     this.successData,
+    this.appointmentType = 'offline',
   });
 
   /// Initial empty state.
@@ -138,7 +126,8 @@ class BookingState {
         isUploadingImage = false,
         errorMessage = null,
         isSuccess = false,
-        successData = null;
+        successData = null,
+        appointmentType = 'offline';
 
   /// Creates a copy with optionally updated fields.
   BookingState copyWith({
@@ -153,6 +142,7 @@ class BookingState {
     String? errorMessage,
     bool? isSuccess,
     Map<String, dynamic>? successData,
+    String? appointmentType,
     bool clearImage = false,
     bool clearError = false,
   }) {
@@ -168,6 +158,7 @@ class BookingState {
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       isSuccess: isSuccess ?? this.isSuccess,
       successData: successData ?? this.successData,
+      appointmentType: appointmentType ?? this.appointmentType,
     );
   }
 
@@ -248,6 +239,11 @@ class BookingNotifier extends StateNotifier<BookingState> {
   /// Updates the visit reason field.
   void setReason(String value) {
     state = state.copyWith(reason: value, clearError: true);
+  }
+
+  /// Updates the appointment consultation type.
+  void setAppointmentType(String value) {
+    state = state.copyWith(appointmentType: value, clearError: true);
   }
 
   /// Picks multiple images from gallery and uploads them to Cloudinary.
@@ -340,7 +336,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
   /// as a final safety net against simultaneous requests.
   Future<void> submitBooking({
     required String doctorId,
-    required String departmentId,
+    required String specialtyId,
     required String patientName,
     required String phone,
     required String gender,
@@ -388,7 +384,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
       // [STEP 3] Submit booking
       final result = await AppointmentApi.addAppointment(
         doctorId: doctorId,
-        departmentId: departmentId,
+        specialtyId: specialtyId,
         patientName: patientName,
         phone: phone,
         cccd: cccd,
@@ -403,6 +399,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
         timeSlot: state.timeSlotIso,
         imageUrl: state.imageUrl,
         paymentMethod: paymentMethod,
+        appointmentType: state.appointmentType,
       );
 
       final isOk = result['success'] == true;
@@ -518,54 +515,57 @@ class BookingNotifier extends StateNotifier<BookingState> {
 // AVAILABLE TIME SLOTS
 // ══════════════════════════════════════════════════════════════════════════════
 
-/// Returns the list of predefined clinic time slots for a given [date].
-///
+/// Returns the list of available clinic time slots for a given [date]
+/// based on the doctor's assigned schedule for that day.
 /// Filters out slots that are in the past when [date] is today.
 /// [Booking-4] — Used by the time slot grid/chip selector in the UI.
-List<DateTime> getAvailableSlots(DateTime date, List<String> bookedSlots) {
+List<DateTime> getAvailableSlots(DateTime date, List<String> bookedSlots, List<dynamic> schedules) {
   final now = DateTime.now();
   final isToday =
       date.year == now.year && date.month == now.month && date.day == now.day;
 
-  // Standard clinic hours: 08:00 – 17:00, every 15 minutes
-  const slotHours = [
-    (8, 0),
-    (8, 15),
-    (8, 30),
-    (8, 45),
-    (9, 0),
-    (9, 15),
-    (9, 30),
-    (9, 45),
-    (10, 0),
-    (10, 15),
-    (10, 30),
-    (10, 45),
-    (11, 0),
-    (11, 15),
-    (11, 30),
-    (11, 45),
-    (13, 0),
-    (13, 15),
-    (13, 30),
-    (13, 45),
-    (14, 0),
-    (14, 15),
-    (14, 30),
-    (14, 45),
-    (15, 0),
-    (15, 15),
-    (15, 30),
-    (15, 45),
-    (16, 0),
-    (16, 15),
-    (16, 30),
-    (16, 45),
-  ];
+  // Lấy tất cả lịch của bác sĩ trong ngày `date`
+  final daySchedules = schedules.where((s) {
+    if (s == null || s['date'] == null) return false;
+    final d = DateTime.parse(s['date']).toLocal();
+    return d.year == date.year && d.month == date.month && d.day == date.day;
+  }).toList();
 
-  return slotHours
-      .map((h) => DateTime(date.year, date.month, date.day, h.$1, h.$2))
-      .where((slot) {
+  if (daySchedules.isEmpty) return []; // No schedule for this date!
+
+  List<DateTime> allSlots = [];
+
+  for (final sched in daySchedules) {
+    final shift = sched['shift']?.toString() ?? 'Cả ngày';
+    final duration = sched['timeSlotDuration'] != null ? (sched['timeSlotDuration'] as num).toInt() : 15;
+
+    void generateSlots(int startHour, int startMinute, int endHour, int endMinute) {
+      var current = DateTime(date.year, date.month, date.day, startHour, startMinute);
+      final end = DateTime(date.year, date.month, date.day, endHour, endMinute);
+      
+      while (current.isBefore(end)) {
+        if (!allSlots.any((s) => s.isAtSameMomentAs(current))) {
+          allSlots.add(current);
+        }
+        current = current.add(Duration(minutes: duration));
+      }
+    }
+
+    if (shift == 'Sáng' || shift == 'Cả ngày') {
+      generateSlots(7, 30, 11, 30);
+    }
+    if (shift == 'Chiều' || shift == 'Cả ngày') {
+      generateSlots(13, 30, 17, 30);
+    }
+    if (shift == 'Tối' || shift == 'Cả ngày') {
+      generateSlots(17, 0, 20, 0);
+    }
+  }
+
+  // Sort slots chronologically
+  allSlots.sort((a, b) => a.compareTo(b));
+
+  return allSlots.where((slot) {
     if (isToday && !slot.isAfter(now)) return false;
     final timeStr =
         '${slot.hour.toString().padLeft(2, '0')}:${slot.minute.toString().padLeft(2, '0')}';
@@ -575,8 +575,13 @@ List<DateTime> getAvailableSlots(DateTime date, List<String> bookedSlots) {
 
 /// Fetches booked slots for a specific doctor on a specific date.
 final bookedSlotsProvider =
-    FutureProvider.family<List<String>, ({String doctorId, String date})>(
+    FutureProvider.autoDispose.family<List<String>, ({String doctorId, String date})>(
         (ref, args) async {
   return AppointmentApi.getBookedSlots(
       doctorId: args.doctorId, date: args.date);
+});
+
+/// Fetches the assigned schedules for a specific doctor.
+final doctorScheduleListProvider = FutureProvider.autoDispose.family<List<dynamic>, String>((ref, doctorId) async {
+  return AppointmentApi.getDoctorSchedules(doctorId);
 });

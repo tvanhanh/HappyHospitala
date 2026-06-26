@@ -335,7 +335,7 @@ class _CustomerMessengerScreenState extends ConsumerState<CustomerMessengerScree
 
   Widget _buildChatBubble(BuildContext context, MessageModel msg) {
     final bool isMe = msg.isMe; 
-    final String formattedTime = DateFormat('hh:mm a').format(msg.timestamp);
+    final String formattedTime = DateFormat('hh:mm a').format(msg.timestamp.toLocal());
     final bool isEdited = msg.text.contains("(đã chỉnh sửa)");
 
     return Align(

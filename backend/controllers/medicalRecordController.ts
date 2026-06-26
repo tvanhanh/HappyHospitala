@@ -56,6 +56,8 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
       treatment,
       metrics,
       visitDate,
+      departmentName,
+      doctorName: reqDoctorName,
     } = req.body ?? {};
 
     console.log("Dữ liệu nhận từ frontend:", req.body);
@@ -74,17 +76,32 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     const gender = patientUser?.gender === "female" ? "Nữ" : "Nam";
     const age = calculateAge(patientUser?.dateOfBirth);
 
-    let doctorName = "Bác sĩ";
+    let doctorName = reqDoctorName || "Bác sĩ";
     let doctorDoc = await Doctor.findOne({ userId: doctorId });
     if (!doctorDoc) {
       doctorDoc = await Doctor.findById(doctorId);
     }
-    if (doctorDoc) {
-      const docUser = await User.findById(doctorDoc.userId);
-      doctorName = docUser?.fullName || "Bác sĩ";
-    } else {
-      const docUser = await User.findById(doctorId);
-      doctorName = docUser?.fullName || "Bác sĩ";
+    if (!reqDoctorName) {
+      if (doctorDoc) {
+        const docUser = await User.findById(doctorDoc.userId);
+        doctorName = docUser?.fullName || "Bác sĩ";
+      } else {
+        const docUser = await User.findById(doctorId);
+        doctorName = docUser?.fullName || "Bác sĩ";
+      }
+    }
+
+    let resolvedDept = departmentName || "Nội tiết";
+    if (!departmentName && doctorDoc) {
+      if (doctorDoc.specialtyId) {
+        const Specialty = require("../models/Specialty").default;
+        const spec = await Specialty.findById(doctorDoc.specialtyId);
+        if (spec) {
+          resolvedDept = spec.name || "Nội tiết";
+        }
+      } else if (doctorDoc.specialty) {
+        resolvedDept = doctorDoc.specialty;
+      }
     }
 
     // ------------------------------
@@ -136,12 +153,13 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     // ------------------------------
     // 4. SYNC TO DIABETES RECORD FOR BACKWARD COMPATIBILITY
     // ------------------------------
+    let syncRecord: any = null;
     try {
       const d = visitDate ? new Date(visitDate) : new Date();
       const examDateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
       const examTimeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
-      await DiabetesRecord.create({
+      syncRecord = await DiabetesRecord.create({
         patientId,
         doctorId: doctorDoc?._id || doctorId,
         patientName,
@@ -149,7 +167,7 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
         examinationDate: examDateStr,
         examinationTime: examTimeStr,
         doctorName,
-        departmentName: "Nội tiết",
+        departmentName: resolvedDept,
         gender,
         age: age.toString(),
         urea: metrics?.urea?.toString() || "",
@@ -198,6 +216,19 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     record.blockNumber = blockNumber;
     record.blockchainIndex = blockchainIndex;
     await record.save();
+
+    if (syncRecord) {
+      try {
+        syncRecord.pdfUrl = ipfsUrl;
+        syncRecord.pdfHash = pdfHash;
+        syncRecord.ipfsHash = ipfsCID;
+        syncRecord.blockchainTx = txHash;
+        await syncRecord.save();
+        console.log("Updated DiabetesRecord with IPFS and Blockchain info successfully");
+      } catch (syncUpdateErr) {
+        console.error("Failed to update syncRecord with IPFS/blockchain info:", syncUpdateErr);
+      }
+    }
 
     try { fs.unlinkSync(pdfPath); } catch {}
 

@@ -46,8 +46,8 @@ class _ManagePriceScreenState extends State<ManagePriceScreen> {
     }
   }
 
-  Future<void> updatePrice(String departmentId) async {
-    final priceText = priceControllers[departmentId]?.text ?? "";
+  Future<void> updatePrice(String specialtyId) async {
+    final priceText = priceControllers[specialtyId]?.text ?? "";
 
     if (priceText.isEmpty) return;
 
@@ -60,7 +60,7 @@ class _ManagePriceScreenState extends State<ManagePriceScreen> {
     }
 
     try {
-      //await DepartmentService.updateDepartmentPrice(departmentId, price);
+      //await DepartmentService.updateDepartmentPrice(specialtyId, price);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

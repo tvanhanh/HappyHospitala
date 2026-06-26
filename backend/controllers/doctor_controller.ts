@@ -26,7 +26,7 @@ export const addDoctors = async (req: Request, res: Response) => {
     const newDoctors = new Doctor({
       userId: newUser._id,
       bio: specialization,
-      departmentId: specialtyId || undefined,
+      specialtyId: specialtyId || undefined,
       roomId: roomId || undefined,
       profile_status: 'ACTIVE'
     });
@@ -56,20 +56,41 @@ export const addDoctors = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Lỗi máy chủ" });
   }
 };
-
 export const getDoctors = async (req: Request, res: Response) => {
   try {
-    const doctors = await User.find({ role: "doctor" }).select("-password");
+    // 1. Phải lấy từ bảng Doctor (Hồ sơ) chứ KHÔNG PHẢI bảng User
+    const doctors = await Doctor.find({ /* điều kiện của bạn */ })
+      .populate('userId', 'fullName email avatar') // Gộp thông tin User vào
+      .populate('specialtyId', 'name');
+
+    // 2. Chế biến lại dữ liệu trước khi gửi cho Flutter
+    const formattedDoctors = doctors.map(doc => {
+      // Ép kiểu an toàn để tránh lỗi TypeScript
+      const user = doc.userId as any; 
+      const spec = doc.specialtyId as any;
+
+      return {
+        _id: doc._id, // ĐÂY RỒI! ĐÂY MỚI LÀ DOCTOR ID CHUẨN ĐỂ FLUTTER GỬI ĐI!
+        userId: user ? user._id : null, // Giữ lại userId nếu app cần dùng việc khác
+        name: user ? user.fullName : 'Vô danh',
+        email: user ? user.email : '',
+        avatar: user ? user.avatar : '',
+        specialty: spec ? spec.name : '',
+        specialtyId_id: spec ? spec._id : null,
+        experience_years: doc.experience_years,
+        consultationFee: doc.consultationFee,
+        bio: doc.bio
+      };
+    });
 
     res.status(200).json({
       message: "Get doctors success",
-      data: doctors,
+      data: formattedDoctors, // Trả mảng đã format chuẩn cho Flutter
     });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 export const updateDoctorProfile = async (req: Request, res: Response): Promise<void> => {
   try {
 
@@ -93,8 +114,8 @@ export const updateDoctorProfile = async (req: Request, res: Response): Promise<
       doctorProfile = new Doctor({ userId: doctorId, profile_status: 'HIDDEN' });
     }
     
-    if (req.body.departmentId) {
-      doctorProfile.departmentId = req.body.departmentId;
+    if (req.body.specialtyId) {
+      doctorProfile.specialtyId = req.body.specialtyId;
     }
     if (req.body.bio) doctorProfile.bio = req.body.bio;
     await doctorProfile.save();
@@ -124,18 +145,16 @@ export const getDoctorById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Try finding by doctor profile ID first, populate User, Department, Room
+    // Try finding by doctor profile ID first, populate User, Department
     let doctorProfile = await Doctor.findById(id)
       .populate("userId", "-password")
-      .populate("departmentId")
-      .populate("roomId");
+      .populate("specialtyId");
 
     // If not found by Doctor ID, try finding by User ID (userId)
     if (!doctorProfile) {
       doctorProfile = await Doctor.findOne({ userId: id })
         .populate("userId", "-password")
-        .populate("departmentId")
-        .populate("roomId");
+        .populate("specialtyId");
     }
 
     if (!doctorProfile) {
@@ -143,9 +162,18 @@ export const getDoctorById = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    let roomInfo = null;
+    const assignment = await RoomAssignment.findOne({ doctorId: doctorProfile._id, status: 'active' }).populate('roomId');
+    if (assignment && assignment.roomId) {
+      roomInfo = assignment.roomId;
+    }
+
+    const result = doctorProfile.toObject();
+    (result as any).roomId = roomInfo;
+
     res.status(200).json({
       message: "Lấy thông tin bác sĩ thành công",
-      data: doctorProfile,
+      data: result,
     });
   } catch (error) {
     console.log(error);
@@ -157,11 +185,11 @@ export const getDoctorsByDepartment = async (
   res: Response
 ) => {
   try {
-    const { departmentId } = req.params;
-    console.log("Department =", req.params.departmentId);
+    const { specialtyId } = req.params;
+    console.log("Department =", req.params.specialtyId);
     const doctors = await User.find({
       role: "doctor",
-      departmentId: departmentId,
+      specialtyId: specialtyId,
       isDeleted: false,
     }).select(
       "_id name profile.avatar profile.specialty"
@@ -182,7 +210,7 @@ export const getFeaturedDoctors = async (
   try {
     const doctors = await Doctor.find()
       .limit(6)
-      .populate('departmentId', 'name')
+      .populate('specialtyId', 'name')
       .populate('userId', 'fullName email phoneNumber avatar')
       .lean();
 
@@ -194,8 +222,8 @@ export const getFeaturedDoctors = async (
         email: user?.email,
         phone: user?.phoneNumber,
         avatar: user?.avatar,
-        specialtyId: d.departmentId ? d.departmentId._id : null,
-        specialty: d.departmentId ? d.departmentId.name : null,
+        specialtyId: d.specialtyId ? d.specialtyId._id : null,
+        specialty: d.specialtyId ? d.specialtyId.name : null,
         price: d.consultationFee,
       };
     });

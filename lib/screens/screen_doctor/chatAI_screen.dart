@@ -30,7 +30,7 @@ class _DiagnosisFormScreenState extends State<DiagnosisFormScreen> {
   final vldlController = TextEditingController();
   final bmiController = TextEditingController();
 
-  String? diagnosisResult;
+  Map<String, dynamic>? diagnosisResult;
 
   // ===== CSV =====
   List<List<dynamic>> dataset = [];
@@ -138,11 +138,15 @@ class _DiagnosisFormScreenState extends State<DiagnosisFormScreen> {
     try {
       final response = await AIService.predictDisease(patientData);
       setState(() {
-        diagnosisResult = response;
+        if (response.containsKey('error')) {
+          diagnosisResult = {'prediction_label': '⚠️ Lỗi: ${response['error']}', 'error': true};
+        } else {
+          diagnosisResult = response;
+        }
       });
     } catch (e) {
       setState(() {
-        diagnosisResult = "⚠️ Lỗi kết nối server";
+        diagnosisResult = {'prediction_label': '⚠️ Lỗi kết nối server', 'error': true};
       });
     }
   }
@@ -242,53 +246,143 @@ class _DiagnosisFormScreenState extends State<DiagnosisFormScreen> {
 
               const SizedBox(height: 20),
               if (diagnosisResult != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: diagnosisResult.toString().contains("Không")
-                        ? Colors.green.shade50
-                        : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: diagnosisResult.toString().contains("Không")
-                          ? Colors.green
-                          : Colors.red,
+                Builder(builder: (context) {
+                  final res = diagnosisResult!;
+                  final bool hasError = res['error'] == true;
+                  final String label = (res['prediction_label'] ?? res['prediction'] ?? '').toString();
+                  final bool isNormal = label.contains('Không mắc');
+                  final bool isWho    = res['rule_triggered'] == true;
+                  final Map<String, dynamic> probs = res['probabilities'] is Map
+                      ? Map<String, dynamic>.from(res['probabilities'] as Map)
+                      : {};
+                  final String advice = (res['clinical_advice'] ?? '').toString();
+
+                  double parsePct(String? s) =>
+                      double.tryParse((s ?? '').replaceAll('%', '').trim()) ?? 0.0;
+
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: hasError
+                          ? Colors.orange.shade50
+                          : isNormal
+                              ? Colors.green.shade50
+                              : Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: hasError
+                            ? Colors.orange
+                            : isNormal
+                                ? Colors.green
+                                : Colors.red,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        diagnosisResult.toString().contains("Không")
-                            ? Icons.check_circle
-                            : Icons.warning,
-                        color: diagnosisResult.toString().contains("Không")
-                            ? Colors.green
-                            : Colors.red,
-                        size: 30,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          formatResult(diagnosisResult),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            height: 1.5,
-                            color: diagnosisResult.toString().contains("Không")
-                                ? Colors.green.shade900
-                                : Colors.red.shade900,
-                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              hasError
+                                  ? Icons.error_outline
+                                  : isNormal
+                                      ? Icons.check_circle
+                                      : Icons.warning,
+                              color: hasError
+                                  ? Colors.orange
+                                  : isNormal
+                                      ? Colors.green
+                                      : Colors.red,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Kết quả chẩn đoán AI',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    label.isNotEmpty ? label : 'Không xác định',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: isNormal
+                                          ? Colors.green.shade900
+                                          : Colors.red.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isWho)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text('WHO ≥6.5%',
+                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                        if (probs.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Divider(),
+                          const SizedBox(height: 8),
+                          const Text('Xác suất (Custom KNN)',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+                          const SizedBox(height: 8),
+                          _buildBar('Bình thường',   parsePct(probs['Normal']?.toString()),     const Color(0xFF22C55E)),
+                          const SizedBox(height: 6),
+                          _buildBar('Tiền tiểu đường', parsePct(probs['Prediabetes']?.toString()), const Color(0xFFF59E0B)),
+                          const SizedBox(height: 6),
+                          _buildBar('Tiểu đường',    parsePct(probs['Diabetes']?.toString()),    const Color(0xFFEF4444)),
+                        ],
+                        if (advice.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Divider(),
+                          const SizedBox(height: 6),
+                          Text(advice,
+                              style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.5)),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBar(String label, double pct, Color color) {
+    final double fraction = (pct / 100.0).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w600)),
+            Text('${pct.toStringAsFixed(2)}%', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 3),
+        LayoutBuilder(builder: (ctx, constraints) {
+          return Stack(children: [
+            Container(height: 7, width: constraints.maxWidth,
+                decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4))),
+            Container(height: 7, width: constraints.maxWidth * fraction,
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+          ]);
+        }),
+      ],
     );
   }
 }

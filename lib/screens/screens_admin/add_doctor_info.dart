@@ -38,7 +38,7 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
   bool isFetching = true;
 
   bool loadingDepartments = true;
-  String? selectedDepartmentId;
+  String? selectedspecialtyId;
 
   final List<String> specialties = [
     "Da liễu",
@@ -104,7 +104,7 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
       specialty = profile['specialty'];
       workShift = profile['workShift'];
 
-      selectedDepartmentId = res['departmentId']?.toString();
+      selectedspecialtyId = res['specialtyId']?.toString();
       isFetching = false; // ⭐ QUAN TRỌNG
     });
   }
@@ -119,7 +119,7 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
       "avatar": avatarController.text.trim(),
       "phone": phoneController.text,
       "specialty": specialty,
-      "departmentId": selectedDepartmentId,
+      "specialtyId": selectedspecialtyId,
       "experience": experienceController.text,
       "degree": degreeController.text,
       "description": descriptionController.text,
@@ -195,7 +195,7 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: DropdownButtonFormField<String>(
-                  value: selectedDepartmentId,
+                  value: selectedspecialtyId,
                   decoration: InputDecoration(
                     labelText: "Khoa",
                     filled: true,
@@ -220,7 +220,7 @@ class _AddDoctorInfoScreenState extends State<AddDoctorInfoScreen> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      selectedDepartmentId = value;
+                      selectedspecialtyId = value;
                     });
                   },
                 ),

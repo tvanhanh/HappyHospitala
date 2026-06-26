@@ -21,7 +21,7 @@ class PremiumProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse('$baseUrl/premiums/packages'));
+      final response = await http.get(Uri.parse('$baseUrl/api/premiums/packages'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success']) {
@@ -74,7 +74,7 @@ class PremiumProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/premiums/packages'),
+        Uri.parse('$baseUrl/api/premiums/packages'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json'
@@ -98,7 +98,7 @@ class PremiumProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/premiums/packages/$id'),
+        Uri.parse('$baseUrl/api/premiums/packages/$id'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

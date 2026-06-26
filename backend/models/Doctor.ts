@@ -2,9 +2,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IDoctor extends Document {
   userId: mongoose.Types.ObjectId;
-  departmentId?: mongoose.Types.ObjectId;
-  roomId?: mongoose.Types.ObjectId; // Liên kết tới Phòng khám vật lý
-  specialty?: string;              // Chuyên môn sâu (nếu cần)
+  specialtyId?: mongoose.Types.ObjectId; // ✅ Đổi thành specialtyId (Chuyên khoa gốc)
+  // ❌ Đã xóa roomId (Vì Phòng khám sẽ được phân công linh hoạt qua bảng DoctorSchedule)
+  specialty?: string;              // Tên chuyên môn sâu viết tay (VD: Tim mạch nhi, Da liễu thẩm mỹ...)
   experience_years?: number;
   education: Array<{
     degree: string;
@@ -23,9 +23,8 @@ export interface IDoctor extends Document {
 const doctorSchema = new Schema<IDoctor>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-    departmentId: { type: Schema.Types.ObjectId, ref: 'Departments' },
-    roomId: { type: Schema.Types.ObjectId, ref: 'Room' }, // Thêm tham chiếu đến bảng Phòng
-    specialty: { type: String }, // Lưu tên chuyên môn sâu (VD: Tim mạch, Hô hấp...)
+    specialtyId: { type: Schema.Types.ObjectId, ref: 'Specialty' }, // ✅ Trỏ đúng về bảng Specialty
+    specialty: { type: String }, 
     experience_years: { type: Number, default: 0 },
     education: [
       {
@@ -47,8 +46,8 @@ const doctorSchema = new Schema<IDoctor>(
   { timestamps: true }
 );
 
-// Tạo Index để tối ưu truy vấn
-doctorSchema.index({ departmentId: 1, profile_status: 1 });
+// ✅ Cập nhật lại Index để tối ưu truy vấn theo specialtyId mới
+doctorSchema.index({ specialtyId: 1, profile_status: 1 });
 
 const Doctor = mongoose.model<IDoctor>('Doctor', doctorSchema);
 export default Doctor;

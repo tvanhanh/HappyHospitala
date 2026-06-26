@@ -198,7 +198,7 @@ class _RoleResponsiveScaffoldState extends State<RoleResponsiveScaffold> {
                   ),
                 ),
                 Text(
-                  'Smart Clinic',
+                  'HappyClinic',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 12,
@@ -372,7 +372,7 @@ class _RoleResponsiveScaffoldState extends State<RoleResponsiveScaffold> {
                 ),
               ),
               Text(
-                'Smart Clinic System',
+                'HappyClinic System',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.75),
                   fontSize: 13,

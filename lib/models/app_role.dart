@@ -1,4 +1,4 @@
-/// Defines the canonical set of user roles supported by the Smart Clinic system.
+/// Defines the canonical set of user roles supported by the HappyClinic system.
 ///
 /// This enum is the single source of truth for role-based access control (RBAC)
 /// across all Flutter screens. It mirrors the `role` enum defined in

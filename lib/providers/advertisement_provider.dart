@@ -23,7 +23,7 @@ class AdvertisementProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/advertisements'),
+        Uri.parse('$baseUrl/api/advertisements'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -73,7 +73,7 @@ class AdvertisementProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/advertisements/$id'),
+        Uri.parse('$baseUrl/api/advertisements/$id'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

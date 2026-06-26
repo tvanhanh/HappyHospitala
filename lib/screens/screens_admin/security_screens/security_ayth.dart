@@ -280,7 +280,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: AppBar(),
       body: Column(
         children: [
           _buildTopBar(),
@@ -317,49 +316,53 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildTopBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       decoration: const BoxDecoration(
         color: kPrimaryColor,
         borderRadius: BorderRadius.only(
             bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              TextField(
-                controller: searchController,
-                onChanged: _filterUsers,
-                decoration: InputDecoration(
-                  hintText: "Tìm theo tên, email...",
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                ),
+      // 1. Thêm căn chỉnh lên top thay vì dùng widget Center
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: Column(
+          // 2. Ép Column co lại vừa đúng với nội dung bên trong nó
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+                height:
+                    10), // Lưu ý: Nếu có SafeArea, bạn có thể cân nhắc bỏ khoảng trống này
+            TextField(
+              controller: searchController,
+              onChanged: _filterUsers,
+              decoration: InputDecoration(
+                hintText: "Tìm theo tên, email...",
+                prefixIcon: const Icon(Icons.search, color: kPrimaryColor),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildStatBadge("Tổng: ${users.length}", Colors.white24),
-                  _buildStatBadge(
-                      "Admin: ${users.where((u) => u['role'] == 'admin').length}",
-                      kAdminColor),
-                  _buildStatBadge(
-                      "Active: ${users.where((u) => u['status'] == 'activity').length}",
-                      kActiveColor),
-                ],
-              )
-            ],
-          ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildStatBadge("Tổng: ${users.length}", Colors.white24),
+                _buildStatBadge(
+                    "Admin: ${users.where((u) => u['role'] == 'admin').length}",
+                    kAdminColor),
+                _buildStatBadge(
+                    "Active: ${users.where((u) => u['status'] == 'activity').length}",
+                    kActiveColor),
+              ],
+            )
+          ],
         ),
       ),
     );

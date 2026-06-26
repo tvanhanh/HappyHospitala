@@ -58,7 +58,7 @@ export const getOwnDoctorProfile = async (req: Request, res: Response) => {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
-    let doctorProfile = await Doctor.findOne({ userId }).populate('departmentId').populate('roomId');
+    let doctorProfile = await Doctor.findOne({ userId }).populate('specialtyId');
     
     // Auto-create an empty profile if not found for legacy users
     if (!doctorProfile) {
@@ -181,7 +181,7 @@ export const getActiveDoctorsForPatients = async (req: Request, res: Response) =
   try {
     // Mandatory Filter: WHERE profile_status = 'ACTIVE'
     const activeDoctors = await Doctor.find({ profile_status: 'ACTIVE' })
-      .populate('departmentId', 'name')
+      .populate('specialtyId', 'name')
       .populate('userId', 'fullName email phoneNumber avatar')
       .lean();
 
@@ -197,8 +197,8 @@ export const getActiveDoctorsForPatients = async (req: Request, res: Response) =
         bio: d.bio,
         experience_years: d.experience_years,
         certifications: d.certifications_urls,
-        departmentId: d.departmentId ? (d.departmentId as any)._id : null,
-        specialty: d.departmentId ? (d.departmentId as any).name : null,
+        specialtyId: d.specialtyId ? (d.specialtyId as any)._id : null,
+        specialty: d.specialtyId ? (d.specialtyId as any).name : null,
         price: d.consultationFee,
       };
     });

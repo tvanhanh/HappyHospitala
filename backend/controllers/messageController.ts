@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { MessageModel } from '../models/Message';
 import { ChatRoomModel } from '../models/Room_mes_model';
-import User from '../models/User'
+import User from '../models/User';
+import { emitToRole, emitToUser } from '../services/socket.service';
 
 // ─── 1. LẤY LỊCH SỬ CHAT (DÀNH CHO LỄ TÂN CLICK CHỌN PHÒNG) ───────────────────
 export const getMessages = async (req: Request, res: Response): Promise<void> => {
@@ -85,6 +86,15 @@ export const createMessage = async (req: Request, res: Response): Promise<void> 
       },
       { upsert: true, new: true }
     );
+
+    // Phát sự kiện Socket.io
+    if (isPatient) {
+      emitToRole('receptionist', 'new_message', newMessage);
+    } else {
+      emitToUser(targetRoomId.toString(), 'new_message', newMessage);
+      // Gửi cho receptionist khác (hoặc chính mình trên tab khác) để cập nhật
+      emitToRole('receptionist', 'new_message', newMessage);
+    }
 
     res.status(201).json({ 
       success: true, 
@@ -224,6 +234,15 @@ export const updateMessage = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // Phát sự kiện
+    const isPatient = req.user?.role !== 'receptionist';
+    if (isPatient) {
+      emitToRole('receptionist', 'message_updated', updatedMessage);
+    } else {
+      emitToUser(updatedMessage.roomId.toString(), 'message_updated', updatedMessage);
+      emitToRole('receptionist', 'message_updated', updatedMessage);
+    }
+
     res.status(200).json({ success: true, data: updatedMessage });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -244,6 +263,15 @@ export const deleteSingleMessage = async (req: Request, res: Response): Promise<
     if (!deletedMessage) {
       res.status(404).json({ success: false, message: 'Không tìm thấy hoặc bạn không có quyền xóa tin nhắn này.' });
       return;
+    }
+
+    // Phát sự kiện
+    const isPatient = req.user?.role !== 'receptionist';
+    if (isPatient) {
+      emitToRole('receptionist', 'message_deleted', { messageId, roomId: deletedMessage.roomId });
+    } else {
+      emitToUser(deletedMessage.roomId.toString(), 'message_deleted', { messageId, roomId: deletedMessage.roomId });
+      emitToRole('receptionist', 'message_deleted', { messageId, roomId: deletedMessage.roomId });
     }
 
     res.status(200).json({ success: true, message: 'Tin nhắn đã được gỡ bỏ.' });

@@ -62,7 +62,7 @@ class _MedicalRecordCardState extends State<MedicalRecordCard> {
   String _formatDate(dynamic visitDate) {
     if (visitDate == null) return "N/A";
     try {
-      final parsed = DateTime.parse(visitDate.toString());
+      final parsed = DateTime.parse(visitDate.toString()).toLocal();
       return DateFormat('dd/MM/yyyy HH:mm').format(parsed);
     } catch (_) {
       return visitDate.toString();
@@ -72,7 +72,7 @@ class _MedicalRecordCardState extends State<MedicalRecordCard> {
   @override
   Widget build(BuildContext context) {
     final isTampered = widget.record['isTampered'] == true;
-    final doctorName = widget.record['doctorName'] ?? "Bác sĩ của Smart Clinic";
+    final doctorName = widget.record['doctorName'] ?? "Bác sĩ của HappyClinic";
     final symptoms = widget.record['symptoms'] ?? "Không có ghi nhận";
     final diagnosis = widget.record['diagnosis'] ?? "Không có ghi nhận";
     final treatment = widget.record['treatment'] ?? "Không có ghi nhận";

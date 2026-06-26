@@ -140,7 +140,7 @@ final appointmentStatusProvider = FutureProvider<List<ChartData>>((ref) async {
 
   // Gọi API lấy thống kê trạng thái lịch hẹn (VD: pending, confirmed, completed, cancelled)
   final res = await http.get(
-    Uri.parse('$baseUrl/appointments/appointment-status'),
+    Uri.parse('$baseUrl/api/appointments/appointment-status'),
     headers: {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',

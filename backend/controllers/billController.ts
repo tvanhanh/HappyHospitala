@@ -21,63 +21,67 @@ export const createBill = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    // 🟢 ĐÃ ĐỒNG BỘ: Đón nhận chính xác mảng 'medicines' từ BillModel của Flutter
-    const orderMedicines = req.body.medicines; 
-    if (!orderMedicines || !Array.isArray(orderMedicines) || orderMedicines.length === 0) {
+    // 🟢 ĐÃ ĐỒNG BỘ: Đón nhận chính xác mảng 'medicines' và 'services' từ BillModel của Flutter
+    const orderMedicines = req.body.medicines || [];
+    const orderServices = req.body.services || [];
+    
+    if (orderMedicines.length === 0 && orderServices.length === 0) {
       res.status(400).json({
         success: false,
-        message: 'Hóa đơn phải chứa ít nhất một mặt hàng thuốc để thực hiện xuất trừ kho.'
+        message: 'Hóa đơn phải chứa ít nhất một dịch vụ hoặc thuốc để thanh toán.'
       });
       await session.abortTransaction();
       session.endSession();
       return;
     }
 
-    // 2. VÒNG LẶP DUYỆT QUA TỪNG THUỐC ĐỂ KHẤU TRỪ LÔ KHO (FIFO)
-    for (const item of orderMedicines) {
-      // 🟢 ĐÃ ĐỒNG BỘ: Ép kiểu 'quantity' từ String (Flutter) sang Number an toàn ở NodeJS
-      let requiredQty = parseInt(item.quantity?.toString() || '0', 10); 
-      
-      // 🟢 ĐÃ ĐỒNG BỘ: Đọc trường 'id' đại diện cho mã thuốc theo đúng cấu trúc BillMedicineItem
-      const medicineId = item.id; 
-      const medicineName = item.name || 'Thuốc';
+    // 2. VÒNG LẶP DUYỆT QUA TỪNG THUỐC ĐỂ KHẤU TRỪ LÔ KHO (FIFO) (Chỉ chạy nếu có thuốc)
+    if (orderMedicines.length > 0) {
+      for (const item of orderMedicines) {
+        // 🟢 ĐÃ ĐỒNG BỘ: Ép kiểu 'quantity' từ String (Flutter) sang Number an toàn ở NodeJS
+        let requiredQty = parseInt(item.quantity?.toString() || '0', 10); 
+        
+        // 🟢 ĐÃ ĐỒNG BỘ: Đọc trường 'id' đại diện cho mã thuốc theo đúng cấu trúc BillMedicineItem
+        const medicineId = item.id; 
+        const medicineName = item.name || 'Thuốc';
 
-      if (!medicineId || requiredQty <= 0) continue;
+        if (!medicineId || requiredQty <= 0) continue;
 
-      // Tìm các lô hàng khả dụng của thuốc này
-      const activeBatches = await Inventory.find({
-        medicineId: medicineId,
-        currentQuantity: { $gt: 0 }, 
-        status: 'active',            
-        expiryDate: { $gt: new Date() } 
-      })
-      .sort({ expiryDate: 1 }) // Hạn dùng gần nhất xuất trước
-      .session(session);
+        // Tìm các lô hàng khả dụng của thuốc này
+        const activeBatches = await Inventory.find({
+          medicineId: medicineId,
+          currentQuantity: { $gt: 0 }, 
+          status: 'active',            
+          expiryDate: { $gt: new Date() } 
+        })
+        .sort({ expiryDate: 1 }) // Hạn dùng gần nhất xuất trước
+        .session(session);
 
-      // Tính tổng số lượng thực tế hiện có của toàn bộ các lô gộp lại
-      const totalAvailable = activeBatches.reduce((sum, b) => sum + b.currentQuantity, 0);
-      if (totalAvailable < requiredQty) {
-        throw new Error(`Thuốc [${medicineName}] không đủ số lượng trong kho! (Yêu cầu: ${requiredQty}, Hiện có: ${totalAvailable})`);
-      }
-
-      // Thực hiện cấu trúc trừ cuốn chiếu số lượng
-      for (const batch of activeBatches) {
-        if (requiredQty <= 0) break;
-
-        if (batch.currentQuantity >= requiredQty) {
-          batch.currentQuantity -= requiredQty;
-          requiredQty = 0;
-        } else {
-          requiredQty -= batch.currentQuantity;
-          batch.currentQuantity = 0;
+        // Tính tổng số lượng thực tế hiện có của toàn bộ các lô gộp lại
+        const totalAvailable = activeBatches.reduce((sum, b) => sum + b.currentQuantity, 0);
+        if (totalAvailable < requiredQty) {
+          throw new Error(`Thuốc [${medicineName}] không đủ số lượng trong kho! (Yêu cầu: ${requiredQty}, Hiện có: ${totalAvailable})`);
         }
 
-        // Tự động chuyển trạng thái nếu lô hàng cạn kiệt số lượng
-        if (batch.currentQuantity === 0) {
-          batch.status = 'out_of_stock';
-        }
+        // Thực hiện cấu trúc trừ cuốn chiếu số lượng
+        for (const batch of activeBatches) {
+          if (requiredQty <= 0) break;
 
-        await batch.save({ session });
+          if (batch.currentQuantity >= requiredQty) {
+            batch.currentQuantity -= requiredQty;
+            requiredQty = 0;
+          } else {
+            requiredQty -= batch.currentQuantity;
+            batch.currentQuantity = 0;
+          }
+
+          // Tự động chuyển trạng thái nếu lô hàng cạn kiệt số lượng
+          if (batch.currentQuantity === 0) {
+            batch.status = 'out_of_stock';
+          }
+
+          await batch.save({ session });
+        }
       }
     }
 

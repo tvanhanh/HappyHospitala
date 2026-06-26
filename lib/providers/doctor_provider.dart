@@ -25,15 +25,15 @@ final doctorProvider =
         price: map['consultationFee']?.toString() ?? '0',
         email: map['email']?.toString() ?? '',
         description: map['bio']?.toString() ?? '',
-        departmentId: map['specialtyId_id']?.toString() ?? '',
-        specialtyId: map['specialtyId_id']?.toString(),
-        roomId: map['roomId_id']?.toString(),
+        specialtyId: map['specialtyId']?.toString() ?? '',
+        roomId: map['roomId']?.toString(),
       );
     }).toList();
   } catch (e) {
     return [];
   }
 });
+final doctorSpecialtyProvider = StateProvider<String>((ref) => '');
 
 /// Exposes all active doctors (for admin assignment matching).
 final activeDoctorsProvider =

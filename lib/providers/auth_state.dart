@@ -1,14 +1,4 @@
-/// Defines the shape of the authentication session state.
-///
-/// This immutable data class is held by [AuthNotifier] and broadcast
-/// to all widgets via Riverpod's `ref.watch(authProvider)`.
-///
-/// State transitions:
-/// - App start → [AuthState.initial] (loading = true)
-/// - Token found & valid → [AuthState] with populated fields
-/// - No token / expired → [AuthState.unauthenticated]
-/// - Login success → full [AuthState]
-/// - Logout → [AuthState.unauthenticated]
+
 library;
 
 import 'package:flutter_application_datlichkham/models/app_role.dart';

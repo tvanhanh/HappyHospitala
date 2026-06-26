@@ -1,7 +1,7 @@
 import { RequestHandler, Router } from 'express';
 import multer from 'multer';
 
-import { register,registerByAdmin,login,verifyOtp,logout,  } from '../controllers/auth.controller';
+import { register,registerByAdmin,login,verifyOtp,logout, sendOtpRegister, googleLogin, sendOtpForgot, resetPassword } from '../controllers/auth.controller';
 import { verifyToken, isAdmin,  } from '../middleware/auth';
 import{updateUserInfor,getUserInfor,changePassword, updateProfile,  getProfile,
     changePassWord,} from '../controllers/user_controller';
@@ -12,7 +12,7 @@ import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
 import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,getDoctorAccessRequestsHistory,verifyMedicalRecordIntegrity, requestAccess,approveAccessRequest,viewMedicalRecordPdf,respondToAccessRequest,getMedicalRecordDetailForDoctor} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
-import { predictDiabetes, predictResourcePPO } from '../controllers/predictController';
+import { predictDiabetes, predictResourcePPO, predictSkin } from '../controllers/predictController';
 import { getAllMedicineCategories, createMedicineCategory } from "../controllers/categoryOfMedicineController";
 import { createSupplier ,deleteSupplier,updateSupplier,getAllSuppliers} from '../controllers/supplier_controller';
 import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine } from '../controllers/medicineController';
@@ -36,6 +36,10 @@ router.put("/change-password", changePassword);
 router.post('/register-by-admin', verifyToken, isAdmin, registerByAdmin);
 router.put("/api-changePassWord", verifyToken,changePassWord);
 router.post("/verify-otp", verifyOtp);
+router.post("/send-otp-register", sendOtpRegister);
+router.post("/google-login", googleLogin);
+router.post("/send-otp-forgot", sendOtpForgot);
+router.post("/reset-password", resetPassword);
 
 
 // Routes of get Users
@@ -110,14 +114,21 @@ router.post('/check-stock' ,verifyToken, checkMedicinesStock);
  router.get('/get_bills',verifyToken, getBills);
  router.get('/get_bill/:id',verifyToken, getBillById);
  // messenger
-router.get('/get_messages',verifyToken, getMessages);
-// Gửi tin nhắn (Hỗ trợ text đơn thuần hoặc đính kèm File nhận trực tiếp vào RAM tối đa 10MB)
-router.post('/messages', upload.single('file'),verifyToken, createMessage);
-router.get('/get_chat_rooms', verifyToken, getChatRooms);
-router.get('/patient/messages', verifyToken, getPatientMessages);
-router.delete('/patient/chat', verifyToken, deletePatientChat);
-router.put('/messages/update', verifyToken, updateMessage);
-router.delete('/messages/delete/:messageId', verifyToken, deleteSingleMessage);
+ router.get('/get_messages',verifyToken, getMessages);
+ // Gửi tin nhắn (Hỗ trợ text đơn thuần hoặc đính kèm File nhận trực tiếp vào RAM tối đa 10MB)
+ router.post('/messages', upload.single('file'),verifyToken, createMessage);
+ router.get('/get_chat_rooms', verifyToken, getChatRooms);
+ router.get('/patient/messages', verifyToken, getPatientMessages);
+ router.delete('/patient/chat', verifyToken, deletePatientChat);
+ router.put('/messages/update', verifyToken, updateMessage);
+ router.delete('/messages/delete/:messageId', verifyToken, deleteSingleMessage);
+ router.post("/api_predict_skin", upload.single('file'), verifyToken, predictSkin);
+
+ // Fallback cho chat_screen.dart (để tránh 404 khi gọi trực tiếp GET /messages/:roomId)
+ router.get('/messages/:roomId', verifyToken, async (req: any, res: any) => {
+   req.query.roomId = req.params.roomId;
+   return getMessages(req, res);
+ });
 
 // Endpoint truyền ID tham số: /api/suppliers/:id
 router.put('/update_supplier/:id', verifyToken, updateSupplier);

@@ -17,6 +17,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 
+import '../../models/appointment.dart';
+import '../../services/api_appointment.dart';
 import '../../services/socket_service.dart';
 import '../../services/config.dart';
 import '../../providers/booking_provider.dart';
@@ -315,6 +317,9 @@ class ChatRoomScreen extends StatefulWidget {
   final String doctorName;
   final String doctorAvatar;
   final String specialty;
+  final String? patientId;
+  final String? patientName;
+  final String? patientAvatar;
 
   const ChatRoomScreen({
     super.key,
@@ -322,6 +327,9 @@ class ChatRoomScreen extends StatefulWidget {
     required this.doctorName,
     required this.doctorAvatar,
     required this.specialty,
+    this.patientId,
+    this.patientName,
+    this.patientAvatar,
   });
 
   @override
@@ -333,11 +341,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isLoading = true;
-  bool _isTyping = false; // Doctor is typing indicator
+  bool _isTyping = false; // Doctor/Patient is typing indicator
   String _myId = '';
   String _myName = '';
   String _roomId = '';
+  String _role = 'patient';
+  String _partnerName = '';
+  String _partnerAvatar = '';
+  String _partnerSub = '';
   Timer? _typingTimer;
+  bool _isChatLocked = false;
 
   @override
   void initState() {
@@ -355,17 +368,43 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     SocketService.instance.off('receive_message');
     SocketService.instance.off('typing');
     SocketService.instance.off('stop_typing');
+    SocketService.instance.off('session_locked');
     super.dispose();
   }
 
   Future<void> _initialize() async {
     final prefs = await SharedPreferences.getInstance();
     _myId = prefs.getString('userId') ?? '';
-    _myName = prefs.getString('name') ?? 'Bệnh nhân';
-    _roomId = 'chat:${_myId}_${widget.doctorId}';
+    _myName = prefs.getString('name') ?? 'Người dùng';
+    _role = prefs.getString('role') ?? 'patient';
+
+    if (_role == 'doctor') {
+      final pId = widget.patientId ?? '';
+      _roomId = 'chat:${pId}_${_myId}';
+      _partnerName = widget.patientName ?? 'Bệnh nhân';
+      _partnerAvatar = widget.patientAvatar ?? '';
+      _partnerSub = 'Bệnh nhân';
+    } else {
+      _roomId = 'chat:${_myId}_${widget.doctorId}';
+      _partnerName = widget.doctorName;
+      _partnerAvatar = widget.doctorAvatar;
+      _partnerSub = widget.specialty.isNotEmpty ? widget.specialty : 'Bác sĩ';
+    }
 
     // Join socket room
     SocketService.instance.emit('join_room', {'roomId': _roomId});
+
+    // Listen for room lock
+    SocketService.instance.on('session_locked', (data) {
+      if (mounted) {
+        setState(() {
+          _isChatLocked = true;
+        });
+      }
+    });
+
+    // Check lock status from server
+    _checkLockStatus();
 
     // Listen for incoming messages
     SocketService.instance.on('receive_message', (data) {
@@ -392,6 +431,36 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
     if (mounted) setState(() => _isLoading = false);
     _scrollToBottom(animate: false);
+  }
+
+  Future<void> _checkLockStatus() async {
+    try {
+      List<Appointment> appts;
+      if (_role == 'doctor') {
+        appts = await AppointmentApi.getByDoctor();
+      } else {
+        appts = await AppointmentApi.getByPatient();
+      }
+      
+      final String patientId = _role == 'doctor' ? (widget.patientId ?? '') : _myId;
+      final String doctorId = _role == 'doctor' ? _myId : widget.doctorId;
+
+      for (var ap in appts) {
+        if (ap.appointmentType == 'online' &&
+            ap.patientId == patientId &&
+            ap.doctorId == doctorId &&
+            ap.isLocked) {
+          if (mounted) {
+            setState(() {
+              _isChatLocked = true;
+            });
+          }
+          break;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking chat lock status: $e');
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -442,7 +511,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       'content': content,
       'senderId': _myId,
       'senderName': _myName,
-      'recipientId': widget.doctorId,
+      'recipientId': _role == 'doctor' ? widget.patientId : widget.doctorId,
       'sentAt': msg.sentAt.toIso8601String(),
     });
 
@@ -489,10 +558,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           final msg = _messages[i];
                           final isMine = msg.senderId == _myId;
                           final showDate = i == 0 ||
-                              !_sameDay(_messages[i - 1].sentAt, msg.sentAt);
+                              !_sameDay(_messages[i - 1].sentAt.toLocal(), msg.sentAt.toLocal());
                           return Column(
                             children: [
-                              if (showDate) _DateDivider(date: msg.sentAt),
+                              if (showDate) _DateDivider(date: msg.sentAt.toLocal()),
                               _MessageBubble(message: msg, isMine: isMine),
                             ],
                           );
@@ -525,7 +594,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       const _TypingDot(delay: 400),
                       const SizedBox(width: 6),
                       Text(
-                        '${widget.doctorName} đang nhập...',
+                        '$_partnerName đang nhập...',
                         style: TextStyle(
                             color: Colors.grey.shade500, fontSize: 12),
                       ),
@@ -557,10 +626,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           CircleAvatar(
             radius: 18,
             backgroundColor: Colors.white.withOpacity(0.2),
-            backgroundImage: widget.doctorAvatar.isNotEmpty
-                ? NetworkImage(widget.doctorAvatar)
+            backgroundImage: _partnerAvatar.isNotEmpty
+                ? NetworkImage(_partnerAvatar)
                 : null,
-            child: widget.doctorAvatar.isEmpty
+            child: _partnerAvatar.isEmpty
                 ? const Icon(Icons.person, color: Colors.white, size: 20)
                 : null,
           ),
@@ -570,16 +639,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.doctorName,
+                  _partnerName,
                   style: const TextStyle(
                       fontSize: 15, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   _isTyping
                       ? 'Đang nhập...'
-                      : widget.specialty.isNotEmpty
-                          ? widget.specialty
-                          : 'Bác sĩ',
+                      : _partnerSub,
                   style: TextStyle(
                       fontSize: 11, color: Colors.white.withOpacity(0.8)),
                 ),
@@ -604,6 +671,35 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Widget _buildInputBar() {
+    if (_isChatLocked) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFF3E0),
+          border: Border(top: BorderSide(color: Color(0xFFFFE0B2), width: 1)),
+        ),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        child: const SafeArea(
+          child: Row(
+            children: [
+              Icon(Icons.lock_outline_rounded, color: Colors.orange, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Phiên khám đã kết thúc. Khung chat chuyển sang chế độ Chỉ đọc.",
+                  style: TextStyle(
+                    color: Color(0xFFE65100),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       color: Colors.white,
       padding: EdgeInsets.fromLTRB(
@@ -687,7 +783,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Hỏi bác sĩ về sức khỏe của bạn',
+            _role == 'doctor' ? 'Bắt đầu tư vấn cho bệnh nhân' : 'Hỏi bác sĩ về sức khỏe của bạn',
             style: TextStyle(color: Colors.grey.shade500),
           ),
         ],
@@ -764,7 +860,7 @@ class _MessageBubble extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          DateFormat('HH:mm').format(message.sentAt),
+                          DateFormat('HH:mm').format(message.sentAt.toLocal()),
                           style: TextStyle(
                             color: isMine
                                 ? Colors.white.withOpacity(0.7)

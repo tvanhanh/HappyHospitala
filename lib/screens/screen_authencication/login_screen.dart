@@ -3,10 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_application_datlichkham/screens/screen_patient/home_screen.dart';
 import 'package:flutter_application_datlichkham/services/api_service.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:async';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
+import 'package:google_sign_in_web/google_sign_in_web.dart' as web;
+import '../../models/app_role.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
-//import '../screen_patient/home_screen.dart';
-import 'change_password_screen.dart';
+import 'change_password_page.dart';
 
 import '../screen_doctor/doctor_home_screen.dart';
 import '../screens_admin/admin_dashboard.dart';
@@ -14,7 +18,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? email;
+  final String? password;
+
+  const LoginScreen({super.key, this.email, this.password});
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -23,7 +30,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String email = '', password = '';
+  String email = "";
+  String password = "";
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.email != null) {
+      _emailController.text = widget.email!;
+      email = widget.email!;
+    }
+    if (widget.password != null) {
+      _passwordController.text = widget.password!;
+      password = widget.password!;
+    }
+
+    // Lắng nghe sự kiện đăng nhập của Google Sign In (cho cả web và các nền tảng khác)
+    _authSubscription = GoogleSignIn.instance.authenticationEvents.listen((event) async {
+      if (event is GoogleSignInAuthenticationEventSignIn) {
+        final GoogleSignInAccount googleUser = event.user;
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final idToken = googleAuth.idToken;
+
+        if (idToken != null) {
+          final errorMsg = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
+          if (!mounted) return;
+          if (errorMsg == null) {
+            final role = ref.read(authProvider).role.value;
+            if (role == 'admin') context.go('/admin');
+            else if (role == 'patient') context.go('/home');
+            else if (role == 'doctor') context.go('/doctor');
+            else if (role == 'receptionist') context.go('/receptionist/dashboard');
+            else if (role == 'cashier') context.go('/cashier/dashboard');
+            else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
+            else context.go('/home');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      if (kIsWeb) {
+        // Trên Web, luồng đăng nhập được điều khiển hoàn toàn bởi renderButton và stream ở initState
+        return;
+      }
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        final errorMsg = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
+        if (!mounted) return;
+        if (errorMsg == null) {
+          final role = ref.read(authProvider).role.value;
+          if (role == 'admin') context.go('/admin');
+          else if (role == 'patient') context.go('/home');
+          else if (role == 'doctor') context.go('/doctor');
+          else if (role == 'receptionist') context.go('/receptionist/dashboard');
+          else if (role == 'cashier') context.go('/cashier/dashboard');
+          else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
+          else context.go('/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+        }
+      }
+    } catch (error) {
+      print("Google sign in error: $error");
+      if (error.toString().contains("canceled") || error.toString().contains("cancelled")) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi đăng nhập Google.")));
+    }
+  }
+
   bool isPasswordVisible = false;
 
   final String googleLogoPath = 'assets/google_logo.png';
@@ -41,8 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             // ✅ Giảm padding dọc tổng thể
-            padding:
-                const EdgeInsets.symmetric(vertical: 20.0, horizontal: 15.0),
+            padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
             child: SizedBox(
               width: cardWidth,
               child: Card(
@@ -62,47 +153,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ClipOval(
                           child: Image.asset(
                             'assets/logo.png',
-                            height: 90, // ✅ Giảm kích thước logo
-                            width: 90,
+                            height: 60, // ✅ Thu nhỏ logo
+                            width: 60,
                             fit: BoxFit.cover,
                           ),
                         ),
-                        SizedBox(height: 10), // ✅ Giảm khoảng cách
-                        Text(
-                          "Chăm sóc sức khỏe toàn diện - Vì bạn xứng đáng!",
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.lightBlue.shade700,
-                              fontWeight: FontWeight.w500),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 10), // ✅ Giảm khoảng cách
-
+                        SizedBox(height: 8), // ✅ Giảm khoảng cách
+                        
                         // --- TIÊU ĐỀ ---
                         Text(
                           "Chào mừng trở lại!",
                           style: TextStyle(
-                              fontSize: 24, // ✅ Giảm font size
+                              fontSize: 22, // ✅ Giảm font size
                               fontWeight: FontWeight.w900,
                               color: Colors.blue.shade900),
                         ),
                         Text(
                           "Đăng nhập để tiếp tục",
                           style: TextStyle(
-                              fontSize: 14, color: Colors.grey.shade600),
+                              fontSize: 13, color: Colors.grey.shade600),
                         ),
-                        SizedBox(height: 10), // ✅ Giữ khoảng cách vừa phải
+                        SizedBox(height: 16), // ✅ Giữ khoảng cách vừa phải
 
                         // --- INPUT FIELDS ---
-                        _buildTextField("Email", Icons.email, false,
+                        _buildTextField("Email hoặc Số điện thoại", Icons.email, false,
                             (value) => email = value!,
                             controller: _emailController),
-                        SizedBox(height: 15), // ✅ Giảm khoảng cách
+                        SizedBox(height: 12), // ✅ Giảm khoảng cách
                         _buildTextField("Mật khẩu", Icons.lock, true,
                             (value) => password = value!,
                             controller: _passwordController),
-                        SizedBox(height: 10), // ✅ Giữ khoảng cách vừa phải
+                        SizedBox(height: 20), // ✅ Giữ khoảng cách vừa phải
 
                         // --- NÚT ĐĂNG NHẬP CHÍNH ---
                         SizedBox(
@@ -169,31 +250,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                         if (kDebugMode) _buildDevQuickLogin(),
 
-                        // --- QUÊN MẬT KHẨU & ĐỔI MẬT KHẨU ---
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                context.go('/auth/change_password_page');
-                              },
-                              child: Text("Quên mật khẩu?",
-                                  style: TextStyle(
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.go('/auth/change_password_reset');
-                              },
-                              child: Text("Đổi mật khẩu",
-                                  style: TextStyle(
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
+                        // --- QUÊN MẬT KHẨU ---
+                        TextButton(
+                          onPressed: () {
+                            context.go('/auth/forgot_password');
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text("Quên mật khẩu?",
+                              style: TextStyle(
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13)),
                         ),
-                        SizedBox(height: 15), // ✅ Giảm khoảng cách
+                        SizedBox(height: 12), // ✅ Giảm khoảng cách
 
                         // --- DÒNG PHÂN CÁCH HOẶC ---
                         Row(
@@ -212,16 +285,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: Divider(color: Colors.grey.shade400)),
                           ],
                         ),
-                        SizedBox(height: 10), // ✅ Giảm khoảng cách
+                        SizedBox(height: 12), // ✅ Giảm khoảng cách
 
                         // --- NÚT ĐĂNG NHẬP MẠNG XÃ HỘI ---
-                        _buildSocialButton(
-                            "Đăng nhập với Google", googleLogoPath),
-                        SizedBox(height: 10), // ✅ Giảm khoảng cách
-
-                        _buildSocialButton(
-                            "Đăng nhập với Facebook", facebookLogoPath),
-                        SizedBox(height: 10), // ✅ Giảm khoảng cách
+                        kIsWeb
+                            ? SizedBox(
+                                width: double.infinity,
+                                height: 40, // Match design height
+                                child: (GoogleSignInPlatform.instance as web.GoogleSignInPlugin).renderButton(),
+                              )
+                            : _buildSocialButton(
+                                "Đăng nhập với Google", googleLogoPath, _handleGoogleSignIn),
+                        SizedBox(height: 16), // ✅ Giảm khoảng cách
 
                         // --- CHƯA CÓ TÀI KHOẢN ---
                         Row(
@@ -229,22 +304,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           children: [
                             Text("Chưa có tài khoản?",
                                 style: TextStyle(
-                                    color: Colors.grey.shade700, fontSize: 14)),
+                                    color: Colors.grey.shade700, fontSize: 13)),
                             TextButton(
                               onPressed: () {
                                 context.go('/auth/register');
                               },
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
                               child: Text("Đăng ký ngay",
                                   style: TextStyle(
                                       color: Colors.blue.shade700,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14)),
+                                      fontSize: 13)),
                             ),
                           ],
                         ),
-
-                        // ✅ KHOẢNG ĐỆM PHỤ QUAN TRỌNG NHẤT (Giảm nhưng vẫn giữ)
-                        SizedBox(height: 30),
+                        SizedBox(height: 8),
                       ],
                     ),
                   ),
@@ -337,14 +415,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
+        isDense: true, // Làm form gọn lại
+        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.blue.shade700),
+        labelStyle: const TextStyle(fontSize: 14),
+        prefixIcon: Icon(icon, color: Colors.blue.shade700, size: 20),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)), // ✅ Bo góc nhỏ hơn
+            borderRadius: BorderRadius.circular(10)), 
         filled: true,
         fillColor: Colors.white,
         suffixIcon: isPassword
             ? IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 icon: Icon(
                     isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                     color: Colors.grey,
@@ -364,12 +447,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// ✅ Widget tạo nút đăng nhập Google & Facebook (Đã tối ưu)
-  Widget _buildSocialButton(String text, String logoPath) {
+  Widget _buildSocialButton(String text, String logoPath, [VoidCallback? onPressed]) {
     return SizedBox(
       width: double.infinity,
       height: 45, // ✅ Giảm chiều cao nút
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: onPressed ?? () {
           print('$text clicked');
         },
         style: ElevatedButton.styleFrom(

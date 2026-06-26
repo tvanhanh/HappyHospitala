@@ -18,7 +18,7 @@ dependencies:
   go_router: ^13.0.1
   flutter_riverpod: ^2.5.1
   http: ^0.13.5
-  intl: ^0.18.1
+  intl: ^0.20.2
   logger: ^2.0.2
   fl_chart: ^0.71.0
   shared_preferences: ^2.2.0
@@ -30,11 +30,14 @@ dependencies:
   path: ^1.9.0
   dotted_border: ^2.1.0
   path_provider: ^2.1.5
-  excel: ^4.0.0      
-  open_filex: ^4.5.0 
+  excel: ^4.0.0
+  open_filex: ^4.5.0
   universal_html: ^2.3.0
   file_picker: ^8.1.7
   image_network: ^2.6.0
+  google_generative_ai: ^0.0.1-dev
+  google_sign_in: ^7.1.1
+  google_sign_in_web: any
 
 dev_dependencies:
   flutter_test:

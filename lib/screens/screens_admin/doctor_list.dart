@@ -137,71 +137,8 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
                                           const TextStyle(color: Colors.blue))),
                                   const SizedBox(height: 16),
                                 ],
-
                                 const Divider(),
                                 const SizedBox(height: 16),
-
-                                // Specialty Dropdown
-                                asyncSpecialties.when(
-                                  loading: () =>
-                                      const CircularProgressIndicator(),
-                                  error: (e, _) =>
-                                      Text('Lỗi tải Chuyên khoa: $e'),
-                                  data: (specialties) =>
-                                      DropdownButtonFormField<String>(
-                                    decoration: InputDecoration(
-                                      labelText: 'Phân Khoa',
-                                      prefixIcon: const Icon(
-                                          Icons.local_hospital,
-                                          color: _kPrimary),
-                                      border: OutlineInputBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12)),
-                                    ),
-                                    items: specialties
-                                        .map((s) => DropdownMenuItem(
-                                            value: s.id, child: Text(s.name)))
-                                        .toList(),
-                                    onChanged: (selectedId) =>
-                                        setDialogState(() {
-                                      selectedSpecialtyId = selectedId;
-                                      selectedSpecialtyName = specialties
-                                          .firstWhere((s) => s.id == selectedId)
-                                          .name;
-                                    }),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Room Dropdown
-                                asyncRooms.when(
-                                  loading: () =>
-                                      const CircularProgressIndicator(),
-                                  error: (e, _) => Text('Lỗi tải Phòng: $e'),
-                                  data: (rooms) {
-                                    final availableRooms = rooms
-                                        .where((r) => r.status == 'Available')
-                                        .toList();
-                                    return DropdownButtonFormField<String>(
-                                      decoration: InputDecoration(
-                                        labelText: 'Phân Phòng khám',
-                                        prefixIcon: const Icon(
-                                            Icons.meeting_room,
-                                            color: _kPrimary),
-                                        border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12)),
-                                      ),
-                                      items: availableRooms
-                                          .map((r) => DropdownMenuItem(
-                                              value: r.id,
-                                              child: Text(r.roomNumber)))
-                                          .toList(),
-                                      onChanged: (val) => setDialogState(
-                                          () => selectedRoom = val),
-                                    );
-                                  },
-                                ),
                               ],
                             ),
                           ),
@@ -395,16 +332,6 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
           _buildRejectedDoctorsTab(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await context.push('/admin/add-doctor');
-          if (result == true) ref.invalidate(activeDoctorsProvider);
-        },
-        backgroundColor: _kPrimary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text("Tạo Hồ Sơ"),
-      ),
     );
   }
 
@@ -418,12 +345,17 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
         if (doctors.isEmpty) {
           return const Center(child: Text('Chưa có bác sĩ nào.'));
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            return _buildDoctorCard(doctors[index], isActive: true);
-          },
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: doctors.length,
+              itemBuilder: (context, index) {
+                return _buildDoctorCard(doctors[index], isActive: true);
+              },
+            ),
+          ),
         );
       },
     );
@@ -439,12 +371,17 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
         if (doctors.isEmpty) {
           return const Center(child: Text('Không có hồ sơ chờ duyệt.'));
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            return _buildDoctorCard(doctors[index], isActive: false);
-          },
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: doctors.length,
+              itemBuilder: (context, index) {
+                return _buildDoctorCard(doctors[index], isActive: false);
+              },
+            ),
+          ),
         );
       },
     );
@@ -460,13 +397,18 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
         if (doctors.isEmpty) {
           return const Center(child: Text('Không có hồ sơ bị từ chối.'));
         }
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            return _buildDoctorCard(doctors[index],
-                isActive: false, isRejected: true);
-          },
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 850),
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: doctors.length,
+              itemBuilder: (context, index) {
+                return _buildDoctorCard(doctors[index],
+                    isActive: false, isRejected: true);
+              },
+            ),
+          ),
         );
       },
     );
@@ -677,8 +619,11 @@ class _DoctorListScreenState extends ConsumerState<DoctorListScreen>
                         final newFee =
                             int.tryParse(feeController.text.trim()) ?? 0;
                         setStateDialog(() => isUpdating = true);
+                        
+                        final targetId = doctor['user_id'] ?? doctor['_id'];
                         final msg = await DoctorService.updateDoctorFee(
-                            doctor['_id'], newFee);
+                            targetId, newFee);
+                            
                         setStateDialog(() => isUpdating = false);
 
                         if (ctx.mounted) {

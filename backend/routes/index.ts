@@ -17,6 +17,9 @@ import report_routes from "./reportRoutes";
 import room_assignment_routes from "./roomAssignmentRoutes";
 import doctor_approval_routes from "./doctorApprovalRoutes";
 import pharmacyRouter from './pharmacy';
+import scheduleRouter from './scheduleRoutes';
+import ai_routes from './aiRoutes';
+import qaRouter from './qaRoutes';
 
 const router = Router();
 
@@ -43,5 +46,8 @@ router.use('/advertisements', advertisement_routes);
 router.use('/reports', report_routes);
 router.use('/room-assignments', room_assignment_routes);
 router.use('/doctor-approval', doctor_approval_routes);
-
+router.use('/schedules', scheduleRouter);
+router.use('/ai', ai_routes);
+router.use('/qa', qaRouter);
+router.use('/services', require('./serviceRoutes').default);
 export default router;

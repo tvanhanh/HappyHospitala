@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../widgets/receptionist_drawer.dart';
 import '../../providers/patient_provider.dart';
 
@@ -33,7 +32,7 @@ class _PatientManagementScreenState extends ConsumerState<PatientManagementScree
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
-          "Phòng khám ABC - Hệ thống quản lý",
+          "HappyClinic - Hệ thống quản lý",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: kPrimaryColor,
@@ -146,18 +145,32 @@ class _PatientManagementScreenState extends ConsumerState<PatientManagementScree
                     itemCount: patients.length,
                     itemBuilder: (context, index) {
                       final p = patients[index];
-                      final userId = p['userId'] as Map<String, dynamic>? ?? {};
-                      final profile = userId['profile'] as Map<String, dynamic>? ?? {};
 
-                      final name = userId['name'] ?? userId['fullName'] ?? 'Chưa cập nhật tên';
-                      final email = userId['email'] ?? 'Không có email';
-                      final phone = profile['phone'] ?? p['phone'] ?? 'Chưa có SĐT';
-                      final cccd = p['identityCard'] ?? 'Chưa có CCCD';
-                      final bhyt = p['healthInsurance'] ?? 'Chưa có thẻ BHYT';
-                      final address = profile['address'] ?? 'Chưa cập nhật địa chỉ';
-                      final gender = p['gender'] ?? profile['gender'] ?? 'N/A';
-                      final dob = p['dateOfBirth'] ?? profile['dateOfBirth'] ?? 'N/A';
-                      final avatar = profile['avatar'] ?? '';
+                      final name = p['fullName']?.toString() ?? 'Chưa cập nhật tên';
+                      final email = p['email']?.toString() ?? 'Không có email';
+                      final phone = p['phoneNumber']?.toString() ?? 'Chưa có SĐT';
+                      final cccd = p['cccd']?.toString() ?? 'Chưa có CCCD';
+                      
+                      final rawBhyt = p['healthInsurance']?.toString() ?? '';
+                      final bhyt = rawBhyt.isNotEmpty ? rawBhyt : 'Chưa có thẻ BHYT';
+                      
+                      final rawAddress = p['address']?.toString() ?? '';
+                      final address = rawAddress.isNotEmpty ? rawAddress : 'Chưa cập nhật địa chỉ';
+                      
+                      final rawGender = p['gender']?.toString() ?? '';
+                      final gender = rawGender.isNotEmpty ? rawGender : 'N/A';
+
+                      String dob = 'N/A';
+                      if (p['dateOfBirth'] != null && p['dateOfBirth'].toString().isNotEmpty) {
+                        try {
+                          final parsedDate = DateTime.parse(p['dateOfBirth'].toString());
+                          dob = "${parsedDate.day.toString().padLeft(2, '0')}/${parsedDate.month.toString().padLeft(2, '0')}/${parsedDate.year}";
+                        } catch (_) {
+                          dob = p['dateOfBirth'].toString();
+                        }
+                      }
+                      
+                      final avatar = p['avatar']?.toString() ?? '';
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
@@ -206,21 +219,6 @@ class _PatientManagementScreenState extends ConsumerState<PatientManagementScree
                                   _buildInfoItem(Icons.wc, "Giới tính: $gender  •  Ngày sinh: $dob"),
                                 ],
                               ),
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () {
-                                    context.go('/receptionist/medical-records');
-                                  },
-                                  icon: const Icon(Icons.history_edu, size: 18),
-                                  label: const Text("Bệnh án"),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: kSecondaryColor,
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),

@@ -27,7 +27,7 @@ class ReportProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/reports/overview'),
+        Uri.parse('$baseUrl/api/reports/overview'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -87,7 +87,7 @@ class ReportProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.get(
-        Uri.parse('$baseUrl/reports/doctors'),
+        Uri.parse('$baseUrl/api/reports/doctors'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

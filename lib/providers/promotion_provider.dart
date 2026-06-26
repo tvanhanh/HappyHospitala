@@ -24,7 +24,7 @@ class PromotionProvider with ChangeNotifier {
       if (token == null) throw Exception("Chưa đăng nhập");
 
       final response = await http.get(
-        Uri.parse('$baseUrl/promotions'),
+        Uri.parse('$baseUrl/api/promotions'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -74,7 +74,7 @@ class PromotionProvider with ChangeNotifier {
       String? token = prefs.getString('auth_token');
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/promotions/$id'),
+        Uri.parse('$baseUrl/api/promotions/$id'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

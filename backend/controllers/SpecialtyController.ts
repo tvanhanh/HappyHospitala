@@ -23,10 +23,10 @@ export const createSpecialty = async (req: Request, res: Response) => {
       for (const rId of existingRoomIds) {
         const activeAssignment = await RoomAssignment.findOne({ roomId: rId, status: 'active' });
         if (activeAssignment) {
-          // Update Doctor departmentId & roomId
+          // Update Doctor specialtyId & roomId
           await Doctor.findByIdAndUpdate(
             activeAssignment.doctorId,
-            { departmentId: savedSpecialty._id, roomId: rId }
+            { specialtyId: savedSpecialty._id, roomId: rId }
           );
 
           // Save to SpecialtyRoomDoctor table
@@ -99,13 +99,9 @@ export const getDoctorsBySpecialty = async (req: Request, res: Response) => {
   try {
     const { specialtyId } = req.params;
     
-    // Find all SpecialtyRoomDoctor entries for this specialty
-    const mappings = await SpecialtyRoomDoctor.find({ specialtyId });
-    const doctorIds = mappings.map(m => m.doctorId);
-
     // Find the doctors and populate their user details
-    const doctors = await Doctor.find({ _id: { $in: doctorIds }, profile_status: 'ACTIVE' })
-      .populate('departmentId', 'name')
+    const doctors = await Doctor.find({ specialtyId, profile_status: 'ACTIVE' })
+      .populate('specialtyId', 'name')
       .populate('userId', 'fullName email phoneNumber avatar')
       .lean();
 
@@ -117,8 +113,8 @@ export const getDoctorsBySpecialty = async (req: Request, res: Response) => {
         email: user?.email,
         phone: user?.phoneNumber,
         avatar: user?.avatar,
-        specialtyId_id: d.departmentId ? d.departmentId._id : null,
-        specialty: d.departmentId ? d.departmentId.name : null,
+        specialtyId_id: d.specialtyId ? d.specialtyId._id : null,
+        specialty: d.specialtyId ? d.specialtyId.name : null,
         roomId_id: d.roomId ? d.roomId : null,
         experience: d.experience_years ? String(d.experience_years) : '0',
         price: d.consultationFee ? String(d.consultationFee) : '0',

@@ -57,7 +57,7 @@ class _ListWaitingScreenState extends ConsumerState<ListWaitingScreen> {
       backgroundColor: kBackgroundColor, // ĐÃ SỬA: Thay thế dấu chấm phẩy ';' sai cú pháp thành dấu phẩy ','
       appBar: AppBar(
         title: const Text(
-          "Hệ thống Thu ngân - Phòng khám Đa khoa Hòa Bình",
+          "Hệ thống Lễ tân - Phòng Khám Happy Clinic",
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: Colors.black87),
         ),
         backgroundColor: Colors.white,

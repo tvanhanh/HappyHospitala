@@ -171,7 +171,7 @@ class _CashierScreenState extends State<CashierScreen> {
     }
   }
 
-  // 🟢 HỘP THOẠI XÁC NHẬN ĐĂNG XUẤT (Chuẩn UI Hệ thống Smart Clinic)
+  // 🟢 HỘP THOẠI XÁC NHẬN ĐĂNG XUẤT (Chuẩn UI Hệ thống HappyClinic)
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -266,7 +266,7 @@ class _CashierScreenState extends State<CashierScreen> {
       children: [
         Text('Hệ thống Thu ngân', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.black)),
         SizedBox(height: 2),
-        Text('Phòng khám Smart Clinic', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w400)),
+        Text('Phòng khám HappyClinic', style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w400)),
       ],
     ),
     actions: [

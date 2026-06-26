@@ -10,6 +10,8 @@ import {
   getBookedSlots,
   checkSlotAvailability,
   checkInAppointment,
+  submitPreVisitData,
+  lockSession,
 } from '../controllers/appointment_controller';
 import { isAdmin, verifyToken } from "../middleware/auth";
 
@@ -23,6 +25,8 @@ router.get("/date", verifyToken, getAppointmentsByDate);
 router.get("/booked-slots", verifyToken, getBookedSlots);
 router.get("/check-slot", verifyToken, checkSlotAvailability);   // Pre-submit slot check
 router.patch("/:id/check-in", verifyToken, checkInAppointment);  // Receptionist check-in
+router.patch("/:id/pre-visit", verifyToken, submitPreVisitData);
+router.post("/:id/lock-session", verifyToken, lockSession);
 router.patch("/:id/:status", verifyToken, updateStatus);
 router.patch("/:id", verifyToken, cancelAppointment);
 router.get('/appointment-status', verifyToken, isAdmin, getAppointmentStatusChart);

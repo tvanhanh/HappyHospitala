@@ -1,26 +1,4 @@
-/// Riverpod-based authentication state management for Smart Clinic.
-///
-/// This file exposes the [authProvider] — the single source of truth for
-/// the user's login session across the entire app.
-///
-/// Usage in any widget:
-/// ```dart
-/// // Read current auth state (rebuilds widget on change)
-/// final auth = ref.watch(authProvider);
-/// if (auth.isAuthenticated) { ... }
-///
-/// // Trigger login
-/// await ref.read(authProvider.notifier).login(email, password);
-///
-/// // Logout
-/// await ref.read(authProvider.notifier).logout();
-/// ```
-///
-/// Architecture:
-/// [AuthNotifier] extends [StateNotifier<AuthState>] for simplicity and
-/// compatibility with the 14-day delivery timeline. It reads/writes
-/// [SharedPreferences] for token persistence and calls [ApiService]
-/// for network operations.
+
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,7 +107,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final role = AppRole.fromString(roleStr);
       final profile = user['profile'] as Map<String, dynamic>? ?? {};
 
-      final avatarVal = profile['avatar']?.toString() ?? user['avatar']?.toString() ?? '';
+      final avatarVal =
+          profile['avatar']?.toString() ?? user['avatar']?.toString() ?? '';
       final specialtyVal = profile['specialty']?.toString() ?? '';
 
       final newState = AuthState(
@@ -156,6 +135,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = newState;
       return null; // null = success
+    } catch (e) {
+      final errorMsg = 'Connection error: $e';
+      state = state.copyWith(isLoading: false, errorMessage: errorMsg);
+      return errorMsg;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // GOOGLE LOGIN
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<String?> loginWithGoogle(String idToken) async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      final result = await ApiService.googleLoginUser(idToken);
+
+      if (result.containsKey('error')) {
+        final errorMsg = result['error'] as String;
+        state = state.copyWith(isLoading: false, errorMessage: errorMsg);
+        return errorMsg;
+      }
+
+      final user = result['user'] as Map<String, dynamic>? ?? {};
+      final token = result['token'] as String? ?? '';
+      final roleStr = user['role']?.toString() ?? '';
+      final role = AppRole.fromString(roleStr);
+
+      final avatarVal = user['avatar']?.toString() ?? '';
+
+      final newState = AuthState(
+        token: token,
+        role: role,
+        userId: user['_id']?.toString() ?? user['id']?.toString(),
+        name: user['name']?.toString() ?? user['fullName']?.toString(),
+        email: user['email']?.toString(),
+        avatarUrl: avatarVal.isNotEmpty ? avatarVal : null,
+        isLoading: false,
+      );
+
+      state = newState;
+      return null;
     } catch (e) {
       final errorMsg = 'Connection error: $e';
       state = state.copyWith(isLoading: false, errorMessage: errorMsg);

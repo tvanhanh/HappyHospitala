@@ -9,7 +9,7 @@ final roomProvider = FutureProvider.family<List<Room>, String?>((ref, specialtyI
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token');
   
-  String url = '$baseUrl/rooms';
+  String url = '$baseUrl/api/rooms';
   if (specialtyId != null && specialtyId.isNotEmpty) {
     url += '?specialtyId=$specialtyId';
   }
