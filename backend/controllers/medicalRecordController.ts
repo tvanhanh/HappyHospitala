@@ -49,6 +49,7 @@ export const uploadPDFToIPFS = async (pdfPath: string) => {
 export const addMedicalRecord = async (req: Request, res: Response) => {
   try {
     const {
+      appointmentId,
       patientId,
       doctorId,
       symptoms,
@@ -136,6 +137,7 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
     } 
     // 3. CREATE DATABASE RECORD
     const record = await MedicalRecord.create({
+      appointmentId,
       patientId,
       doctorId,
       patientName,
@@ -160,6 +162,7 @@ export const addMedicalRecord = async (req: Request, res: Response) => {
       const examTimeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
       syncRecord = await DiabetesRecord.create({
+        appointmentId,
         patientId,
         doctorId: doctorDoc?._id || doctorId,
         patientName,
@@ -740,5 +743,47 @@ export const getDoctorAccessRequestsHistory = async (req: Request, res: Response
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+};
+export const getMedicalRecordById = async (req: Request, res: Response): Promise<any> => {
+  try {
+    const { id } = req.params;
+
+    // 1. Tìm hồ sơ bệnh án trong Database
+    const record = await MedicalRecord.findById(id).lean();
+
+    // 2. Nếu không tồn tại dữ liệu
+    if (!record) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Không tìm thấy hồ sơ bệnh án hoặc mã hồ sơ không hợp lệ." 
+      });
+    }
+
+    // 3. Đảm bảo cấu trúc metrics luôn tồn tại (tránh lỗi crash null bên Flutter)
+    if (!record.metrics) {
+      record.metrics = {
+        bmi: null,
+        urea: null,
+        creatinine: null,
+        hba1c: null,
+        cholesterol: null,
+        triglycerides: null,
+        hdl: null,
+        ldl: null,
+        vldl: null
+      };
+    }
+
+    // 4. Trả kết quả thành công về cho Client Flutter
+    return res.status(200).json(record);
+
+  } catch (error: any) {
+    console.error(`Lỗi lấy chi tiết hồ sơ bệnh án (${req.params.id}):`, error);
+    return res.status(500).json({ 
+      success: false,
+      message: "Lỗi hệ thống khi truy vấn dữ liệu hồ sơ bệnh án.",
+      error: error.message 
+    });
   }
 };

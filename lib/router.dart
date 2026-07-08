@@ -324,8 +324,13 @@ final GoRouter router = GoRouter(
                 path: 'medical_facilities_screen',
                 builder: (context, state) => MedicalFacilitiesScreen()),
             GoRoute(
-                path: 'medical-records',
-                builder: (context, state) => MedicalRecordsPage()),
+              path: 'medical-records',
+              builder: (context, state) {
+                // Ép kiểu dữ liệu được truyền qua 'extra'
+                final appointment = state.extra as dynamic;
+                return MedicalRecordsPage(appointment: appointment);
+              },
+            ),
             GoRoute(
                 path: 'appointments',
                 builder: (context, state) => PatientAppointmentsScreen()),
@@ -493,8 +498,12 @@ final GoRouter router = GoRouter(
             path: 'list-medical',
             builder: (context, state) => MedicalRecordListPage()),
         GoRoute(
-            path: 'addMedicalRecord',
-            builder: (context, state) => MedicalRecordsPage()),
+          path: 'addMedicalRecord',
+          builder: (context, state) {
+            final appointment = state.extra as dynamic;
+            return MedicalRecordsPage(appointment: appointment);
+          },
+        ),
         GoRoute(
             path: 'medical-records',
             builder: (context, state) => const MedicalRecordsScreen(

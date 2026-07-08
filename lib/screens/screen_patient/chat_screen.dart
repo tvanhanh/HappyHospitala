@@ -1,11 +1,3 @@
-/// Real-time Chat Screen for Patient ↔ Doctor communication.
-///
-/// [Core-3] Implementation:
-/// - Uses [SocketService] for real-time messaging (emit/listen)
-/// - Socket events: `send_message`, `receive_message`, `join_room`
-/// - Messages are grouped by time and show read receipts
-/// - Works in both Web (wide layout) and Mobile (full screen)
-/// - Fetches chat history from backend on init
 library;
 
 import 'package:flutter/material.dart';

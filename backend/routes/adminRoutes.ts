@@ -12,19 +12,21 @@ import {
   getActiveDoctors,
   updateDoctorFee
 } from '../controllers/AdminController';
+import { verifyToken } from '../middleware/auth';
 
 const router = express.Router();
 
-router.get('/stats', getAdminStats as any);
-router.get('/chart-data', getChartData as any);
-router.get('/users', getUsers as any);
-router.post('/users', createBaseAccount as any);
-router.patch('/users/:id/status', toggleUserStatus as any);
-router.get('/doctors/pending', getPendingDoctors as any);
-router.get('/doctors/rejected', getRejectedDoctors as any);
-router.post('/doctors/approve', approveDoctor as any);
-router.post('/doctors/reject', rejectDoctor as any);
-router.get('/doctors/active', getActiveDoctors as any);
-router.patch('/doctors/:id/fee', updateDoctorFee as any);
+// Thêm verifyToken vào trước các controller
+router.get('/stats', verifyToken , getAdminStats as any);
+router.get('/chart-data', verifyToken, getChartData as any);
+router.get('/users', verifyToken , getUsers as any);
+router.post('/users', verifyToken, createBaseAccount as any);
+router.patch('/users/:id/status', verifyToken, toggleUserStatus as any);
+router.get('/doctors/pending', verifyToken, getPendingDoctors as any);
+router.get('/doctors/rejected', verifyToken, getRejectedDoctors as any);
+router.post('/doctors/approve', verifyToken, approveDoctor as any);
+router.post('/doctors/reject', verifyToken, rejectDoctor as any);
+router.get('/doctors/active', verifyToken, getActiveDoctors as any);
+router.patch('/doctors/:id/fee', verifyToken, updateDoctorFee as any);
 
 export default router;

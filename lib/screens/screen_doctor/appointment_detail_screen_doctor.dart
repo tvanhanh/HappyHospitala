@@ -41,9 +41,10 @@ class _AppointmentDetailScreenState
     super.initState();
     fetchPatientHistory();
   }
+
   @override
   void dispose() {
-    _statusController.dispose(); 
+    _statusController.dispose();
     super.dispose();
   }
 
@@ -107,6 +108,7 @@ class _AppointmentDetailScreenState
       return 30; // Default fallback age
     }
   }
+
   String _formatDateToDdMmYyyy(String dateStr) {
     if (dateStr.isEmpty) return DateFormat('dd/MM/yyyy').format(DateTime.now());
     try {
@@ -145,8 +147,12 @@ class _AppointmentDetailScreenState
   }
 
   void _showEMRBottomSheet(BuildContext context) {
-    final specialtyStr = "${widget.appointment.departmentName} ${widget.appointment.doctorSpecialty}".toLowerCase();
-    final isDermatology = specialtyStr.contains('da liễu') || specialtyStr.contains('da lieu') || specialtyStr.contains('dermatology');
+    final specialtyStr =
+        "${widget.appointment.departmentName} ${widget.appointment.doctorSpecialty}"
+            .toLowerCase();
+    final isDermatology = specialtyStr.contains('da liễu') ||
+        specialtyStr.contains('da lieu') ||
+        specialtyStr.contains('dermatology');
 
     showModalBottomSheet(
       context: context,
@@ -178,12 +184,10 @@ class _AppointmentDetailScreenState
     );
   }
 
-  
   @override
   Widget build(BuildContext context) {
     final ap = widget.appointment;
     final isCompleted = ap.status == 'completed';
-    
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -336,7 +340,8 @@ class _AppointmentDetailScreenState
                                           Icon(
                                               ap.appointmentType == 'online'
                                                   ? Icons.video_chat_rounded
-                                                  : Icons.local_hospital_rounded,
+                                                  : Icons
+                                                      .local_hospital_rounded,
                                               size: 14,
                                               color: Colors.white70),
                                           const SizedBox(width: 6),
@@ -433,12 +438,13 @@ class _AppointmentDetailScreenState
                                                         color: const Color(
                                                             0xFFFEF2F2),
                                                         borderRadius:
-                                                            BorderRadius.circular(
-                                                                12)),
+                                                            BorderRadius
+                                                                .circular(12)),
                                                     child: const Icon(
                                                         Icons
                                                             .monitor_heart_rounded,
-                                                        color: Color(0xFFEF4444),
+                                                        color:
+                                                            Color(0xFFEF4444),
                                                         size: 20)),
                                                 const SizedBox(width: 12),
                                                 const Text(
@@ -446,7 +452,8 @@ class _AppointmentDetailScreenState
                                                     style: TextStyle(
                                                         fontWeight:
                                                             FontWeight.w800,
-                                                        color: Color(0xFF1E293B),
+                                                        color:
+                                                            Color(0xFF1E293B),
                                                         fontSize: 17)),
                                               ],
                                             ),
@@ -463,7 +470,8 @@ class _AppointmentDetailScreenState
                                             Container(
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
-                                                  color: const Color(0xFFF8FAFC),
+                                                  color:
+                                                      const Color(0xFFF8FAFC),
                                                   borderRadius:
                                                       BorderRadius.circular(16),
                                                   border: Border.all(
@@ -479,7 +487,8 @@ class _AppointmentDetailScreenState
                                                               CrossAxisAlignment
                                                                   .start,
                                                           children: [
-                                                        const Text("Tiền sử bệnh",
+                                                        const Text(
+                                                            "Tiền sử bệnh",
                                                             style: TextStyle(
                                                                 color: Color(
                                                                     0xFF64748B),
@@ -487,7 +496,8 @@ class _AppointmentDetailScreenState
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w600)),
-                                                        const SizedBox(height: 4),
+                                                        const SizedBox(
+                                                            height: 4),
                                                         Text(
                                                             ap.medicalHistory
                                                                     .isEmpty
@@ -505,8 +515,8 @@ class _AppointmentDetailScreenState
                                                   Container(
                                                       width: 1,
                                                       height: 40,
-                                                      color:
-                                                          const Color(0xFFCBD5E1),
+                                                      color: const Color(
+                                                          0xFFCBD5E1),
                                                       margin: const EdgeInsets
                                                           .symmetric(
                                                           horizontal: 16)),
@@ -524,7 +534,8 @@ class _AppointmentDetailScreenState
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .w600)),
-                                                        const SizedBox(height: 4),
+                                                        const SizedBox(
+                                                            height: 4),
                                                         Text(
                                                             ap.allergies.isEmpty
                                                                 ? "Không"
@@ -573,7 +584,8 @@ class _AppointmentDetailScreenState
                                     padding: const EdgeInsets.all(32),
                                     decoration: BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius: BorderRadius.circular(20)),
+                                        borderRadius:
+                                            BorderRadius.circular(20)),
                                     child: const Column(children: [
                                       Icon(Icons.history_toggle_off_rounded,
                                           size: 48, color: Color(0xFFCBD5E1)),
@@ -587,9 +599,11 @@ class _AppointmentDetailScreenState
                                   ),
                                 )
                               else
-                                ...List.generate(patientHistory.length, (index) {
+                                ...List.generate(patientHistory.length,
+                                    (index) {
                                   final rec = patientHistory[index];
-                                  return _buildHistoryTimelineItem(rec, index == patientHistory.length - 1);
+                                  return _buildHistoryTimelineItem(
+                                      rec, index == patientHistory.length - 1);
                                 }),
                             ],
                           ],
@@ -628,15 +642,16 @@ class _AppointmentDetailScreenState
                             if (ap.appointmentType == 'online' &&
                                 !_isPast(ap.date) &&
                                 (ap.status == 'confirmed' ||
-                                 ap.status == 'checked_in' ||
-                                 ap.status == 'in_progress')) ...[
+                                    ap.status == 'checked_in' ||
+                                    ap.status == 'in_progress')) ...[
                               Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                                      color: const Color(0xFF3B82F6)
+                                          .withOpacity(0.3),
                                       blurRadius: 20,
                                       offset: const Offset(0, 8),
                                     )
@@ -644,7 +659,8 @@ class _AppointmentDetailScreenState
                                 ),
                                 child: ElevatedButton.icon(
                                   onPressed: () {
-                                    Navigator.of(context).push(MaterialPageRoute(
+                                    Navigator.of(context)
+                                        .push(MaterialPageRoute(
                                       builder: (_) => VirtualClinicScreen(
                                         appointment: ap,
                                         role: 'doctor',
@@ -654,12 +670,15 @@ class _AppointmentDetailScreenState
                                   icon: const Icon(Icons.video_call_rounded),
                                   label: const Text(
                                     "Vào phòng khám ảo ngay",
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF3B82F6),
                                     foregroundColor: Colors.white,
-                                    minimumSize: const Size(double.infinity, 60),
+                                    minimumSize:
+                                        const Size(double.infinity, 60),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -670,23 +689,25 @@ class _AppointmentDetailScreenState
                             ],
                             Container(
                               decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    if (!isCompleted && !_isPast(ap.date))
-                                      BoxShadow(
-                                          color: const Color(0xFF2563EB)
-                                              .withOpacity(0.3),
-                                          blurRadius: 20,
-                                          offset: const Offset(0, 8))
-                                  ],
-                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  if (!isCompleted && !_isPast(ap.date))
+                                    BoxShadow(
+                                        color: const Color(0xFF2563EB)
+                                            .withOpacity(0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 8))
+                                ],
+                              ),
                               child: ElevatedButton.icon(
                                 onPressed: isCompleted || _isPast(ap.date)
                                     ? null
                                     : () => _showEMRBottomSheet(context),
                                 icon: Icon(isCompleted
                                     ? Icons.verified_rounded
-                                    : (_isPast(ap.date) ? Icons.lock_outline_rounded : Icons.edit_document)),
+                                    : (_isPast(ap.date)
+                                        ? Icons.lock_outline_rounded
+                                        : Icons.edit_document)),
                                 label: Text(
                                     isCompleted
                                         ? "Bệnh án đã hoàn thành"
@@ -761,7 +782,8 @@ class _AppointmentDetailScreenState
         ),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 24),
+            const Icon(Icons.warning_amber_rounded,
+                color: Color(0xFFD97706), size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -861,11 +883,13 @@ class _AppointmentDetailScreenState
                 Row(
                   children: [
                     Expanded(
-                      child: _miniMetricDoctorCard("Chiều cao", "${ap.height.toInt()} cm", const Color(0xFF3B82F6)),
+                      child: _miniMetricDoctorCard("Chiều cao",
+                          "${ap.height.toInt()} cm", const Color(0xFF3B82F6)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _miniMetricDoctorCard("Cân nặng", "${ap.weight.toInt()} kg", const Color(0xFF10B981)),
+                      child: _miniMetricDoctorCard("Cân nặng",
+                          "${ap.weight.toInt()} kg", const Color(0xFF10B981)),
                     ),
                   ],
                 ),
@@ -873,14 +897,17 @@ class _AppointmentDetailScreenState
                 Row(
                   children: [
                     Expanded(
-                      child: _miniMetricDoctorCard("BMI", bmi.toStringAsFixed(1), const Color(0xFF8B5CF6)),
+                      child: _miniMetricDoctorCard("BMI",
+                          bmi.toStringAsFixed(1), const Color(0xFF8B5CF6)),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _miniMetricDoctorCard(
                         "Đường huyết",
                         "${ap.bloodSugar} mmol/L",
-                        ap.bloodSugar >= 7.0 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                        ap.bloodSugar >= 7.0
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFFF59E0B),
                       ),
                     ),
                   ],
@@ -923,12 +950,14 @@ class _AppointmentDetailScreenState
                   const Divider(color: Color(0xFFE2E8F0)),
                   const SizedBox(height: 10),
                   Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    data: Theme.of(context)
+                        .copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       key: const PageStorageKey('triage_chat_expansion'),
                       title: Row(
                         children: [
-                          const Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF4F46E5), size: 20),
+                          const Icon(Icons.chat_bubble_outline_rounded,
+                              color: Color(0xFF4F46E5), size: 20),
                           const SizedBox(width: 8),
                           Text(
                             "Xem lịch sử AI Triage (${ap.preVisitChatHistory.length} tin nhắn)",
@@ -961,17 +990,25 @@ class _AppointmentDetailScreenState
                               final specialty = msg['specialtyName'] ?? '';
 
                               return Align(
-                                alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                                alignment: isUser
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
                                 child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14, vertical: 10),
                                   decoration: BoxDecoration(
-                                    color: isUser ? const Color(0xFFE0F2FE) : Colors.white,
+                                    color: isUser
+                                        ? const Color(0xFFE0F2FE)
+                                        : Colors.white,
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(16),
                                       topRight: const Radius.circular(16),
-                                      bottomLeft: Radius.circular(isUser ? 16 : 0),
-                                      bottomRight: Radius.circular(isUser ? 0 : 16),
+                                      bottomLeft:
+                                          Radius.circular(isUser ? 16 : 0),
+                                      bottomRight:
+                                          Radius.circular(isUser ? 0 : 16),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
@@ -981,27 +1018,34 @@ class _AppointmentDetailScreenState
                                       ),
                                     ],
                                     border: Border.all(
-                                      color: isUser ? const Color(0xFFBAE6FD) : const Color(0xFFE2E8F0),
+                                      color: isUser
+                                          ? const Color(0xFFBAE6FD)
+                                          : const Color(0xFFE2E8F0),
                                     ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         text,
                                         style: TextStyle(
-                                          color: isUser ? const Color(0xFF0369A1) : const Color(0xFF1E293B),
+                                          color: isUser
+                                              ? const Color(0xFF0369A1)
+                                              : const Color(0xFF1E293B),
                                           fontSize: 13,
                                         ),
                                       ),
                                       if (specialty.toString().isNotEmpty) ...[
                                         const SizedBox(height: 6),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFFEF3C7),
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
                                           child: Text(
                                             "💡 Gợi ý khoa: $specialty",
@@ -1104,8 +1148,6 @@ class _AppointmentDetailScreenState
       ),
     );
   }
-  
-  
 
   Widget _imageSection(BuildContext context, String image) {
     if (image.isEmpty) return const SizedBox.shrink();
@@ -1198,12 +1240,13 @@ class _AppointmentDetailScreenState
       child: Row(
         children: [
           Expanded(
-            child: _buildTabButton(0, "Thông tin hiện tại", Icons.info_outline_rounded),
+            child: _buildTabButton(
+                0, "Thông tin hiện tại", Icons.info_outline_rounded),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildTabButton(1, "Lịch sử khám cũ", Icons.history_rounded),
-          ),
+          // const SizedBox(width: 8),
+          // Expanded(
+          //   child: _buildTabButton(1, "Lịch sử khám cũ", Icons.history_rounded),
+          // ),
         ],
       ),
     );
@@ -1263,8 +1306,11 @@ class _AppointmentDetailScreenState
     final creatinine = rec['creatinine']?.toString() ?? '';
     final urea = rec['urea']?.toString() ?? '';
     final cholesterol = rec['cholesterol']?.toString() ?? '';
-    
-    final hasMetrics = hba1c.isNotEmpty || bmi.isNotEmpty || creatinine.isNotEmpty || urea.isNotEmpty;
+
+    final hasMetrics = hba1c.isNotEmpty ||
+        bmi.isNotEmpty ||
+        creatinine.isNotEmpty ||
+        urea.isNotEmpty;
 
     return IntrinsicHeight(
       child: Row(
@@ -1282,8 +1328,7 @@ class _AppointmentDetailScreenState
                         color: Colors.white,
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: const Color(0xFF3B82F6),
-                            width: 3),
+                            color: const Color(0xFF3B82F6), width: 3),
                         boxShadow: [
                           BoxShadow(
                               color: const Color(0xFF3B82F6).withOpacity(0.3),
@@ -1291,9 +1336,8 @@ class _AppointmentDetailScreenState
                         ])),
                 if (!isLast)
                   Expanded(
-                      child: Container(
-                          width: 2,
-                          color: const Color(0xFFE2E8F0))),
+                      child:
+                          Container(width: 2, color: const Color(0xFFE2E8F0))),
               ],
             ),
           ),
@@ -1310,8 +1354,7 @@ class _AppointmentDetailScreenState
                         blurRadius: 15,
                         offset: const Offset(0, 4))
                   ],
-                  border: Border.all(color: Colors.grey.withOpacity(0.05))
-              ),
+                  border: Border.all(color: Colors.grey.withOpacity(0.05))),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1358,19 +1401,23 @@ class _AppointmentDetailScreenState
 
                   // Triệu chứng
                   if (symptoms.isNotEmpty) ...[
-                    _buildHistoryField("Triệu chứng lâm sàng", symptoms, Icons.sick_outlined),
+                    _buildHistoryField(
+                        "Triệu chứng lâm sàng", symptoms, Icons.sick_outlined),
                     const SizedBox(height: 10),
                   ],
 
                   // Chẩn đoán
                   _buildHistoryField(
-                    "Chẩn đoán y khoa",
-                    diagnosis.isNotEmpty ? diagnosis : "Sức khỏe ổn định",
-                    Icons.assignment_turned_in_outlined,
-                    valueColor: diagnosis.toLowerCase().contains("mắc bệnh") || diagnosis.toLowerCase().contains("nghi ngờ") || diagnosis.toLowerCase().contains("ác tính")
-                        ? const Color(0xFFEF4444)
-                        : const Color(0xFF10B981)
-                  ),
+                      "Chẩn đoán y khoa",
+                      diagnosis.isNotEmpty ? diagnosis : "Sức khỏe ổn định",
+                      Icons.assignment_turned_in_outlined,
+                      valueColor: diagnosis
+                                  .toLowerCase()
+                                  .contains("mắc bệnh") ||
+                              diagnosis.toLowerCase().contains("nghi ngờ") ||
+                              diagnosis.toLowerCase().contains("ác tính")
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFF10B981)),
 
                   // Chỉ số sinh hóa / AI Metrics
                   if (hasMetrics) ...[
@@ -1387,11 +1434,16 @@ class _AppointmentDetailScreenState
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          if (hba1c.isNotEmpty) _buildHistoryMetricBadge("HbA1c", "$hba1c%"),
-                          if (bmi.isNotEmpty) _buildHistoryMetricBadge("BMI", bmi),
-                          if (creatinine.isNotEmpty) _buildHistoryMetricBadge("Creatinine", creatinine),
-                          if (urea.isNotEmpty) _buildHistoryMetricBadge("Urea", urea),
-                          if (cholesterol.isNotEmpty) _buildHistoryMetricBadge("Chol.", cholesterol),
+                          if (hba1c.isNotEmpty)
+                            _buildHistoryMetricBadge("HbA1c", "$hba1c%"),
+                          if (bmi.isNotEmpty)
+                            _buildHistoryMetricBadge("BMI", bmi),
+                          if (creatinine.isNotEmpty)
+                            _buildHistoryMetricBadge("Creatinine", creatinine),
+                          if (urea.isNotEmpty)
+                            _buildHistoryMetricBadge("Urea", urea),
+                          if (cholesterol.isNotEmpty)
+                            _buildHistoryMetricBadge("Chol.", cholesterol),
                         ],
                       ),
                     ),
@@ -1413,7 +1465,8 @@ class _AppointmentDetailScreenState
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.medication_rounded, size: 14, color: Color(0xFF3B82F6)),
+                              Icon(Icons.medication_rounded,
+                                  size: 14, color: Color(0xFF3B82F6)),
                               SizedBox(width: 6),
                               Text(
                                 "Đơn thuốc & Phác đồ điều trị cũ",
@@ -1447,7 +1500,8 @@ class _AppointmentDetailScreenState
     );
   }
 
-  Widget _buildHistoryField(String label, String value, IconData icon, {Color? valueColor}) {
+  Widget _buildHistoryField(String label, String value, IconData icon,
+      {Color? valueColor}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

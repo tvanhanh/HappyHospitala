@@ -17,7 +17,6 @@ class MedicalRecordForm extends StatefulWidget {
 
 class _MedicalRecordFormState extends State<MedicalRecordForm> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController patientIdController = TextEditingController();
   final TextEditingController doctorIdController = TextEditingController();
   final TextEditingController patientNameController = TextEditingController();

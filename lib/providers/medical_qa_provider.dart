@@ -55,3 +55,5 @@ final adminPostsProvider = FutureProvider<List<MedicalPost>>((ref) async {
   // Requires token, will return empty list if not logged in
   return [];
 });
+// Định nghĩa một provider nhận vào String ID hồ sơ
+

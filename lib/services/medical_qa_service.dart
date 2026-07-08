@@ -71,28 +71,54 @@ class MedicalPost {
   }
 }
 
-// ĐỔI TÊN TỪ MedicalAnswer THÀNH MedicalComment
 class MedicalComment {
-  // ĐÃ ĐỔI TÊN BIẾN CHO GIỐNG BACKEND
+  final String id;
   final String senderId;
   final String senderName;
-  final String senderTitle;
+  final String senderTitle; // Tương đương role (Bác sĩ hoặc Bệnh nhân)
+  final String? senderAvatar; // Đã thêm Avatar
   final String content;
   final DateTime createdAt;
 
   MedicalComment({
+    required this.id,
     required this.senderId,
     required this.senderName,
     required this.senderTitle,
+    this.senderAvatar,
     required this.content,
     required this.createdAt,
   });
 
   factory MedicalComment.fromJson(Map<String, dynamic> json) {
+    // Backend trả về senderId là một Object sau khi dùng .populate()
+    final senderData = json['senderId'];
+
+    // Kiểm tra xem senderData có phải là Object (Map) không
+    final isSenderObject = senderData is Map<String, dynamic>;
+
+    // Xử lý Role / Danh xưng
+    String role =
+        isSenderObject ? (senderData['role'] ?? 'patient') : 'patient';
+    String title = role == 'doctor' ? 'Bác sĩ' : 'Người hỏi';
+
+    // Xử lý Tên
+    String name = isSenderObject
+        ? (senderData['fullName'] ?? 'Người dùng')
+        : 'Người dùng';
+
     return MedicalComment(
-      senderId: json['senderId']?.toString() ?? '',
-      senderName: json['senderName'] ?? json['doctorName'] ?? 'Bác sĩ',
-      senderTitle: json['senderTitle'] ?? json['doctorTitle'] ?? 'BS.',
+      id: json['_id']?.toString() ?? '',
+
+      // Nếu senderData là Map, lấy '_id' bên trong nó, ngược lại lấy thẳng chuỗi
+      senderId: isSenderObject
+          ? (senderData['_id']?.toString() ?? '')
+          : (senderData?.toString() ?? ''),
+
+      senderName: name,
+      senderTitle: title,
+      senderAvatar: isSenderObject ? senderData['avatar']?.toString() : null,
+
       content: json['content'] ?? '',
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'].toString()).toLocal()

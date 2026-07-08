@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 class MedicalRecordService {
   static Future<String> addMedicalRecord({
+   String? appointmentId,
     String? patientId,
     String? doctorId,
     required String patientName,
@@ -61,6 +62,7 @@ class MedicalRecordService {
       if (token == null) return "Chưa đăng nhập. Không có token.";
 
       final body = {
+        'appointmentId': appointmentId ?? '',
         'patientId': patientId ?? '',
         'doctorId': doctorId ?? '',
         'symptoms': symptoms ?? 'Không ghi nhận triệu chứng',
@@ -180,6 +182,27 @@ class MedicalRecordService {
   }
 }
 
+static Future<Map<String, dynamic>?> getMedicalRecordById(String recordId) async {
+
+  final urlStr = '$baseUrl/api/auth/getmedicalrecordbypatientid/$recordId'; // Đường dẫn API của bạn
+ final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+  try {
+    final response = await http.get(Uri.parse(urlStr), headers: {
+       'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token'
+    });
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      print('Lỗi lấy chi tiết hồ sơ: ${response.body}');
+      return null;
+    }
+  } catch (e) {
+    print('Lỗi kết nối API hồ sơ: $e');
+    return null;
+  }
+}
   static DateTime? tryParseDateTime(String str) {
     if (str.isEmpty) return null;
     try {

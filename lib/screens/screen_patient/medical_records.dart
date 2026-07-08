@@ -19,7 +19,8 @@ const Color _kGreenSuccess = Color(0xFF059669);
 const Color _kRedDanger = Color(0xFFDC2626);
 
 class MedicalRecordsPage extends ConsumerStatefulWidget {
-  const MedicalRecordsPage({super.key});
+  final dynamic appointment;
+  const MedicalRecordsPage({super.key,required this.appointment,});
 
   @override
   ConsumerState<MedicalRecordsPage> createState() => _MedicalRecordsPageState();
@@ -177,7 +178,7 @@ class _MedicalRecordsPageState extends ConsumerState<MedicalRecordsPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PatientAdminInfoSection(record: recordData),
+        builder: (context) => PatientAdminInfoSection(record: recordData,),
       ),
     );
   }

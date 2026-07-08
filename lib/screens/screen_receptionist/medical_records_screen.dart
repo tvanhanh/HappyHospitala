@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/receptionist_drawer.dart';
-import '../../services/api_medicalRecordBlockchain.dart'; 
-import '../screen_doctor/VerifyIntegritySection.dart'; 
+import '../../services/api_medicalRecordBlockchain.dart';
+import '../screen_doctor/VerifyIntegritySection.dart';
 import '../../services/api_medicalRecord.dart';
 
 const kPrimaryColor = Color(0xFF0D47A1);
@@ -15,8 +15,9 @@ const kCardColor = Colors.white;
 const kTextColor = Color(0xFF333333);
 
 // ✅ 1. SỬA: Gọi đúng hàm lấy TOÀN BỘ danh sách hồ sơ (chứ không gọi hàm detail)
-final medicalRecordsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  return await MedicalRecordBlockchainService.listMedicalRecal(); 
+final medicalRecordsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  return await MedicalRecordBlockchainService.listMedicalRecal();
 });
 
 class MedicalRecordsScreen extends ConsumerStatefulWidget {
@@ -29,7 +30,8 @@ class MedicalRecordsScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<MedicalRecordsScreen> createState() => _MedicalRecordsScreenState();
+  ConsumerState<MedicalRecordsScreen> createState() =>
+      _MedicalRecordsScreenState();
 }
 
 class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
@@ -68,7 +70,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
             ? AppBar(
                 title: const Text(
                   "Hồ Sơ Bệnh Án",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 backgroundColor: kPrimaryColor,
                 elevation: 0,
@@ -125,11 +128,15 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
                 ElevatedButton.icon(
                   onPressed: () => context.go('/receptionist/dashboard'),
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  label: const Text("Quay lại Trang chủ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  label: const Text("Quay lại Trang chủ",
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kSecondaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                 )
               ],
@@ -142,100 +149,108 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
     final asyncRecords = ref.watch(medicalRecordsProvider);
 
     final mainBody = asyncRecords.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 50),
+            const SizedBox(height: 12),
+            Text("Lỗi tải hồ sơ bệnh án: $err",
+                style: const TextStyle(color: Colors.red)),
+          ],
+        ),
+      ),
+      data: (records) {
+        // Lọc cục bộ theo ô tìm kiếm
+        final filtered = records.where((e) {
+          final query = _searchQuery.toLowerCase();
+          final name = e['patientName']?.toString().toLowerCase() ?? '';
+          final email = e['email']?.toString().toLowerCase() ?? '';
+          final symptoms = e['symptoms']?.toString().toLowerCase() ?? '';
+          final diagnosis = e['diagnosis']?.toString().toLowerCase() ?? '';
+          return name.contains(query) ||
+              email.contains(query) ||
+              symptoms.contains(query) ||
+              diagnosis.contains(query);
+        }).toList();
+
+        if (filtered.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 50),
-                const SizedBox(height: 12),
-                Text("Lỗi tải hồ sơ bệnh án: $err", style: const TextStyle(color: Colors.red)),
+                _buildSearchBox(),
+                const SizedBox(height: 40),
+                const Icon(Icons.description_outlined,
+                    size: 80, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text(
+                  "Không tìm thấy hồ sơ bệnh án nào",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Nhập từ khóa khác hoặc bấm nút làm mới ở góc phải để thử lại.",
+                  style: TextStyle(color: Colors.grey),
+                ),
               ],
             ),
-          ),
-          data: (records) {
-            // Lọc cục bộ theo ô tìm kiếm
-            final filtered = records.where((e) {
-              final query = _searchQuery.toLowerCase();
-              final name = e['patientName']?.toString().toLowerCase() ?? '';
-              final email = e['email']?.toString().toLowerCase() ?? '';
-              final symptoms = e['symptoms']?.toString().toLowerCase() ?? '';
-              final diagnosis = e['diagnosis']?.toString().toLowerCase() ?? '';
-              return name.contains(query) ||
-                  email.contains(query) ||
-                  symptoms.contains(query) ||
-                  diagnosis.contains(query);
-            }).toList();
+          );
+        }
 
-            if (filtered.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  children: [
-                    _buildSearchBox(),
-                    const SizedBox(height: 40),
-                    const Icon(Icons.description_outlined, size: 80, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      "Không tìm thấy hồ sơ bệnh án nào",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Nhập từ khóa khác hoặc bấm nút làm mới ở góc phải để thử lại.",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              );
-            }
+        if (_selectedIndex >= filtered.length) {
+          _selectedIndex = 0;
+        }
 
-            if (_selectedIndex >= filtered.length) {
-              _selectedIndex = 0;
-            }
+        final selectedRecord = filtered[_selectedIndex];
+        final patientEmail = selectedRecord['email']?.toString() ?? '';
+        final patientHistory = records
+            .where((r) => r['email']?.toString() == patientEmail)
+            .toList();
 
-            final selectedRecord = filtered[_selectedIndex];
-            final patientEmail = selectedRecord['email']?.toString() ?? '';
-            final patientHistory = records.where((r) => r['email']?.toString() == patientEmail).toList();
+        // ✅ 2. SỬA: Dùng LayoutBuilder kết hợp Flex để TabBarView co giãn không giới hạn chiều cao 520
+        return LayoutBuilder(builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                _buildSearchBox(),
+                const SizedBox(height: 20),
+                _buildPatientListDropdown(filtered),
+                const SizedBox(height: 20),
+                _buildPatientSummary(selectedRecord),
+                const SizedBox(height: 20),
+                _buildTabs(),
+                const SizedBox(height: 20),
 
-            // ✅ 2. SỬA: Dùng LayoutBuilder kết hợp Flex để TabBarView co giãn không giới hạn chiều cao 520
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
+                // Giải phóng chiều cao cho khu vực hiển thị nội dung các Tab
+                SizedBox(
+                  height:
+                      750, // Nâng độ cao lên 750 để chứa vừa vặn toàn bộ cấu trúc mã băm Blockchain
+                  child: TabBarView(
+                    physics:
+                        const ClampingScrollPhysics(), // Tránh xung đột cuộn mượt
                     children: [
-                      _buildSearchBox(),
-                      const SizedBox(height: 20),
-                      _buildPatientListDropdown(filtered),
-                      const SizedBox(height: 20),
-                      _buildPatientSummary(selectedRecord),
-                      const SizedBox(height: 20),
-                      _buildTabs(),
-                      const SizedBox(height: 20),
-                      
-                      // Giải phóng chiều cao cho khu vực hiển thị nội dung các Tab
-                      SizedBox(
-                        height: 750, // Nâng độ cao lên 750 để chứa vừa vặn toàn bộ cấu trúc mã băm Blockchain
-                        child: TabBarView(
-                          physics: const ClampingScrollPhysics(), // Tránh xung đột cuộn mượt
-                          children: [
-                            _buildPatientInfo(selectedRecord),
-                            _buildVisitHistory(patientHistory),
-                            _buildLabResults(selectedRecord),
-                            _buildPrescriptions(selectedRecord),
-                            _buildImages(selectedRecord), // Tab 5: Chạy phần Verify mật mã
-                          ],
-                        ),
-                      ),
+                      // _buildPatientInfo(selectedRecord),
+                      // _buildVisitHistory(patientHistory),
+                      // _buildLabResults(selectedRecord),
+                      // _buildPrescriptions(selectedRecord),
+                      _buildImages(
+                          selectedRecord), // Tab 5: Chạy phần Verify mật mã
                     ],
                   ),
-                );
-              }
-            );
-          },
-        );
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
 
     return DefaultTabController(
       length: 5,
@@ -245,7 +260,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
             ? AppBar(
                 title: const Text(
                   "Hồ Sơ Bệnh Án",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 backgroundColor: kPrimaryColor,
                 elevation: 0,
@@ -282,7 +298,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
           });
         },
         decoration: InputDecoration(
-          hintText: "Tìm hồ sơ bệnh nhân theo tên, email, triệu chứng hoặc chẩn đoán...",
+          hintText:
+              "Tìm hồ sơ bệnh nhân theo tên, email, triệu chứng hoặc chẩn đoán...",
           prefixIcon: const Icon(Icons.search, color: kSecondaryColor),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -314,7 +331,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         children: [
           const Icon(Icons.people_outline, color: kSecondaryColor),
           const SizedBox(width: 12),
-          const Text("Chọn hồ sơ bệnh nhân: ", style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text("Chọn hồ sơ bệnh nhân: ",
+              style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonHideUnderline(
@@ -324,17 +342,20 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
                 items: List.generate(filtered.length, (idx) {
                   final rec = filtered[idx];
                   final name = rec['patientName'] ?? 'Không rõ';
-                  final diag = rec['diagnosis'] ?? 'Chưa chẩn đoán';
-                  final date = rec['visitDate'] ?? rec['examinationDate'] ?? 'N/A';
+                  // final diag = rec['diagnosis'] ?? 'Chưa chẩn đoán';
+                  final date =
+                      rec['visitDate'] ?? rec['examinationDate'] ?? 'N/A';
                   String cleanDate = date;
-                  final parsedDate = MedicalRecordService.tryParseDateTime(date);
+                  final parsedDate =
+                      MedicalRecordService.tryParseDateTime(date);
                   if (parsedDate != null) {
-                    cleanDate = DateFormat('dd/MM/yyyy').format(parsedDate.toLocal());
+                    cleanDate =
+                        DateFormat('dd/MM/yyyy').format(parsedDate.toLocal());
                   }
 
                   return DropdownMenuItem<int>(
                     value: idx,
-                    child: Text("$name - $diag ($cleanDate)"),
+                    child: Text("$name -($cleanDate)"),
                   );
                 }),
                 onChanged: (val) {
@@ -365,7 +386,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
       if (parts.length > 1) {
         initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
       } else {
-        initials = name.substring(0, (name.length > 2 ? 2 : name.length)).toUpperCase();
+        initials = name
+            .substring(0, (name.length > 2 ? 2 : name.length))
+            .toUpperCase();
       }
     }
 
@@ -393,15 +416,18 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextColor),
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: kTextColor),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: 20,
                   runSpacing: 6,
                   children: [
-                    Text("Tuổi: $age"),
-                    Text("Giới tính: $gender"),
+                    // Text("Tuổi: $age"),
+                    // Text("Giới tính: $gender"),
                     Text("Email: $email"),
                   ],
                 ),
@@ -435,10 +461,10 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         unselectedLabelColor: Colors.grey,
         indicatorColor: kPrimaryColor,
         tabs: [
-          Tab(text: "Thông tin hành chính"),
-          Tab(text: "Lịch sử khám bệnh"),
-          Tab(text: "Chỉ số cận lâm sàng"),
-          Tab(text: "Đơn thuốc & Điều trị"),
+          // Tab(text: "Thông tin hành chính"),
+          // Tab(text: "Lịch sử khám bệnh"),
+          // Tab(text: "Chỉ số cận lâm sàng"),
+          // Tab(text: "Đơn thuốc & Điều trị"),
           Tab(text: "Hồ sơ Blockchain/Tài liệu"),
         ],
       ),
@@ -477,13 +503,15 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               children: [
                 Expanded(child: _infoCard("Tuổi bệnh nhân", "$age tuổi")),
                 const SizedBox(width: 16),
-                Expanded(child: _infoCard("Tình trạng", record['status'] ?? 'N/A')),
+                Expanded(
+                    child: _infoCard("Tình trạng", record['status'] ?? 'N/A')),
               ],
             ),
             const SizedBox(height: 16),
             _infoCard("Email liên hệ", email),
             const SizedBox(height: 16),
-            _infoCard("Tiền sử bệnh án", record['symptoms'] ?? 'Không ghi nhận'),
+            _infoCard(
+                "Tiền sử bệnh án", record['symptoms'] ?? 'Không ghi nhận'),
           ],
         ),
       ),
@@ -499,17 +527,26 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         child: SingleChildScrollView(
           child: DataTable(
             columns: const [
-              DataColumn(label: Text("Ngày khám", style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text("Triệu chứng", style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text("Chẩn đoán", style: TextStyle(fontWeight: FontWeight.bold))),
-              DataColumn(label: Text("Trạng thái", style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text("Ngày khám",
+                      style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text("Triệu chứng",
+                      style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text("Chẩn đoán",
+                      style: TextStyle(fontWeight: FontWeight.bold))),
+              DataColumn(
+                  label: Text("Trạng thái",
+                      style: TextStyle(fontWeight: FontWeight.bold))),
             ],
             rows: history.map((e) {
-              final date = e['visitDate'] ?? e['examinationDate'] ?? 'N/A';
+              final date = e['createdAt'] ?? 'N/A';
               String cleanDate = date;
               final parsedDate = MedicalRecordService.tryParseDateTime(date);
               if (parsedDate != null) {
-                cleanDate = DateFormat('dd/MM/yyyy HH:mm').format(parsedDate.toLocal());
+                cleanDate =
+                    DateFormat('dd/MM/yyyy HH:mm').format(parsedDate.toLocal());
               }
 
               return DataRow(
@@ -517,7 +554,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
                   DataCell(Text(cleanDate)),
                   DataCell(Text(e['symptoms'] ?? '')),
                   DataCell(Text(e['diagnosis'] ?? '')),
-                  DataCell(Text(e['status'] == 'completed' ? 'Đã khám xong' : 'Đang khám')),
+                  DataCell(Text(e['status'] == 'completed'
+                      ? 'Đã khám xong'
+                      : 'Đang khám')),
                 ],
               );
             }).toList(),
@@ -537,23 +576,34 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
           children: [
             const Text(
               "Kết quả xét nghiệm cận lâm sàng:",
-              style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: kPrimaryColor,
+                  fontSize: 15),
             ),
             const SizedBox(height: 16),
-            _buildLabMetricRow("HbA1c (Đường huyết trung bình)", record['hba1c'], "4.0 - 5.6 %", "%"),
-            _buildLabMetricRow("Cholesterol toàn phần", record['cholesterol'], "< 5.2 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Triglycerides", record['triglycerides'], "< 1.7 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Urea máu", record['urea'], "2.5 - 7.5 mmol/L", "mmol/L"),
-            _buildLabMetricRow("Creatinine máu", record['creatinine'], "53 - 115 µmol/L", "µmol/L"),
-            _buildLabMetricRow("HDL Cholesterol (Tốt)", record['hdl'], "> 0.9 mmol/L", "mmol/L"),
-            _buildLabMetricRow("LDL Cholesterol (Xấu)", record['ldl'], "< 3.4 mmol/L", "mmol/L"),
+            _buildLabMetricRow("HbA1c (Đường huyết trung bình)",
+                record['hba1c'], "4.0 - 5.6 %", "%"),
+            _buildLabMetricRow("Cholesterol toàn phần", record['cholesterol'],
+                "< 5.2 mmol/L", "mmol/L"),
+            _buildLabMetricRow("Triglycerides", record['triglycerides'],
+                "< 1.7 mmol/L", "mmol/L"),
+            _buildLabMetricRow(
+                "Urea máu", record['urea'], "2.5 - 7.5 mmol/L", "mmol/L"),
+            _buildLabMetricRow("Creatinine máu", record['creatinine'],
+                "53 - 115 µmol/L", "µmol/L"),
+            _buildLabMetricRow("HDL Cholesterol (Tốt)", record['hdl'],
+                "> 0.9 mmol/L", "mmol/L"),
+            _buildLabMetricRow("LDL Cholesterol (Xấu)", record['ldl'],
+                "< 3.4 mmol/L", "mmol/L"),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLabMetricRow(String label, dynamic value, String normalRange, String unit) {
+  Widget _buildLabMetricRow(
+      String label, dynamic value, String normalRange, String unit) {
     final valStr = value?.toString() ?? '';
     final hasValue = valStr.isNotEmpty && valStr != 'null';
 
@@ -564,7 +614,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
         children: [
           Expanded(
             flex: 2,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+            child: Text(label,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           ),
           Expanded(
             child: Text(
@@ -578,7 +630,8 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          Text("CSBT: $normalRange", style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+          Text("CSBT: $normalRange",
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
         ],
       ),
     );
@@ -600,7 +653,10 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               SizedBox(width: 8),
               Text(
                 "Đơn thuốc & Phác đồ điều trị:",
-                style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryColor,
+                    fontSize: 15),
               ),
             ],
           ),
@@ -616,7 +672,9 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
               ),
               child: SingleChildScrollView(
                 child: Text(
-                  hasTreatment ? treatment : "Không có thông tin chỉ định đơn thuốc.",
+                  hasTreatment
+                      ? treatment
+                      : "Không có thông tin chỉ định đơn thuốc.",
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.5,
@@ -648,9 +706,17 @@ class _MedicalRecordsScreenState extends ConsumerState<MedicalRecordsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500)),
+          Text(title,
+              style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 6),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14)),
+          Text(value,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  fontSize: 14)),
         ],
       ),
     );
