@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const MedicalRecordSchema = new mongoose.Schema({
+  appointmentId: { type: String, required: true },
   patientId: {
     type: String,
     required: true,

@@ -43,7 +43,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
 
   final _statusController = TextEditingController(text: "Không mắc bệnh");
   final _treatmentController = TextEditingController(
-      text: "Điều chỉnh chế độ dinh dưỡng, giảm tinh bột và chất béo. Tập thể dục định kỳ và theo dõi sức khỏe.");
+      text:
+          "Điều chỉnh chế độ dinh dưỡng, giảm tinh bột và chất béo. Tập thể dục định kỳ và theo dõi sức khỏe.");
   bool _isSubmitting = false;
   bool _isAIPredicting = false;
 
@@ -60,50 +61,84 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     super.initState();
     final patientAge = widget.calculateAge(widget.appointment.birthDate);
     _ageController.text = (patientAge > 0 ? patientAge : 30).toString();
-    _genderController.text = widget.appointment.gender.isNotEmpty ? widget.appointment.gender : "Nam";
+    _genderController.text = widget.appointment.gender.isNotEmpty
+        ? widget.appointment.gender
+        : "Nam";
     _loadCSV();
   }
 
   Future<void> _loadCSV() async {
+    debugPrint("👉 ĐÃ GỌI VÀO HÀM _loadCSV!"); // <-- Thêm dòng này
+
     try {
-      final rawData = await rootBundle.loadString("assets/diabetes_test.csv");
-      List<List<dynamic>> listData = const CsvToListConverter().convert(rawData);
+      debugPrint("👉 Đang bắt đầu đọc file...");
+      final rawData = await rootBundle.loadString("assets/diabetes_test1.csv");
+
+      debugPrint("👉 Đọc file thành công, đang convert...");
+// Thêm tham số eol: '\n' vào đây
+      List<List<dynamic>> listData =
+          const CsvToListConverter(eol: '\n').convert(rawData);
+
+// Để chắc chắn, bạn tạm thời TẮT dòng dọn rác này đi bằng cách thêm // ở đầu
+// elistData.removWhere((row) => row.length < 11);
       if (listData.isNotEmpty) listData.removeAt(0);
+
       setState(() {
         _csvDataset = listData;
         _csvCurrentIndex = 0;
       });
+      debugPrint("✅ Cập nhật UI thành công với ${listData.length} dòng!");
     } catch (e) {
-      debugPrint("Lỗi tải CSV: $e");
+      debugPrint("❌ Lỗi tải CSV: $e");
     }
   }
 
   /// 🍏 HÀM ĐIỀU HƯỚNG CHUYỂN TRANG RIÊNG LẺ (Dùng chung cho cả 2 luồng)
   void _navigateToPrescriptionScreen() {
     // Đóng Bottom Sheet Form EMR hiện tại
-    Navigator.pop(context); 
-    
+    Navigator.pop(context);
+
     // Điều hướng sang màn hình kê đơn và truyền dữ liệu
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PrescriptionScreen(
-          appointment: widget.appointment, // Truyền object thông tin lịch hẹn bệnh nhân
-          diagnosis: _statusController.text.trim(), // Truyền kèm kết quả chẩn đoán hiện tại
+          appointment:
+              widget.appointment, // Truyền object thông tin lịch hẹn bệnh nhân
+          diagnosis: _statusController.text
+              .trim(), // Truyền kèm kết quả chẩn đoán hiện tại
         ),
       ),
     );
   }
 
-  /// 🟢 HÀM LUỒNG CŨ: LƯU BỆNH ÁN THÀNH CÔNG -> HIỂN THỊ HỘP THOẠI HỎI KÊ ĐƠN
+  /// 🟢 HÀM ĐÃ ĐƯỢC ÉP LOG TOÀN DIỆN ĐỂ SĂN LỖI ĐƯỜNG TRUYỀN
   Future<void> _handleSaveAndPrescribe() async {
-    if (!_formKey.currentState!.validate()) return;
+    // LOG SỐ 1: BẮT BUỘC PHẢI HIỂN THỊ NẾU NÚT BẤM CÒN HOẠT ĐỘNG
+    print("🎯 [LOG 1] Đã nhận được lệnh click chuột từ tay người dùng!");
+
+    if (_formKey.currentState == null) {}
+
+    print(
+        "📝 [LOG 2] Đang tiến hành quét kiểm tra Validation của toàn bộ các ô nhập liệu...");
+    if (!_formKey.currentState!.validate()) {
+      print(
+          "⚠️ [LOG RẼ NHÁNH] Form Validation THẤT BẠI! Có ô dữ liệu chưa điền đúng chuẩn. Hàm bị ngắt tại đây.");
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
+      print(
+          "📡 [LOG 4] Đang đóng gói gửi gói tin sang API MedicalRecordService.addMedicalRecord...");
+      print(
+          "👉 Kiểm tra nhanh appointmentId gửi đi: '${widget.appointment.id}'");
+
       final response = await MedicalRecordService.addMedicalRecord(
         patientId: widget.appointment.patientId,
         doctorId: widget.appointment.doctorId,
+        appointmentId: widget.appointment.id,
         patientName: widget.appointment.patientName,
         email: widget.appointment.patientEmail,
         examinationDate: widget.formatDateToDdMmYyyy(widget.appointment.date),
@@ -112,7 +147,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         departmentName: widget.appointment.departmentName.isNotEmpty
             ? widget.appointment.departmentName
             : widget.appointment.doctorSpecialty,
-        gender: _genderController.text.isNotEmpty ? _genderController.text : "Nam",
+        gender:
+            _genderController.text.isNotEmpty ? _genderController.text : "Nam",
         age: int.tryParse(_ageController.text) ?? 30,
         urea: double.tryParse(_ureaController.text),
         creatinine: double.tryParse(_creatinineController.text),
@@ -124,45 +160,92 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         vldl: double.tryParse(_vldlController.text),
         bmi: double.tryParse(_bmiController.text),
         status: _statusController.text.trim(),
-        symptoms: widget.appointment.reason.isNotEmpty ? widget.appointment.reason : "Không ghi nhận",
+        symptoms: widget.appointment.reason.isNotEmpty
+            ? widget.appointment.reason
+            : "Không ghi nhận",
         treatment: _treatmentController.text.trim(),
       );
+
+      print(
+          "📬 [LOG 5] API addMedicalRecord đã phản hồi chuỗi kết quả: '$response'");
 
       if (!mounted) return;
 
       if (response == "success") {
-        await AppointmentApi.updateStatus(id: widget.appointment.id, status: 'completed');
+        print(
+            "🔥 [LOG 6] Lưu bệnh án THÀNH CÔNG! Bắt đầu kích hoạt tiến trình cập nhật trạng thái lịch hẹn...");
+
+        try {
+          final updateResponse = await AppointmentApi.updateStatus(
+              id: widget.appointment.id, status: 'completed');
+
+          print(
+              "📊 [LOG 7] Kết quả JSON trả về từ API updateStatus: $updateResponse");
+
+          if (updateResponse['success'] == false) {
+            print(
+                "❌ [LOG LỖI XỬ LÝ] Backend từ chối cập nhật lịch hẹn! Lý do: ${updateResponse['message']}");
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      "Lưu EMR thành công nhưng lỗi cập nhật lịch hẹn: ${updateResponse['message']}"),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } else {
+            print(
+                "✅ [LOG 8] Tuyệt vời! Hệ thống đã ghi nhận trạng thái 'completed' của lịch hẹn trên cơ sở dữ liệu!");
+          }
+        } catch (apiError) {
+          print(
+              "💥 [LOG CRASH NỘI BỘ] API cập nhật trạng thái lịch hẹn bị sập: $apiError");
+        }
+
         if (!mounted) return;
+
+        print(
+            "🔄 [LOG 9] Đang gọi widget.onSuccess() để ra lệnh cho màn hình danh sách gốc tải lại dữ liệu mới...");
         widget.onSuccess();
 
+        print(
+            "💬 [LOG 10] Chuẩn bị khởi chạy mở hộp thoại AlertDialog hỏi ý kiến kê đơn...");
         final bool? confirmPrescription = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               title: Row(
                 children: const [
                   Icon(Icons.medical_services_outlined, color: Colors.blue),
                   SizedBox(width: 10),
-                  Text("Kê đơn thuốc", style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text("Kê đơn thuốc",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               content: const Text(
-                "Bệnh án EMR đã được lưu thành công!\nBạn có muốn tiến hành kê đơn thuốc cho bệnh nhân này luôn không?",
-              ),
+                  "Bệnh án EMR đã được lưu thành công!\nBạn có muốn tiến hành kê đơn thuốc cho bệnh nhân này luôn không?"),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: Text("Không", style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                  child: Text("Không",
+                      style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text("Có", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text("Có",
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -172,20 +255,32 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         if (!mounted) return;
 
         if (confirmPrescription == true) {
+          print(
+              "➡️ [LOG 11] Bác sĩ chọn CÓ -> Tiến hành chuyển hướng sang màn hình Kê Đơn.");
           _navigateToPrescriptionScreen();
         } else {
-          Navigator.pop(context); 
+          print(
+              "🚪 [LOG 11] Bác sĩ chọn KHÔNG -> Thực hiện đóng Bottom Sheet Form.");
+          Navigator.pop(context);
         }
       } else {
+        print(
+            "⚠️ [LOG CẢNH BÁO] Chuỗi phản hồi lưu bệnh án không phải 'success' mà là: '$response'");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi lưu dữ liệu: $response"), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text("Lỗi lưu dữ liệu: $response"),
+              backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      print("💥 [LOG SẬP NGUỒN] Hàm xảy ra Exception crash tổng lực: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Lỗi hệ thống xảy ra: $e"), backgroundColor: Colors.redAccent),
+        SnackBar(
+            content: Text("Lỗi hệ thống xảy ra: $e"),
+            backgroundColor: Colors.redAccent),
       );
     } finally {
+      print("🏁 [LOG CUỐI] Tắt trạng thái Loading Submit.");
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
@@ -197,7 +292,7 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     setState(() {
       final row = _csvDataset[_csvCurrentIndex];
       _csvCurrentIndex = (_csvCurrentIndex + 1) % _csvDataset.length;
-      
+
       // Parse Gender: 0 -> Female ("Nữ"), 1 -> Male ("Nam")
       final csvGenderVal = row[0];
       if (csvGenderVal.toString() == "1") {
@@ -205,10 +300,10 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       } else {
         _genderController.text = "Nam";
       }
-      
+
       // Parse AGE
       _ageController.text = row[1].toString();
-      
+
       _ureaController.text = row[2].toString();
       _creatinineController.text = row[3].toString();
       _hba1cController.text = row[4].toString();
@@ -224,7 +319,9 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
   Future<void> _runAIPrediction() async {
     if (_ureaController.text.isEmpty || _bmiController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Vui lòng nhập đủ chỉ số!"), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text("Vui lòng nhập đủ chỉ số!"),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -235,14 +332,16 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     final double? creatinine = double.tryParse(_creatinineController.text);
     final double? hba1c = double.tryParse(_hba1cController.text);
     final double? cholesterol = double.tryParse(_cholesterolController.text);
-    final double? triglycerides = double.tryParse(_triglyceridesController.text);
+    final double? triglycerides =
+        double.tryParse(_triglyceridesController.text);
     final double? hdl = double.tryParse(_hdlController.text);
     final double? ldl = double.tryParse(_ldlController.text);
     final double? vldl = double.tryParse(_vldlController.text);
     final double? bmi = double.tryParse(_bmiController.text);
 
     final int age = int.tryParse(_ageController.text) ?? 30;
-    final String safeGender = _genderController.text.toLowerCase().contains("nam") ? "M" : "F";
+    final String safeGender =
+        _genderController.text.toLowerCase().contains("nam") ? "M" : "F";
 
     final patientData = {
       "Gender": safeGender,
@@ -264,7 +363,9 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
 
       if (response.containsKey('error')) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi AI: ${response['error']}"), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text("Lỗi AI: ${response['error']}"),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -275,11 +376,13 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         _aiSuggestedStatus = label.isNotEmpty ? label : 'Không xác định';
         _statusController.text = _aiSuggestedStatus;
         if (response.containsKey('clinical_advice')) {
-          _treatmentController.text = (response['clinical_advice'] ?? '').toString();
+          _treatmentController.text =
+              (response['clinical_advice'] ?? '').toString();
         }
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi chạy AI: $e")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Lỗi chạy AI: $e")));
     } finally {
       if (mounted) setState(() => _isAIPredicting = false);
     }
@@ -310,7 +413,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20),
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -321,21 +425,29 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
               Center(
                 child: Container(
                   margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  height: 5, width: 40,
-                  decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+                  height: 5,
+                  width: 40,
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Hồ Sơ Bệnh Án EMR",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B))),
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.grey),
                       onPressed: () => Navigator.pop(context),
-                      style: IconButton.styleFrom(backgroundColor: Colors.white, elevation: 0),
+                      style: IconButton.styleFrom(
+                          backgroundColor: Colors.white, elevation: 0),
                     ),
                   ],
                 ),
@@ -348,16 +460,33 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
-                        onPressed: _fillNextFromCSV,
-                        icon: const Icon(Icons.auto_fix_high, size: 18, color: Color(0xFF3B82F6)),
+                        // SỬA LẠI ĐOẠN ONPRESSED Ở ĐÂY
+                        onPressed: () {
+                          if (_csvDataset.isEmpty) {
+                            // Nếu chưa có dữ liệu -> Gọi hàm đọc file CSV
+                            _loadCSV();
+                          } else {
+                            // Nếu đã có dữ liệu -> Gọi hàm điền vào form
+                            _fillNextFromCSV();
+                          }
+                        },
+                        icon: const Icon(Icons.auto_fix_high,
+                            size: 18, color: Color(0xFF3B82F6)),
                         label: Text(
-                            _csvDataset.isEmpty
-                                ? "Tải dữ liệu mẫu"
-                                : "Auto-fill (${_csvCurrentIndex + 1}/${_csvDataset.length})",
-                            style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
+                          _csvDataset.isEmpty
+                              ? "Tải dữ liệu mẫu"
+                              : "Auto-fill (${_csvCurrentIndex + 1}/${_csvDataset.length})",
+                          style: const TextStyle(
+                            color: Color(0xFF3B82F6),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFFEFF6FF),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          backgroundColor: const Color(0xFFEFF6FF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -366,45 +495,74 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                       decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)]),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 20)
+                          ]),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text("Chỉ số Hóa sinh máu",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF475569))),
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF475569))),
                           const SizedBox(height: 16),
                           Row(children: [
-                            Expanded(child: _modernTextFieldNoUnit(_ageController, "Tuổi")),
+                            Expanded(
+                                child: _modernTextFieldNoUnit(
+                                    _ageController, "Tuổi")),
                             const SizedBox(width: 12),
-                            Expanded(child: _modernTextFieldNoUnit(_genderController, "Giới tính (Nam/Nữ)"))
+                            Expanded(
+                                child: _modernTextFieldNoUnit(
+                                    _genderController, "Giới tính (Nam/Nữ)"))
                           ]),
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: _modernField(_ureaController, "Urea", "mmol/L")),
+                            Expanded(
+                                child: _modernField(
+                                    _ureaController, "Urea", "mmol/L")),
                             const SizedBox(width: 12),
-                            Expanded(child: _modernField(_creatinineController, "Cr", "µmol/L"))
+                            Expanded(
+                                child: _modernField(
+                                    _creatinineController, "Cr", "µmol/L"))
                           ]),
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: _modernField(_hba1cController, "HbA1c", "%")),
+                            Expanded(
+                                child: _modernField(
+                                    _hba1cController, "HbA1c", "%")),
                             const SizedBox(width: 12),
-                            Expanded(child: _modernField(_cholesterolController, "Chol", "mmol/L"))
+                            Expanded(
+                                child: _modernField(
+                                    _cholesterolController, "Chol", "mmol/L"))
                           ]),
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: _modernField(_triglyceridesController, "TG", "mmol/L")),
+                            Expanded(
+                                child: _modernField(
+                                    _triglyceridesController, "TG", "mmol/L")),
                             const SizedBox(width: 12),
-                            Expanded(child: _modernField(_hdlController, "HDL", "mmol/L"))
+                            Expanded(
+                                child: _modernField(
+                                    _hdlController, "HDL", "mmol/L"))
                           ]),
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: _modernField(_ldlController, "LDL", "mmol/L")),
+                            Expanded(
+                                child: _modernField(
+                                    _ldlController, "LDL", "mmol/L")),
                             const SizedBox(width: 12),
-                            Expanded(child: _modernField(_vldlController, "VLDL", "mmol/L"))
+                            Expanded(
+                                child: _modernField(
+                                    _vldlController, "VLDL", "mmol/L"))
                           ]),
                           const SizedBox(height: 12),
                           Row(children: [
-                            Expanded(child: _modernField(_bmiController, "BMI", "kg/m²")),
+                            Expanded(
+                                child: _modernField(
+                                    _bmiController, "BMI", "kg/m²")),
                             const SizedBox(width: 12),
                             const Expanded(child: SizedBox.shrink())
                           ]),
@@ -418,10 +576,26 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                       child: ElevatedButton.icon(
                         onPressed: _isAIPredicting ? null : _runAIPrediction,
                         icon: _isAIPredicting
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2))
                             : const Icon(Icons.psychology, color: Colors.white),
-                        label: Text(_isAIPredicting ? "AI đang phân tích..." : "Phân tích bằng AI", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 4, shadowColor: const Color(0xFF8B5CF6).withOpacity(0.5)),
+                        label: Text(
+                            _isAIPredicting
+                                ? "AI đang phân tích..."
+                                : "Phân tích bằng AI",
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B5CF6),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            elevation: 4,
+                            shadowColor:
+                                const Color(0xFF8B5CF6).withOpacity(0.5)),
                       ),
                     ),
                     if (_aiResult != null) ...[
@@ -429,9 +603,12 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                       _buildAIResultCard(_aiResult!),
                     ],
                     const SizedBox(height: 24),
-                    _modernTextField(_statusController, "Chẩn đoán lâm sàng", maxLines: 1),
+                    _modernTextField(_statusController, "Chẩn đoán lâm sàng",
+                        maxLines: 1),
                     const SizedBox(height: 16),
-                    _modernTextField(_treatmentController, "Phác đồ điều trị / Lời khuyên", maxLines: 3),
+                    _modernTextField(
+                        _treatmentController, "Phác đồ điều trị / Lời khuyên",
+                        maxLines: 3),
                     const SizedBox(height: 32),
 
                     // 🛠️ HÀNG NÚT BẤM (GIỮ NGUYÊN FORM CŨ & THÊM NÚT KÊ ĐƠN RIÊNG LẺ)
@@ -441,47 +618,79 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                           children: [
                             Expanded(
                               child: TextButton(
-                                onPressed: _isSubmitting ? null : () => Navigator.pop(context),
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => Navigator.pop(context),
                                 style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 18),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                                child: const Text("Hủy bỏ", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 18),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(16))),
+                                child: const Text("Hủy bỏ",
+                                    style: TextStyle(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16)),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               flex: 2,
                               child: ElevatedButton(
-                                onPressed: _isSubmitting ? null : _handleSaveAndPrescribe,
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : _handleSaveAndPrescribe,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF0F172A),
-                                  padding: const EdgeInsets.symmetric(vertical: 18),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 18),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
                                 ),
                                 child: _isSubmitting
-                                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                    : const Text("Ký & Lưu Bệnh Án", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2))
+                                    : const Text("Lưu Bệnh Án",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 14), // Khoảng cách giữa các hàng nút
-                        
+                        const SizedBox(
+                            height: 14), // Khoảng cách giữa các hàng nút
+
                         // 🍏 BUTTON RIÊNG BIỆT THÊM MỚI: MỞ THẲNG TRANG KÊ ĐƠN & TRUYỀN DATA
                         SizedBox(
                           width: double.infinity,
                           height: 54,
                           child: OutlinedButton.icon(
-                            onPressed: _isSubmitting ? null : _navigateToPrescriptionScreen,
-                            icon: const Icon(Icons.medication_liquid, color: Colors.blue, size: 22),
+                            onPressed: _isSubmitting
+                                ? null
+                                : _navigateToPrescriptionScreen,
+                            icon: const Icon(Icons.medication_liquid,
+                                color: Colors.blue, size: 22),
                             label: const Text(
                               "Chỉ Kê Đơn Thuốc",
-                              style: TextStyle(color: Colors.blue, fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                             ),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.blue, width: 1.5),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              backgroundColor: Colors.blue.withOpacity(0.06), // Tạo nền xanh nhạt sang trọng
+                              side: const BorderSide(
+                                  color: Colors.blue, width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                              backgroundColor: Colors.blue.withOpacity(
+                                  0.06), // Tạo nền xanh nhạt sang trọng
                             ),
                           ),
                         ),
@@ -497,50 +706,73 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     );
   }
 
-  Widget _modernField(TextEditingController controller, String label, String unit) {
+  Widget _modernField(
+      TextEditingController controller, String label, String unit) {
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(
         labelText: "$label ($unit)",
         labelStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-        filled: true, fillColor: const Color(0xFFF1F5F9),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
+        filled: true,
+        fillColor: const Color(0xFFF1F5F9),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
       ),
-      validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? "!" : null,
+      validator: (v) =>
+          (v == null || v.isEmpty || double.tryParse(v) == null) ? "!" : null,
     );
   }
 
-  Widget _modernTextFieldNoUnit(TextEditingController controller, String label) {
+  Widget _modernTextFieldNoUnit(
+      TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-        filled: true, fillColor: const Color(0xFFF1F5F9),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
+        filled: true,
+        fillColor: const Color(0xFFF1F5F9),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5)),
       ),
       validator: (v) => (v == null || v.isEmpty) ? "!" : null,
     );
   }
 
-  Widget _modernTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+  Widget _modernTextField(TextEditingController controller, String label,
+      {int maxLines = 1}) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF475569)),
-        filled: true, fillColor: Colors.white,
+        labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+        filled: true,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.all(20),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey.shade200)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2)),
       ),
-      validator: (v) => (v == null || v.trim().isEmpty) ? "Vui lòng nhập thông tin" : null,
+      validator: (v) =>
+          (v == null || v.trim().isEmpty) ? "Vui lòng nhập thông tin" : null,
     );
   }
 
@@ -548,7 +780,7 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
   // 🤖 AI Result Card — Hiển thị kết quả chẩn đoán tiểu đường từ Custom KNN
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildAIResultCard(Map<String, dynamic> result) {
-    final dynamic rawPred     = result['prediction'];
+    final dynamic rawPred = result['prediction'];
     int predCode = 0;
     if (rawPred is num) {
       predCode = rawPred.toInt();
@@ -556,15 +788,18 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       final parsed = int.tryParse(rawPred);
       if (parsed != null) {
         predCode = parsed;
-      } else if (rawPred.toLowerCase().contains("tiền") || rawPred.toLowerCase().contains("p")) {
+      } else if (rawPred.toLowerCase().contains("tiền") ||
+          rawPred.toLowerCase().contains("p")) {
         predCode = 1;
-      } else if (rawPred.toLowerCase().contains("mắc") || rawPred.toLowerCase().contains("y") || rawPred.toLowerCase().contains("diabet")) {
+      } else if (rawPred.toLowerCase().contains("mắc") ||
+          rawPred.toLowerCase().contains("y") ||
+          rawPred.toLowerCase().contains("diabet")) {
         predCode = 2;
       }
     }
-    final String predLabel    = (result['prediction_label'] ?? '').toString();
-    final bool ruleTriggered  = result['rule_triggered'] == true;
-    final String advice       = (result['clinical_advice'] ?? '').toString();
+    final String predLabel = (result['prediction_label'] ?? '').toString();
+    final bool ruleTriggered = result['rule_triggered'] == true;
+    final String advice = (result['clinical_advice'] ?? '').toString();
     final Map<String, dynamic> probs = result['probabilities'] is Map
         ? Map<String, dynamic>.from(result['probabilities'] as Map)
         : {};
@@ -574,25 +809,25 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
     final IconData headerIcon;
     switch (predCode) {
       case 0:
-        headerBg     = const Color(0xFFF0FDF4);
+        headerBg = const Color(0xFFF0FDF4);
         headerBorder = const Color(0xFF86EFAC);
-        iconColor    = const Color(0xFF16A34A);
-        labelColor   = const Color(0xFF166534);
-        headerIcon   = Icons.check_circle_rounded;
+        iconColor = const Color(0xFF16A34A);
+        labelColor = const Color(0xFF166534);
+        headerIcon = Icons.check_circle_rounded;
         break;
       case 1:
-        headerBg     = const Color(0xFFFFFBEB);
+        headerBg = const Color(0xFFFFFBEB);
         headerBorder = const Color(0xFFFCD34D);
-        iconColor    = const Color(0xFFD97706);
-        labelColor   = const Color(0xFF92400E);
-        headerIcon   = Icons.info_rounded;
+        iconColor = const Color(0xFFD97706);
+        labelColor = const Color(0xFF92400E);
+        headerIcon = Icons.info_rounded;
         break;
       default: // 2 = Diabetes
-        headerBg     = const Color(0xFFFEF2F2);
+        headerBg = const Color(0xFFFEF2F2);
         headerBorder = const Color(0xFFFECACA);
-        iconColor    = const Color(0xFFDC2626);
-        labelColor   = const Color(0xFF991B1B);
-        headerIcon   = Icons.warning_rounded;
+        iconColor = const Color(0xFFDC2626);
+        labelColor = const Color(0xFF991B1B);
+        headerIcon = Icons.warning_rounded;
     }
 
     // Parse probability strings "XX.XX%" → double
@@ -601,16 +836,19 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       return double.tryParse(s.replaceAll('%', '').trim()) ?? 0.0;
     }
 
-    final double pNormal      = parsePct(probs['Normal']?.toString());
+    final double pNormal = parsePct(probs['Normal']?.toString());
     final double pPrediabetes = parsePct(probs['Prediabetes']?.toString());
-    final double pDiabetes    = parsePct(probs['Diabetes']?.toString());
+    final double pDiabetes = parsePct(probs['Diabetes']?.toString());
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: iconColor.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: iconColor.withOpacity(0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 4)),
         ],
         border: Border.all(color: headerBorder, width: 1.5),
       ),
@@ -622,7 +860,8 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               color: headerBg,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
             ),
             child: Row(
               children: [
@@ -634,12 +873,18 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                     children: [
                       const Text(
                         "Kết quả chẩn đoán AI — Custom KNN",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         predLabel,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: labelColor),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: labelColor),
                       ),
                     ],
                   ),
@@ -647,14 +892,18 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                 // WHO/ADA rule badge
                 if (ruleTriggered)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFDC2626),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       "WHO ≥6.5%",
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
               ],
@@ -669,14 +918,20 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
               children: [
                 const Text(
                   "Xác suất (Custom KNN)",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF475569)),
                 ),
                 const SizedBox(height: 12),
-                _buildProbabilityBar("Bình thường",    pNormal,      const Color(0xFF22C55E)),
+                _buildProbabilityBar(
+                    "Bình thường", pNormal, const Color(0xFF22C55E)),
                 const SizedBox(height: 8),
-                _buildProbabilityBar("Tiền tiểu đường", pPrediabetes, const Color(0xFFF59E0B)),
+                _buildProbabilityBar(
+                    "Tiền tiểu đường", pPrediabetes, const Color(0xFFF59E0B)),
                 const SizedBox(height: 8),
-                _buildProbabilityBar("Tiểu đường",     pDiabetes,    const Color(0xFFEF4444)),
+                _buildProbabilityBar(
+                    "Tiểu đường", pDiabetes, const Color(0xFFEF4444)),
               ],
             ),
           ),
@@ -695,12 +950,16 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.tips_and_updates_rounded, size: 18, color: Color(0xFF6366F1)),
+                    const Icon(Icons.tips_and_updates_rounded,
+                        size: 18, color: Color(0xFF6366F1)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         advice,
-                        style: const TextStyle(fontSize: 12.5, color: Color(0xFF334155), height: 1.5),
+                        style: const TextStyle(
+                            fontSize: 12.5,
+                            color: Color(0xFF334155),
+                            height: 1.5),
                       ),
                     ),
                   ],
@@ -720,9 +979,16 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12.5, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.w600)),
             Text("${pct.toStringAsFixed(2)}%",
-                style: TextStyle(fontSize: 12.5, color: barColor, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    fontSize: 12.5,
+                    color: barColor,
+                    fontWeight: FontWeight.bold)),
           ],
         ),
         const SizedBox(height: 4),
@@ -732,7 +998,9 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
               Container(
                 height: 8,
                 width: constraints.maxWidth,
-                decoration: BoxDecoration(color: const Color(0xFFE2E8F0), borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(4)),
               ),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 800),
@@ -742,7 +1010,12 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
                 decoration: BoxDecoration(
                   color: barColor,
                   borderRadius: BorderRadius.circular(4),
-                  boxShadow: [BoxShadow(color: barColor.withOpacity(0.4), blurRadius: 4, offset: const Offset(0, 2))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: barColor.withOpacity(0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2))
+                  ],
                 ),
               ),
             ],
@@ -751,4 +1024,4 @@ class _EmrAiFormWidgetState extends State<EmrAiFormWidget> {
       ],
     );
   }
-}
+}

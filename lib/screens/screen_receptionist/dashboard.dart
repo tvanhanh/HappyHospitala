@@ -12,10 +12,11 @@ import '../../models/appointment.dart';
 import '../../services/api_appointment.dart';
 
 // Hệ màu cao cấp chuẩn Clinic SaaS mới
-const Color kPrimaryColor = Color(0xFF0F172A); // Màu tối sang trọng thay cho xanh đậm cổ điển
+const Color kPrimaryColor =
+    Color(0xFF0F172A); // Màu tối sang trọng thay cho xanh đậm cổ điển
 const Color kSecondaryColor = Color(0xFF2563EB); // Royal Blue hiện đại
 const Color kAccentColor = Color(0xFF10B981); // Emerald Green tinh tế
-const Color kBackgroundColor = Color(0xFFF8FAFC); 
+const Color kBackgroundColor = Color(0xFFF8FAFC);
 const Color kCardColor = Colors.white;
 const Color kBorderColor = Color(0xFFE2E8F0);
 const Color kTextColor = Color(0xFF1E293B);
@@ -24,7 +25,8 @@ class ReceptionistDashboard extends ConsumerStatefulWidget {
   const ReceptionistDashboard({super.key});
 
   @override
-  ConsumerState<ReceptionistDashboard> createState() => _ReceptionistDashboardState();
+  ConsumerState<ReceptionistDashboard> createState() =>
+      _ReceptionistDashboardState();
 }
 
 class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
@@ -49,7 +51,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
     _notificationCallback = (data) {
       if (mounted) {
-        final Map<String, dynamic> notification = Map<String, dynamic>.from(data);
+        final Map<String, dynamic> notification =
+            Map<String, dynamic>.from(data);
         final title = notification['title'] ?? 'Thông báo';
         final body = notification['body'] ?? '';
 
@@ -57,7 +60,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                const Icon(Icons.notifications_active,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -66,7 +70,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -80,7 +85,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             ),
             backgroundColor: kPrimaryColor,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -89,13 +95,15 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         _loadAllAppointments();
       }
     };
-    SocketService.instance.on(SocketEvents.newNotification, _notificationCallback!);
+    SocketService.instance
+        .on(SocketEvents.newNotification, _notificationCallback!);
   }
 
   @override
   void dispose() {
     if (_notificationCallback != null) {
-      SocketService.instance.off(SocketEvents.newNotification, _notificationCallback);
+      SocketService.instance
+          .off(SocketEvents.newNotification, _notificationCallback);
     }
     super.dispose();
   }
@@ -134,37 +142,58 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   // Visual status helpers
   Color _getStatusBgColor(String status) {
     switch (status) {
-      case 'pending': return const Color(0xFFFFF3E0); // light orange
-      case 'confirmed': return const Color(0xFFE3F2FD); // light blue
-      case 'checked_in': return const Color(0xFFE8F5E9); // light green
-      case 'in_progress': return const Color(0xFFF3E5F5); // light purple
-      case 'completed': return const Color(0xFFE0F2F1); // light teal
-      case 'cancelled': return const Color(0xFFFFEBEE); // light red
-      default: return const Color(0xFFF5F5F5);
+      case 'pending':
+        return const Color(0xFFFFF3E0); // light orange
+      case 'confirmed':
+        return const Color(0xFFE3F2FD); // light blue
+      case 'checked_in':
+        return const Color(0xFFE8F5E9); // light green
+      case 'in_progress':
+        return const Color(0xFFF3E5F5); // light purple
+      case 'completed':
+        return const Color(0xFFE0F2F1); // light teal
+      case 'cancelled':
+        return const Color(0xFFFFEBEE); // light red
+      default:
+        return const Color(0xFFF5F5F5);
     }
   }
 
   Color _getStatusTextColor(String status) {
     switch (status) {
-      case 'pending': return const Color(0xFFE65100);
-      case 'confirmed': return const Color(0xFF0D47A1);
-      case 'checked_in': return const Color(0xFF2E7D32);
-      case 'in_progress': return const Color(0xFF7B1FA2);
-      case 'completed': return const Color(0xFF00695C);
-      case 'cancelled': return const Color(0xFFC62828);
-      default: return const Color(0xFF616161);
+      case 'pending':
+        return const Color(0xFFE65100);
+      case 'confirmed':
+        return const Color(0xFF0D47A1);
+      case 'checked_in':
+        return const Color(0xFF2E7D32);
+      case 'in_progress':
+        return const Color(0xFF7B1FA2);
+      case 'completed':
+        return const Color(0xFF00695C);
+      case 'cancelled':
+        return const Color(0xFFC62828);
+      default:
+        return const Color(0xFF616161);
     }
   }
 
   String _getStatusLabel(String status) {
     switch (status) {
-      case 'pending': return 'Chờ xác nhận';
-      case 'confirmed': return 'Đã xác nhận';
-      case 'checked_in': return 'Đã Check-in';
-      case 'in_progress': return 'Đang khám';
-      case 'completed': return 'Hoàn thành';
-      case 'cancelled': return 'Đã hủy';
-      default: return 'Không rõ';
+      case 'pending':
+        return 'Chờ xác nhận';
+      case 'confirmed':
+        return 'Đã xác nhận';
+      case 'checked_in':
+        return 'Đã Check-in';
+      case 'in_progress':
+        return 'Đang khám';
+      case 'completed':
+        return 'Hoàn thành';
+      case 'cancelled':
+        return 'Đã hủy';
+      default:
+        return 'Không rõ';
     }
   }
 
@@ -172,7 +201,7 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     setState(() {
       _selectedAppointment = appt;
     });
-    
+
     // Check if tablet/mobile view
     final width = MediaQuery.of(context).size.width;
     if (width < 1000) {
@@ -184,22 +213,29 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget build(BuildContext context) {
     final state = ref.watch(receptionistProvider);
 
-    final totalPatients = state.appointments.map((a) => a.patientId).toSet().length;
-    final waiting = state.appointments.where((a) => ['pending', 'confirmed'].contains(a.status)).length;
-    final checkedIn = state.appointments.where((a) => a.status == 'checked_in').length;
-    final completed = state.appointments.where((a) => a.status == 'completed').length;
+    final totalPatients =
+        state.appointments.map((a) => a.patientId).toSet().length;
+    final waiting = state.appointments
+        .where((a) => ['pending', 'confirmed'].contains(a.status))
+        .length;
+    final checkedIn =
+        state.appointments.where((a) => a.status == 'checked_in').length;
+    final completed =
+        state.appointments.where((a) => a.status == 'completed').length;
     final revenue = state.appointments
         .where((a) => a.isPaid || a.status == 'completed')
         .fold(0.0, (sum, a) => sum + a.finalFee);
 
-    final formattedRevenue = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(revenue);
+    final formattedRevenue =
+        NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(revenue);
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Happy Clinic - Hệ thống quản lý",
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Colors.black87),
+          style: TextStyle(
+              fontWeight: FontWeight.w600, fontSize: 16, color: Colors.black87),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -212,7 +248,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.black87),
             onPressed: () {
-              ref.read(receptionistProvider.notifier).fetchAppointments(state.selectedDate);
+              ref
+                  .read(receptionistProvider.notifier)
+                  .fetchAppointments(state.selectedDate);
               _loadAllAppointments();
             },
           ),
@@ -226,7 +264,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ReceptionistMessengerScreen()),
+            MaterialPageRoute(
+                builder: (context) => const ReceptionistMessengerScreen()),
           );
         },
         backgroundColor: kSecondaryColor,
@@ -234,7 +273,11 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         icon: const Icon(Icons.forum_rounded, color: Colors.white, size: 20),
         label: const Text(
           "Hỗ trợ khách hàng",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+          style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              letterSpacing: 0.3),
         ),
       ),
       body: state.isLoading
@@ -243,7 +286,7 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final isDesktop = constraints.maxWidth >= 1000;
-                  
+
                   final mainContent = SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: Column(
@@ -254,20 +297,25 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Xin chào, $_receptionistName",
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                              "Xin chào Lễ tân, $_receptionistName",
+                              style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: kPrimaryColor),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               "Hôm nay: ${DateFormat('dd/MM/yyyy').format(state.selectedDate)}",
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.grey.shade500),
                             ),
                           ],
                         ),
                         const SizedBox(height: 24),
 
                         // Overview stats
-                        _buildOverviewGrid(totalPatients, waiting, checkedIn, completed, formattedRevenue),
+                        _buildOverviewGrid(totalPatients, waiting, checkedIn,
+                            completed, formattedRevenue),
                         const SizedBox(height: 24),
 
                         // Quick actions
@@ -305,7 +353,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                                 side: const BorderSide(color: kBorderColor),
                               ),
                               child: _selectedAppointment != null
-                                  ? _buildAdministrativeDetailPanel(_selectedAppointment!)
+                                  ? _buildAdministrativeDetailPanel(
+                                      _selectedAppointment!)
                                   : _buildLiveQueueSection(state.appointments),
                             ),
                           ),
@@ -340,21 +389,26 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     );
   }
 
-  Widget _buildOverviewGrid(int total, int wait, int checkedIn, int done, String revStr) {
+  Widget _buildOverviewGrid(
+      int total, int wait, int checkedIn, int done, String revStr) {
     return Column(
       children: [
         Wrap(
           spacing: 16,
           runSpacing: 16,
           children: [
-            _buildStatCard("Bệnh nhân hôm nay", total.toString(), Icons.group_outlined, Colors.blue),
-            _buildStatCard("Chờ Check-in", wait.toString(), Icons.hourglass_top_rounded, Colors.orange, onTap: () {
+            _buildStatCard("Bệnh nhân hôm nay", total.toString(),
+                Icons.group_outlined, Colors.blue),
+            _buildStatCard("Chờ Check-in", wait.toString(),
+                Icons.hourglass_top_rounded, Colors.orange, onTap: () {
               context.go('/receptionist/appointment-management');
             }),
-            _buildStatCard("Trong hàng chờ", checkedIn.toString(), Icons.directions_run_rounded, kSecondaryColor, onTap: () {
+            _buildStatCard("Trong hàng chờ", checkedIn.toString(),
+                Icons.directions_run_rounded, kSecondaryColor, onTap: () {
               context.go('/receptionist/waiting-list');
             }),
-            _buildStatCard("Đã khám xong", done.toString(), Icons.check_circle_outline_rounded, kAccentColor),
+            _buildStatCard("Đã khám xong", done.toString(),
+                Icons.check_circle_outline_rounded, kAccentColor),
           ],
         ),
         const SizedBox(height: 16),
@@ -362,7 +416,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color,
+      {VoidCallback? onTap}) {
     return Container(
       width: 172,
       decoration: BoxDecoration(
@@ -370,7 +425,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: kBorderColor),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.01),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Material(
@@ -392,7 +450,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     Expanded(
                       child: Text(
                         title,
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -402,7 +463,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 const SizedBox(height: 12),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kTextColor),
+                  style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: kTextColor),
                 ),
               ],
             ),
@@ -425,16 +489,21 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         children: [
           const Text(
             "Thao tác nhanh hệ thống",
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kPrimaryColor),
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryColor),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildActionButton(Icons.assignment_turned_in_outlined, "Check-in Lịch hẹn", () {
+              _buildActionButton(
+                  Icons.assignment_turned_in_outlined, "Check-in Lịch hẹn", () {
                 context.go('/receptionist/appointment-management');
               }),
               const SizedBox(width: 12),
-              _buildActionButton(Icons.assignment_ind_outlined, "Quản lý bệnh nhân", () {
+              _buildActionButton(
+                  Icons.assignment_ind_outlined, "Quản lý bệnh nhân", () {
                 context.go('/receptionist/patient-management');
               }),
             ],
@@ -449,7 +518,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 16, color: kSecondaryColor),
-        label: Text(label, style: const TextStyle(color: kTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
+        label: Text(label,
+            style: const TextStyle(
+                color: kTextColor, fontSize: 13, fontWeight: FontWeight.w600)),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
           side: const BorderSide(color: kBorderColor),
@@ -463,9 +534,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget _buildChartsSection(List<Appointment> appointments) {
     return Row(
       children: [
-        Expanded(child: _buildChartContainer("Lưu lượng bệnh nhân theo buổi", _buildPatientBarChart(appointments))),
+        Expanded(
+            child: _buildChartContainer("Lưu lượng bệnh nhân theo buổi",
+                _buildPatientBarChart(appointments))),
         const SizedBox(width: 16),
-        Expanded(child: _buildChartContainer("Cơ cấu chuyên khoa khám", _buildSpecialtyPieChart(appointments))),
+        Expanded(
+            child: _buildChartContainer("Cơ cấu chuyên khoa khám",
+                _buildSpecialtyPieChart(appointments))),
       ],
     );
   }
@@ -483,7 +558,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kPrimaryColor),
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: kPrimaryColor),
           ),
           const SizedBox(height: 16),
           SizedBox(height: 200, child: chart),
@@ -498,14 +576,19 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
     for (var appt in appointments) {
       final timeStr = appt.time.toString().toLowerCase();
-      if (timeStr.contains('am') || timeStr.startsWith('0') || timeStr.startsWith('10') || timeStr.startsWith('11')) {
+      if (timeStr.contains('am') ||
+          timeStr.startsWith('0') ||
+          timeStr.startsWith('10') ||
+          timeStr.startsWith('11')) {
         morningCount++;
       } else {
         afternoonCount++;
       }
     }
 
-    double maxVal = (morningCount > afternoonCount ? morningCount : afternoonCount).toDouble();
+    double maxVal =
+        (morningCount > afternoonCount ? morningCount : afternoonCount)
+            .toDouble();
     if (maxVal < 5) maxVal = 5;
 
     return BarChart(
@@ -515,33 +598,51 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         barTouchData: BarTouchData(enabled: true),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
-            sideTitles: SideTitles(showTitles: true, reservedSize: 24, interval: (maxVal / 4).roundToDouble().clamp(1.0, 50.0)),
+            sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 24,
+                interval: (maxVal / 4).roundToDouble().clamp(1.0, 50.0)),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
-                const style = TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w500);
+                const style = TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500);
                 String text = value.toInt() == 0 ? 'Sáng (AM)' : 'Chiều (PM)';
-                return SideTitleWidget(meta: meta, child: Text(text, style: style));
+                return SideTitleWidget(
+                    meta: meta, child: Text(text, style: style));
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
+          getDrawingHorizontalLine: (value) =>
+              FlLine(color: Colors.grey.shade100, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
         barGroups: [
           BarChartGroupData(x: 0, barRods: [
-            BarChartRodData(toY: morningCount.toDouble(), color: Colors.orange.shade400, width: 24, borderRadius: BorderRadius.circular(4))
+            BarChartRodData(
+                toY: morningCount.toDouble(),
+                color: Colors.orange.shade400,
+                width: 24,
+                borderRadius: BorderRadius.circular(4))
           ]),
           BarChartGroupData(x: 1, barRods: [
-            BarChartRodData(toY: afternoonCount.toDouble(), color: kSecondaryColor, width: 24, borderRadius: BorderRadius.circular(4))
+            BarChartRodData(
+                toY: afternoonCount.toDouble(),
+                color: kSecondaryColor,
+                width: 24,
+                borderRadius: BorderRadius.circular(4))
           ]),
         ],
       ),
@@ -551,7 +652,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget _buildSpecialtyPieChart(List<Appointment> appointments) {
     final Map<String, int> specialtyMap = {};
     for (var appt in appointments) {
-      final spec = appt.departmentName.toString().isNotEmpty ? appt.departmentName.toString() : "Khác";
+      final spec = appt.departmentName.toString().isNotEmpty
+          ? appt.departmentName.toString()
+          : "Khác";
       specialtyMap[spec] = (specialtyMap[spec] ?? 0) + 1;
     }
 
@@ -560,7 +663,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     }
 
     final total = specialtyMap.values.fold(0, (sum, val) => sum + val);
-    final List<Color> colors = [kSecondaryColor, kAccentColor, Colors.orange, Colors.purple, Colors.teal];
+    final List<Color> colors = [
+      kSecondaryColor,
+      kAccentColor,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal
+    ];
 
     int index = 0;
     final sections = specialtyMap.entries.map((entry) {
@@ -572,7 +681,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         value: entry.value.toDouble(),
         title: '${entry.key}\n(${percent.toStringAsFixed(0)}%)',
         radius: 60,
-        titleStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+        titleStyle: const TextStyle(
+            fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
       );
     }).toList();
 
@@ -598,11 +708,16 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             children: [
               const Text(
                 "Lịch khám hôm nay",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryColor),
               ),
               IconButton(
-                icon: const Icon(Icons.arrow_forward_rounded, size: 18, color: kSecondaryColor),
-                onPressed: () => context.go('/receptionist/appointment-management'),
+                icon: const Icon(Icons.arrow_forward_rounded,
+                    size: 18, color: kSecondaryColor),
+                onPressed: () =>
+                    context.go('/receptionist/appointment-management'),
               )
             ],
           ),
@@ -613,9 +728,12 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.calendar_today_outlined, color: Colors.grey.shade300, size: 36),
+                    Icon(Icons.calendar_today_outlined,
+                        color: Colors.grey.shade300, size: 36),
                     const SizedBox(height: 8),
-                    Text("Không có lịch khám nào", style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                    Text("Không có lịch khám nào",
+                        style: TextStyle(
+                            color: Colors.grey.shade400, fontSize: 13)),
                   ],
                 ),
               ),
@@ -625,7 +743,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: recent.length,
-              separatorBuilder: (context, index) => const Divider(color: Color(0xFFF1F5F9), height: 16),
+              separatorBuilder: (context, index) =>
+                  const Divider(color: Color(0xFFF1F5F9), height: 16),
               itemBuilder: (context, index) {
                 final appt = recent[index];
                 Color statusColor = Colors.grey;
@@ -658,11 +777,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   borderRadius: BorderRadius.circular(6),
                   hoverColor: kSecondaryColor.withOpacity(0.02),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 6.0),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 4.0, horizontal: 6.0),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(4),
@@ -670,7 +791,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                           ),
                           child: Text(
                             appt.time,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: kTextColor, fontSize: 12),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: kTextColor,
+                                fontSize: 12),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -680,13 +804,17 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                             children: [
                               Text(
                                 appt.patientName,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextColor),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: kTextColor),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 "BS. ${appt.doctorName} • ${appt.departmentName}",
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                                style: TextStyle(
+                                    color: Colors.grey.shade500, fontSize: 11),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -694,14 +822,18 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                         ),
                         const SizedBox(width: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.06),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             statusLabel,
-                            style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 10),
+                            style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10),
                           ),
                         ),
                       ],
@@ -732,7 +864,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             children: [
               const Text(
                 "Lịch làm việc phòng khám",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: kPrimaryColor),
               ),
               Container(
                 decoration: BoxDecoration(
@@ -768,7 +903,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               ),
               Text(
                 _getNavigationLabel(selectedDate),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextColor),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: kTextColor),
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
@@ -786,7 +924,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           ),
           const SizedBox(height: 16),
           _loadingAll
-              ? const Center(child: Padding(
+              ? const Center(
+                  child: Padding(
                   padding: EdgeInsets.all(20.0),
                   child: CircularProgressIndicator(color: kSecondaryColor),
                 ))
@@ -810,7 +949,12 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
           boxShadow: isSelected
-              ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
+              ? [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2))
+                ]
               : null,
         ),
         child: Text(
@@ -845,7 +989,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
   void _shiftMonth(int months) {
     final state = ref.read(receptionistProvider);
-    final newDate = DateTime(state.selectedDate.year, state.selectedDate.month + months, state.selectedDate.day);
+    final newDate = DateTime(state.selectedDate.year,
+        state.selectedDate.month + months, state.selectedDate.day);
     ref.read(receptionistProvider.notifier).fetchAppointments(newDate);
   }
 
@@ -873,14 +1018,29 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   }
 
   Widget _buildDayScheduler(List<Appointment> dayAppointments) {
-    final List<String> hours = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-    
+    final List<String> hours = [
+      // Buổi sáng
+      "07:30", "07:45", "08:00", "08:15",
+      "08:30", "08:45", "09:00", "09:15",
+      "09:30", "09:45", "10:00", "10:15",
+      "10:30", "10:45", "11:00", "11:15",
+
+      // Buổi chiều
+      "13:30", "13:45", "14:00", "14:15",
+      "14:30", "14:45", "15:00", "15:15",
+      "15:30", "15:45", "16:00", "16:15",
+      "16:30", "16:45",
+
+      // Buổi tối (Ngoài giờ)
+      "17:00", "17:15", "17:30", "17:45",
+      "18:00", "18:15", "18:30", "18:45",
+      "19:00", "19:15", "19:30", "19:45"
+    ];
+
     return Column(
       children: hours.map((hour) {
-        final hourPrefix = hour.split(":")[0];
         final matches = dayAppointments.where((appt) {
-          final apptHour = appt.time.split(":")[0].padLeft(2, '0');
-          return apptHour == hourPrefix;
+          return appt.time == hour;
         }).toList();
 
         return Container(
@@ -895,7 +1055,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 width: 60,
                 child: Text(
                   hour,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: kTextColor, fontSize: 13),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: kTextColor,
+                      fontSize: 13),
                 ),
               ),
               const SizedBox(width: 8),
@@ -903,12 +1066,17 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 child: matches.isEmpty
                     ? Text(
                         "Không có ca khám",
-                        style: TextStyle(color: Colors.grey.shade400, fontSize: 12, fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic),
                       )
                     : Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: matches.map((appt) => _buildMiniAppointmentCard(appt)).toList(),
+                        children: matches
+                            .map((appt) => _buildMiniAppointmentCard(appt))
+                            .toList(),
                       ),
               ),
             ],
@@ -921,11 +1089,21 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget _buildMiniAppointmentCard(Appointment appt) {
     Color statusColor = Colors.grey;
     switch (appt.status) {
-      case 'pending': statusColor = Colors.orange; break;
-      case 'confirmed': statusColor = Colors.blue; break;
-      case 'checked_in': statusColor = kSecondaryColor; break;
-      case 'completed': statusColor = kAccentColor; break;
-      case 'cancelled': statusColor = Colors.red; break;
+      case 'pending':
+        statusColor = Colors.orange;
+        break;
+      case 'confirmed':
+        statusColor = Colors.blue;
+        break;
+      case 'checked_in':
+        statusColor = kSecondaryColor;
+        break;
+      case 'completed':
+        statusColor = kAccentColor;
+        break;
+      case 'cancelled':
+        statusColor = Colors.red;
+        break;
     }
 
     return Container(
@@ -935,7 +1113,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: kBorderColor),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Material(
@@ -955,14 +1136,18 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     Expanded(
                       child: Text(
                         appt.patientName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextColor),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: kTextColor),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
                       width: 8,
                       height: 8,
-                      decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                          color: statusColor, shape: BoxShape.circle),
                     ),
                   ],
                 ),
@@ -973,7 +1158,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  appt.departmentName.isNotEmpty ? appt.departmentName : appt.doctorSpecialty,
+                  appt.departmentName.isNotEmpty
+                      ? appt.departmentName
+                      : appt.doctorSpecialty,
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -983,11 +1170,17 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   children: [
                     Text(
                       appt.time,
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: kSecondaryColor, fontSize: 11),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: kSecondaryColor,
+                          fontSize: 11),
                     ),
                     Text(
                       appt.appointmentType == 'online' ? 'Online' : 'Tại PK',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 9, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -1005,12 +1198,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
   Widget _buildWeekScheduler(DateTime selectedDate) {
     final startOfWeek = _findFirstDayOfWeek(selectedDate);
-    final days = List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
+    final days =
+        List.generate(7, (index) => startOfWeek.add(Duration(days: index)));
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 700;
-        
+
         if (isMobile) {
           return Column(
             children: days.map((day) => _buildWeekDayRow(day)).toList(),
@@ -1018,7 +1212,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         } else {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: days.map((day) => Expanded(child: _buildWeekDayColumn(day))).toList(),
+            children: days
+                .map((day) => Expanded(child: _buildWeekDayColumn(day)))
+                .toList(),
           );
         }
       },
@@ -1027,10 +1223,14 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
   Widget _buildWeekDayColumn(DateTime day) {
     final dayStr = DateFormat('yyyy-MM-dd').format(day);
-    final isToday = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final isSelected = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(ref.read(receptionistProvider).selectedDate);
-    
-    final dayAppointments = _allAppointments.where((appt) => appt.date == dayStr).toList();
+    final isToday = DateFormat('yyyy-MM-dd').format(day) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final isSelected = DateFormat('yyyy-MM-dd').format(day) ==
+        DateFormat('yyyy-MM-dd')
+            .format(ref.read(receptionistProvider).selectedDate);
+
+    final dayAppointments =
+        _allAppointments.where((appt) => appt.date == dayStr).toList();
 
     return GestureDetector(
       onTap: () {
@@ -1043,10 +1243,14 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isSelected ? kSecondaryColor.withOpacity(0.04) : Colors.transparent,
+          color: isSelected
+              ? kSecondaryColor.withOpacity(0.04)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? kSecondaryColor : (isToday ? kAccentColor : kBorderColor),
+            color: isSelected
+                ? kSecondaryColor
+                : (isToday ? kAccentColor : kBorderColor),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -1099,7 +1303,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 ),
                 child: Text(
                   "+${dayAppointments.length - 3} lịch",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 9, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
           ],
@@ -1110,9 +1317,11 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
   Widget _buildWeekDayRow(DateTime day) {
     final dayStr = DateFormat('yyyy-MM-dd').format(day);
-    final dayAppointments = _allAppointments.where((appt) => appt.date == dayStr).toList();
-    final isToday = DateFormat('yyyy-MM-dd').format(day) == DateFormat('yyyy-MM-dd').format(DateTime.now());
-    
+    final dayAppointments =
+        _allAppointments.where((appt) => appt.date == dayStr).toList();
+    final isToday = DateFormat('yyyy-MM-dd').format(day) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     return InkWell(
       onTap: () {
         ref.read(receptionistProvider.notifier).fetchAppointments(day);
@@ -1150,7 +1359,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             const SizedBox(width: 8),
             Expanded(
               child: dayAppointments.isEmpty
-                  ? Text("Trống", style: TextStyle(color: Colors.grey.shade400, fontSize: 12))
+                  ? Text("Trống",
+                      style:
+                          TextStyle(color: Colors.grey.shade400, fontSize: 12))
                   : SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -1172,11 +1383,21 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
   Widget _buildMiniAppointmentCardCompact(Appointment appt) {
     Color statusColor = Colors.grey;
     switch (appt.status) {
-      case 'pending': statusColor = Colors.orange; break;
-      case 'confirmed': statusColor = Colors.blue; break;
-      case 'checked_in': statusColor = kSecondaryColor; break;
-      case 'completed': statusColor = kAccentColor; break;
-      case 'cancelled': statusColor = Colors.red; break;
+      case 'pending':
+        statusColor = Colors.orange;
+        break;
+      case 'confirmed':
+        statusColor = Colors.blue;
+        break;
+      case 'checked_in':
+        statusColor = kSecondaryColor;
+        break;
+      case 'completed':
+        statusColor = kAccentColor;
+        break;
+      case 'cancelled':
+        statusColor = Colors.red;
+        break;
     }
 
     return Container(
@@ -1202,13 +1423,17 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                          color: statusColor, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         appt.patientName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: kTextColor),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            color: kTextColor),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1230,28 +1455,37 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
 
   String _getWeekdayName(int weekday) {
     switch (weekday) {
-      case 1: return "Thứ 2";
-      case 2: return "Thứ 3";
-      case 3: return "Thứ 4";
-      case 4: return "Thứ 5";
-      case 5: return "Thứ 6";
-      case 6: return "Thứ 7";
-      case 7: return "Chủ Nhật";
-      default: return "";
+      case 1:
+        return "Thứ 2";
+      case 2:
+        return "Thứ 3";
+      case 3:
+        return "Thứ 4";
+      case 4:
+        return "Thứ 5";
+      case 5:
+        return "Thứ 6";
+      case 6:
+        return "Thứ 7";
+      case 7:
+        return "Chủ Nhật";
+      default:
+        return "";
     }
   }
 
   Widget _buildMonthScheduler(DateTime selectedDate) {
     final firstDayOfMonth = DateTime(selectedDate.year, selectedDate.month, 1);
-    final lastDayOfMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0);
-    
+    final lastDayOfMonth =
+        DateTime(selectedDate.year, selectedDate.month + 1, 0);
+
     final daysInMonth = lastDayOfMonth.day;
     final weekdayOfFirstDay = firstDayOfMonth.weekday; // 1 = Monday, 7 = Sunday
-    
+
     final paddingCells = weekdayOfFirstDay - 1;
     final totalCells = paddingCells + daysInMonth;
     final rowCount = (totalCells / 7).ceil();
-    
+
     return Column(
       children: [
         Row(
@@ -1263,7 +1497,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Text(
                     dayName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kTextColor),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: kTextColor),
                   ),
                 ),
               ),
@@ -1278,19 +1515,27 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
               if (cellIndex < paddingCells || cellIndex >= totalCells) {
                 return const Expanded(child: SizedBox(height: 60));
               }
-              
+
               final dayNumber = cellIndex - paddingCells + 1;
-              final cellDate = DateTime(selectedDate.year, selectedDate.month, dayNumber);
+              final cellDate =
+                  DateTime(selectedDate.year, selectedDate.month, dayNumber);
               final dateStr = DateFormat('yyyy-MM-dd').format(cellDate);
-              final isToday = dateStr == DateFormat('yyyy-MM-dd').format(DateTime.now());
-              final isSelected = dateStr == DateFormat('yyyy-MM-dd').format(ref.read(receptionistProvider).selectedDate);
-              
-              final dayAppointments = _allAppointments.where((appt) => appt.date == dateStr).toList();
-              
+              final isToday =
+                  dateStr == DateFormat('yyyy-MM-dd').format(DateTime.now());
+              final isSelected = dateStr ==
+                  DateFormat('yyyy-MM-dd')
+                      .format(ref.read(receptionistProvider).selectedDate);
+
+              final dayAppointments = _allAppointments
+                  .where((appt) => appt.date == dateStr)
+                  .toList();
+
               return Expanded(
                 child: InkWell(
                   onTap: () {
-                    ref.read(receptionistProvider.notifier).fetchAppointments(cellDate);
+                    ref
+                        .read(receptionistProvider.notifier)
+                        .fetchAppointments(cellDate);
                     setState(() {
                       _schedulerViewMode = "day";
                     });
@@ -1300,10 +1545,16 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     margin: const EdgeInsets.all(2),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: isSelected ? kSecondaryColor.withOpacity(0.04) : Colors.transparent,
+                      color: isSelected
+                          ? kSecondaryColor.withOpacity(0.04)
+                          : Colors.transparent,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isSelected ? kSecondaryColor : (isToday ? kAccentColor : kBorderColor.withOpacity(0.5)),
+                        color: isSelected
+                            ? kSecondaryColor
+                            : (isToday
+                                ? kAccentColor
+                                : kBorderColor.withOpacity(0.5)),
                         width: isSelected ? 1.5 : 1,
                       ),
                     ),
@@ -1313,15 +1564,20 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                         Text(
                           dayNumber.toString(),
                           style: TextStyle(
-                            fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isToday || isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             fontSize: 12,
-                            color: isSelected ? kSecondaryColor : (isToday ? kAccentColor : kTextColor),
+                            color: isSelected
+                                ? kSecondaryColor
+                                : (isToday ? kAccentColor : kTextColor),
                           ),
                         ),
                         const Spacer(),
                         if (dayAppointments.isNotEmpty)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
                             decoration: BoxDecoration(
                               color: kSecondaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(4),
@@ -1329,7 +1585,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.circle, color: kSecondaryColor, size: 6),
+                                const Icon(Icons.circle,
+                                    color: kSecondaryColor, size: 6),
                                 const SizedBox(width: 4),
                                 Text(
                                   "${dayAppointments.length} ca",
@@ -1360,7 +1617,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       context: context,
       builder: (dialogCtx) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             width: 450,
             constraints: BoxConstraints(
@@ -1379,10 +1637,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
     );
   }
 
-  Widget _buildAdministrativeDetailPanel(Appointment appointment, {bool isDialog = false}) {
+  Widget _buildAdministrativeDetailPanel(Appointment appointment,
+      {bool isDialog = false}) {
     final status = appointment.status;
     final isCanCheckIn = ['pending', 'confirmed'].contains(status);
-    final typeLabel = appointment.appointmentType == 'online' ? '🎥 Khám Online (Video)' : '🏥 Khám tại phòng khám';
+    final typeLabel = appointment.appointmentType == 'online'
+        ? '🎥 Khám Online (Video)'
+        : '🏥 Khám tại phòng khám';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -1394,7 +1655,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             children: [
               const Text(
                 "Chi tiết Hành chính",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kSecondaryColor),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: kSecondaryColor),
               ),
               IconButton(
                 onPressed: () {
@@ -1411,13 +1675,13 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 16),
-
           Row(
             children: [
               CircleAvatar(
                 backgroundColor: kSecondaryColor.withOpacity(0.08),
                 radius: 28,
-                child: const Icon(Icons.person, color: kSecondaryColor, size: 28),
+                child:
+                    const Icon(Icons.person, color: kSecondaryColor, size: 28),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1426,25 +1690,33 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   children: [
                     Text(
                       appointment.patientName,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextColor),
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: kTextColor),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: _getStatusBgColor(status),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             _getStatusLabel(status),
-                            style: TextStyle(color: _getStatusTextColor(status), fontWeight: FontWeight.bold, fontSize: 11),
+                            style: TextStyle(
+                                color: _getStatusTextColor(status),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
                           decoration: BoxDecoration(
                             color: appointment.appointmentType == 'online'
                                 ? const Color(0xFFE3F2FD)
@@ -1452,7 +1724,9 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            appointment.appointmentType == 'online' ? 'Online' : 'Tại PK',
+                            appointment.appointmentType == 'online'
+                                ? 'Online'
+                                : 'Tại PK',
                             style: TextStyle(
                               color: appointment.appointmentType == 'online'
                                   ? const Color(0xFF0D47A1)
@@ -1470,33 +1744,55 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             ],
           ),
           const SizedBox(height: 20),
-
           const Text(
             "THÔNG TIN NHÂN KHẨU",
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
           _buildDetailInfoRow(Icons.phone, "Số điện thoại", appointment.phone),
-          _buildDetailInfoRow(Icons.credit_card, "CCCD/CMND", appointment.cccd.isNotEmpty ? appointment.cccd : "Chưa cập nhật"),
-          _buildDetailInfoRow(Icons.cake_outlined, "Ngày sinh", appointment.birthDate.isNotEmpty ? appointment.birthDate : "Chưa rõ"),
-          _buildDetailInfoRow(Icons.wc_rounded, "Giới tính", appointment.gender.isNotEmpty ? appointment.gender : "Chưa rõ"),
-          _buildDetailInfoRow(Icons.location_on_outlined, "Địa chỉ", appointment.address.isNotEmpty ? appointment.address : "Chưa cập nhật"),
+          _buildDetailInfoRow(Icons.credit_card, "CCCD/CMND",
+              appointment.cccd.isNotEmpty ? appointment.cccd : "Chưa cập nhật"),
+          _buildDetailInfoRow(
+              Icons.cake_outlined,
+              "Ngày sinh",
+              appointment.birthDate.isNotEmpty
+                  ? appointment.birthDate
+                  : "Chưa rõ"),
+          _buildDetailInfoRow(Icons.wc_rounded, "Giới tính",
+              appointment.gender.isNotEmpty ? appointment.gender : "Chưa rõ"),
+          _buildDetailInfoRow(
+              Icons.location_on_outlined,
+              "Địa chỉ",
+              appointment.address.isNotEmpty
+                  ? appointment.address
+                  : "Chưa cập nhật"),
           const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 12),
-
           const Text(
             "THÔNG TIN LỊCH HẸN",
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5),
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                letterSpacing: 0.5),
           ),
           const SizedBox(height: 12),
-          _buildDetailInfoRow(Icons.medical_services_outlined, "Bác sĩ", appointment.doctorName),
+          _buildDetailInfoRow(Icons.medical_services_outlined, "Bác sĩ",
+              appointment.doctorName),
           _buildDetailInfoRow(
             Icons.local_hospital_outlined,
             "Chuyên khoa",
-            appointment.departmentName.isNotEmpty ? appointment.departmentName : appointment.doctorSpecialty,
+            appointment.departmentName.isNotEmpty
+                ? appointment.departmentName
+                : appointment.doctorSpecialty,
           ),
-          _buildDetailInfoRow(Icons.access_time_rounded, "Giờ hẹn", "${appointment.time} - ${appointment.date}"),
+          _buildDetailInfoRow(Icons.access_time_rounded, "Giờ hẹn",
+              "${appointment.time} - ${appointment.date}"),
           _buildDetailInfoRow(Icons.category_outlined, "Hình thức", typeLabel),
           _buildDetailInfoRow(
             Icons.assignment_outlined,
@@ -1504,20 +1800,25 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             appointment.reason.isNotEmpty ? appointment.reason : "Không mô tả",
           ),
           const SizedBox(height: 16),
-
           if (isCanCheckIn) ...[
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _showCheckInDialog(context, appointment, isDialog: isDialog),
-                icon: const Icon(Icons.verified_user_outlined, size: 18, color: Colors.white),
+                onPressed: () => _showCheckInDialog(context, appointment,
+                    isDialog: isDialog),
+                icon: const Icon(Icons.verified_user_outlined,
+                    size: 18, color: Colors.white),
                 label: const Text(
                   "📍 Xác nhận Check-in",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2E7D32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   elevation: 0,
                 ),
@@ -1540,7 +1841,10 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   Expanded(
                     child: Text(
                       "Bệnh nhân đã Check-In.\nĐang trong hàng chờ khám Bác sĩ.",
-                      style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600, fontSize: 13),
+                      style: TextStyle(
+                          color: Color(0xFF2E7D32),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13),
                     ),
                   ),
                 ],
@@ -1548,7 +1852,6 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             ),
             const SizedBox(height: 16),
           ],
-
           if (status == 'pending') ...[
             SizedBox(
               width: double.infinity,
@@ -1560,13 +1863,15 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                   if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text("Đã xác nhận lịch hẹn cho ${appointment.patientName}"),
+                        content: Text(
+                            "Đã xác nhận lịch hẹn cho ${appointment.patientName}"),
                         backgroundColor: kPrimaryColor,
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                     setState(() {
-                      _selectedAppointment = appointment.copyWith(status: 'confirmed');
+                      _selectedAppointment =
+                          appointment.copyWith(status: 'confirmed');
                     });
                     _loadAllAppointments();
                     if (isDialog) {
@@ -1574,21 +1879,25 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     }
                   }
                 },
-                icon: const Icon(Icons.check_circle_outline, size: 16, color: kSecondaryColor),
+                icon: const Icon(Icons.check_circle_outline,
+                    size: 16, color: kSecondaryColor),
                 label: const Text(
                   "Xác nhận lịch hẹn",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kSecondaryColor),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: kSecondaryColor),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: kSecondaryColor),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
             const SizedBox(height: 16),
           ],
-
           _buildSecureGuard(),
         ],
       ),
@@ -1605,12 +1914,14 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           const SizedBox(width: 10),
           SizedBox(
             width: 100,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            child: Text(label,
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: kTextColor, fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(
+                  color: kTextColor, fontWeight: FontWeight.w600, fontSize: 13),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -1635,27 +1946,33 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
           const SizedBox(height: 12),
           Text(
             "🔒 Quyền truy cập bị hạn chế",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey.shade600),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
           Text(
             "Nội dung bệnh án, Đơn thuốc điện tử và các dữ liệu AI/CNN/KNN chỉ được hiển thị cho Bác sĩ đã xác thực.\n\nLễ tân chỉ có quyền truy cập dữ liệu Hành chính / Hóa đơn.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 12, height: 1.5),
+            style: TextStyle(
+                color: Colors.grey.shade500, fontSize: 12, height: 1.5),
           ),
         ],
       ),
     );
   }
 
-  void _showCheckInDialog(BuildContext context, Appointment appointment, {bool isDialog = false}) {
+  void _showCheckInDialog(BuildContext context, Appointment appointment,
+      {bool isDialog = false}) {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Color(0xFF2E7D32), size: 28),
+            Icon(Icons.check_circle_outline,
+                color: Color(0xFF2E7D32), size: 28),
             SizedBox(width: 8),
             Text(
               "Xác Nhận Check-In",
@@ -1673,13 +1990,23 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
               const SizedBox(height: 12),
-              _buildDialogInfoRow("Mã đặt lịch:", "#${appointment.id.toUpperCase()}"),
+              _buildDialogInfoRow(
+                  "Mã đặt lịch:", "#${appointment.id.toUpperCase()}"),
               _buildDialogInfoRow("Họ và tên:", appointment.patientName),
-              _buildDialogInfoRow("CCCD/CMND:", appointment.cccd.isNotEmpty ? appointment.cccd : "Chưa cập nhật"),
+              _buildDialogInfoRow(
+                  "CCCD/CMND:",
+                  appointment.cccd.isNotEmpty
+                      ? appointment.cccd
+                      : "Chưa cập nhật"),
               _buildDialogInfoRow("Số điện thoại:", appointment.phone),
               _buildDialogInfoRow("Bác sĩ khám:", appointment.doctorName),
-              _buildDialogInfoRow("Chuyên khoa:", appointment.departmentName.isNotEmpty ? appointment.departmentName : appointment.doctorSpecialty),
-              _buildDialogInfoRow("Giờ hẹn:", "${appointment.time} - ${appointment.date}"),
+              _buildDialogInfoRow(
+                  "Chuyên khoa:",
+                  appointment.departmentName.isNotEmpty
+                      ? appointment.departmentName
+                      : appointment.doctorSpecialty),
+              _buildDialogInfoRow(
+                  "Giờ hẹn:", "${appointment.time} - ${appointment.date}"),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -1689,12 +2016,16 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF2E7D32), size: 20),
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF2E7D32), size: 20),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         "Bệnh nhân sẽ được xếp vào hàng chờ trực tiếp của Bác sĩ.",
-                        style: TextStyle(color: Color(0xFF2E7D32), fontSize: 12, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                            color: Color(0xFF2E7D32),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -1722,7 +2053,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                         children: [
                           const Icon(Icons.check, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text("Đã check-in thành công cho ${appointment.patientName}"),
+                          Text(
+                              "Đã check-in thành công cho ${appointment.patientName}"),
                         ],
                       ),
                       backgroundColor: const Color(0xFF2E7D32),
@@ -1730,7 +2062,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
                     ),
                   );
                   setState(() {
-                    _selectedAppointment = appointment.copyWith(status: 'checked_in');
+                    _selectedAppointment =
+                        appointment.copyWith(status: 'checked_in');
                   });
                   _loadAllAppointments();
                   if (isDialog) {
@@ -1750,7 +2083,8 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2E7D32),
             ),
-            child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+            child:
+                const Text("Xác nhận", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1763,13 +2097,21 @@ class _ReceptionistDashboardState extends ConsumerState<ReceptionistDashboard> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+          Text(label,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Colors.grey)),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87)),
           ),
         ],
       ),
     );
   }
-}
+}

@@ -139,6 +139,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     }
 
     final String appointmentId = getStringField('id', () => appt.id);
+    print(appointmentId.isNotEmpty ? "Appointment ID: $appointmentId" : "Không tìm thấy ID cuộc hẹn.");
     final String patientId = getStringField('patientId', () => appt.patientId).isNotEmpty 
         ? getStringField('patientId', () => appt.patientId) 
         : getStringField('idBN', () => null);
@@ -201,6 +202,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
       final prescriptionData = PrescriptionModel(
         appointmentId: apptData["id"]!,
+        
         diagnosis: _diagnosisController.text.trim(),
         status: "pending",
         patientId: apptData["patientId"]!,

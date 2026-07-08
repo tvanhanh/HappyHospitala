@@ -10,13 +10,13 @@ import { addDepartments, getDepartments,updateDepartment,
 import {getUser, changeUserRole,toggleUserActive} from '../controllers/security_controller';
 
 import {createMedicalRecord,updateMedicalRecord, getMedicalRecord} from '../controllers/medicalRecordInfor_controller';
-import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,getDoctorAccessRequestsHistory,verifyMedicalRecordIntegrity, requestAccess,approveAccessRequest,viewMedicalRecordPdf,respondToAccessRequest,getMedicalRecordDetailForDoctor} from "../controllers/medicalRecordController";
+import {addMedicalRecord,listMedicalRecords,getMedicalRecordDetail,searchMedicalRecords,getDoctorAccessRequestsHistory,verifyMedicalRecordIntegrity, requestAccess,approveAccessRequest,viewMedicalRecordPdf,respondToAccessRequest,getMedicalRecordDetailForDoctor,getMedicalRecordById} from "../controllers/medicalRecordController";
 import upload from "../middleware/upload";
 import { predictDiabetes, predictResourcePPO, predictSkin } from '../controllers/predictController';
 import { getAllMedicineCategories, createMedicineCategory } from "../controllers/categoryOfMedicineController";
 import { createSupplier ,deleteSupplier,updateSupplier,getAllSuppliers} from '../controllers/supplier_controller';
-import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine } from '../controllers/medicineController';
-import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescriptionStatus} from '../controllers/prescriptionController';
+import { getAllMedicines, createMedicine, deleteMedicine,updateMedicine, } from '../controllers/medicineController';
+import {createPrescription,getPrescriptions,  getPrescriptionById,updatePrescriptionStatus,getPrescriptionByAppointment} from '../controllers/prescriptionController';
 import { createImportMedicne, getImportRecords,approveImportBill } from '../controllers/importMedicneController';
 import { createBill, getBills, getBillById } from '../controllers/billController';
 import {getSentRequests,getReceivedRequests} from '../controllers/request_controller';
@@ -84,6 +84,7 @@ router.get("/requests/doctor-history", verifyToken, getDoctorAccessRequestsHisto
 router.get("/sent-history", verifyToken,getSentRequests);
 router.get('/received-requests', verifyToken, getReceivedRequests);
 router.post("/approve", verifyToken, approveAccessRequest);
+router.get('/getmedicalrecordbypatientid/:id', verifyToken, getMedicalRecordById);
  // category of medicine
  router.get("/get_category",verifyToken, getAllMedicineCategories);
  router.post("/create_category", verifyToken, createMedicineCategory);
@@ -96,6 +97,7 @@ router.post("/approve", verifyToken, approveAccessRequest);
  router.post("/create_prescription", verifyToken, createPrescription);
  router.get('/get_prescriptions',verifyToken, getPrescriptions);
  router.get('/get_prescriptionsDetail/:id',verifyToken, getPrescriptionById);
+ router.get('/get_prescription_by_appointment/:id',verifyToken, getPrescriptionByAppointment);
  router.put('/update_status_prescriptions/:id/status',verifyToken, updatePrescriptionStatus);
  // supplier 
 router.post('/create_supplier',verifyToken,createSupplier);

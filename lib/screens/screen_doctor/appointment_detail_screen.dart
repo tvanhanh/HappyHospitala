@@ -14,6 +14,7 @@ class AppointmentDetailScreenDoctor extends StatefulWidget {
   State<AppointmentDetailScreenDoctor> createState() =>
       _AppointmentDetailScreenState();
 }
+
 class _AppointmentDetailScreenState
     extends State<AppointmentDetailScreenDoctor> {
   final ScrollController _scrollController = ScrollController();
@@ -30,6 +31,7 @@ class _AppointmentDetailScreenState
       });
     });
   }
+
   @override
   Widget build(BuildContext context) {
     final appointment = widget.appointment;
@@ -87,23 +89,21 @@ class _AppointmentDetailScreenState
                                           appointment.doctorAvatar,
                                         )
                                       : null,
-                              child:
-                                  appointment.doctorAvatar.isEmpty
-                                      ? const Text(
-                                        "N",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                      : null,
+                              child: appointment.doctorAvatar.isEmpty
+                                  ? const Text(
+                                      "N",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
                                   "Bệnh nhân",
@@ -133,8 +133,7 @@ class _AppointmentDetailScreenState
                             ),
                           ),
                           Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               const Text(
                                 "Ngày khám",
@@ -178,8 +177,8 @@ class _AppointmentDetailScreenState
                         context,
                         appointment.imageUrl,
                       ),
-                      const SizedBox(height: 16),
-                      _historySection(),
+                      // const SizedBox(height: 16),
+                      // _historySection(),
                       const SizedBox(height: 20),
 
                       _medicalRecordButton(context),
@@ -194,102 +193,87 @@ class _AppointmentDetailScreenState
                                 context.pop();
                               },
                               style: OutlinedButton.styleFrom(
-                                minimumSize:
-                                    const Size(double.infinity, 52),
+                                minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
                               child: const Text("Hoãn"),
                             ),
                           ),
-
                           const SizedBox(width: 12),
-
                           Expanded(
                             child: ElevatedButton(
-                              onPressed:
-                                  appointment.status == "cancelled"
-                                      ? null
-                                      : () async {
-                                        final confirm =
-                                            await showDialog(
-                                              context: context,
-                                              builder:
-                                                  (_) => AlertDialog(
-                                                    title:
-                                                        const Text(
-                                                          "Xác nhận",
-                                                        ),
-                                                    content:
-                                                        const Text(
-                                                          "Bạn có muốn hủy lịch không?",
-                                                        ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed:
-                                                            () => Navigator.pop(
-                                                              context,
-                                                              false,
-                                                            ),
-                                                        child:
-                                                            const Text(
-                                                              "Không",
-                                                            ),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed:
-                                                            () => Navigator.pop(
-                                                              context,
-                                                              true,
-                                                            ),
-                                                        child:
-                                                            const Text(
-                                                              "Hủy",
-                                                              style: TextStyle(
-                                                                color:
-                                                                    Colors.red,
-                                                              ),
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                            );
-
-                                        if (confirm != true) return;
-
-                                        try {
-                                          await AppointmentApi
-                                              .cancelAppointment(
-                                                appointment.id,
-                                              );
-
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  "Đã hủy lịch",
+                              onPressed: appointment.status == "cancelled"
+                                  ? null
+                                  : () async {
+                                      final confirm = await showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: const Text(
+                                            "Xác nhận",
+                                          ),
+                                          content: const Text(
+                                            "Bạn có muốn hủy lịch không?",
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(
+                                                context,
+                                                false,
+                                              ),
+                                              child: const Text(
+                                                "Không",
+                                              ),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(
+                                                context,
+                                                true,
+                                              ),
+                                              child: const Text(
+                                                "Hủy",
+                                                style: TextStyle(
+                                                  color: Colors.red,
                                                 ),
                                               ),
-                                            );
+                                            ),
+                                          ],
+                                        ),
+                                      );
 
-                                            context.pop(true);
-                                          }
-                                        } catch (e) {
+                                      if (confirm != true) return;
+
+                                      try {
+                                        await AppointmentApi.cancelAppointment(
+                                          appointment.id,
+                                        );
+
+                                        if (mounted) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
                                             const SnackBar(
                                               content: Text(
-                                                "Hủy thất bại",
+                                                "Đã hủy lịch",
                                               ),
                                             ),
                                           );
+
+                                          context.pop(true);
                                         }
-                                      },
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              "Hủy thất bại",
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.red,
@@ -297,11 +281,9 @@ class _AppointmentDetailScreenState
                                 side: const BorderSide(
                                   color: Colors.red,
                                 ),
-                                minimumSize:
-                                    const Size(double.infinity, 52),
+                                minimumSize: const Size(double.infinity, 52),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
                               child: const Text("Hủy"),
@@ -326,8 +308,7 @@ class _AppointmentDetailScreenState
                 vertical: 8,
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CircleAvatar(
                     backgroundColor: Colors.white24,
@@ -341,7 +322,6 @@ class _AppointmentDetailScreenState
                       ),
                     ),
                   ),
-
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -349,8 +329,7 @@ class _AppointmentDetailScreenState
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius:
-                          BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(30),
                     ),
                     child: Row(
                       children: [
@@ -362,9 +341,7 @@ class _AppointmentDetailScreenState
                             color: Colors.green,
                           ),
                         ),
-
                         const SizedBox(width: 8),
-
                         const Text(
                           "ĐÃ XÁC NHẬN",
                           style: TextStyle(
@@ -433,7 +410,6 @@ class _AppointmentDetailScreenState
               ],
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -444,9 +420,7 @@ class _AppointmentDetailScreenState
                   widget.appointment.reason,
                   Colors.orange.shade50,
                 ),
-
                 const SizedBox(height: 10),
-
                 Row(
                   children: [
                     Expanded(
@@ -457,9 +431,7 @@ class _AppointmentDetailScreenState
                         Colors.red.shade50,
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
                     Expanded(
                       child: _warningTile(
                         Icons.warning_amber,
@@ -493,9 +465,7 @@ class _AppointmentDetailScreenState
       child: Row(
         children: [
           Icon(icon, size: 18, color: Colors.orange),
-
           const SizedBox(width: 8),
-
           Expanded(
             child: RichText(
               text: TextSpan(
@@ -598,13 +568,10 @@ class _AppointmentDetailScreenState
             size: 18,
             color: Colors.grey,
           ),
-
           const SizedBox(width: 10),
-
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
@@ -663,7 +630,6 @@ class _AppointmentDetailScreenState
               ),
             ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(14),
             child: child,
@@ -672,6 +638,7 @@ class _AppointmentDetailScreenState
       ),
     );
   }
+
   Widget _infoRow(
     IconData icon,
     String title,
@@ -682,9 +649,7 @@ class _AppointmentDetailScreenState
       child: Row(
         children: [
           Icon(icon, size: 18, color: Colors.grey),
-
           const SizedBox(width: 10),
-
           Expanded(
             child: Text.rich(
               TextSpan(
@@ -723,10 +688,9 @@ class _AppointmentDetailScreenState
               onTap: () {
                 showDialog(
                   context: context,
-                  builder:
-                      (_) => Dialog(
-                        child: Image.network(image),
-                      ),
+                  builder: (_) => Dialog(
+                    child: Image.network(image),
+                  ),
                 );
               },
               child: Image.network(
@@ -737,9 +701,7 @@ class _AppointmentDetailScreenState
               ),
             ),
           ),
-
           const SizedBox(height: 8),
-
           const Text(
             "Click để xem ảnh kích thước lớn",
             style: TextStyle(
@@ -760,7 +722,6 @@ class _AppointmentDetailScreenState
         context.push(
           '/doctor/create-medical-record',
           extra: widget.appointment,
-          
         );
       },
       icon: const Icon(Icons.note_alt_outlined),

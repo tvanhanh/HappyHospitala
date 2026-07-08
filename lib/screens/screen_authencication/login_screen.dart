@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:async';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
-import 'package:google_sign_in_web/google_sign_in_web.dart' as web;
+// import 'package:google_sign_in_web/google_sign_in_web.dart' as web;
 import '../../models/app_role.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -47,26 +47,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     // Lắng nghe sự kiện đăng nhập của Google Sign In (cho cả web và các nền tảng khác)
-    _authSubscription = GoogleSignIn.instance.authenticationEvents.listen((event) async {
+    _authSubscription =
+        GoogleSignIn.instance.authenticationEvents.listen((event) async {
       if (event is GoogleSignInAuthenticationEventSignIn) {
         final GoogleSignInAccount googleUser = event.user;
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
         final idToken = googleAuth.idToken;
 
         if (idToken != null) {
-          final errorMsg = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
+          final errorMsg =
+              await ref.read(authProvider.notifier).loginWithGoogle(idToken);
           if (!mounted) return;
           if (errorMsg == null) {
             final role = ref.read(authProvider).role.value;
-            if (role == 'admin') context.go('/admin');
-            else if (role == 'patient') context.go('/home');
-            else if (role == 'doctor') context.go('/doctor');
-            else if (role == 'receptionist') context.go('/receptionist/dashboard');
-            else if (role == 'cashier') context.go('/cashier/dashboard');
-            else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
-            else context.go('/home');
+            if (role == 'admin')
+              context.go('/admin');
+            else if (role == 'patient')
+              context.go('/home');
+            else if (role == 'doctor')
+              context.go('/doctor');
+            else if (role == 'receptionist')
+              context.go('/receptionist/dashboard');
+            else if (role == 'cashier')
+              context.go('/cashier/dashboard');
+            else if (role == 'pharmacy')
+              context.go('/pharmacy/dashboard');
+            else
+              context.go('/home');
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(errorMsg)));
           }
         }
       }
@@ -87,32 +98,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Trên Web, luồng đăng nhập được điều khiển hoàn toàn bởi renderButton và stream ở initState
         return;
       }
-      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAccount googleUser =
+          await GoogleSignIn.instance.authenticate();
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final idToken = googleAuth.idToken;
 
       if (idToken != null) {
-        final errorMsg = await ref.read(authProvider.notifier).loginWithGoogle(idToken);
+        final errorMsg =
+            await ref.read(authProvider.notifier).loginWithGoogle(idToken);
         if (!mounted) return;
         if (errorMsg == null) {
           final role = ref.read(authProvider).role.value;
-          if (role == 'admin') context.go('/admin');
-          else if (role == 'patient') context.go('/home');
-          else if (role == 'doctor') context.go('/doctor');
-          else if (role == 'receptionist') context.go('/receptionist/dashboard');
-          else if (role == 'cashier') context.go('/cashier/dashboard');
-          else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
-          else context.go('/home');
+          if (role == 'admin')
+            context.go('/admin');
+          else if (role == 'patient')
+            context.go('/home');
+          else if (role == 'doctor')
+            context.go('/doctor');
+          else if (role == 'receptionist')
+            context.go('/receptionist/dashboard');
+          else if (role == 'cashier')
+            context.go('/cashier/dashboard');
+          else if (role == 'pharmacy')
+            context.go('/pharmacy/dashboard');
+          else
+            context.go('/home');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(errorMsg)));
         }
       }
     } catch (error) {
       print("Google sign in error: $error");
-      if (error.toString().contains("canceled") || error.toString().contains("cancelled")) {
+      if (error.toString().contains("canceled") ||
+          error.toString().contains("cancelled")) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lỗi đăng nhập Google.")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Lỗi đăng nhập Google.")));
     }
   }
 
@@ -133,7 +157,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             // ✅ Giảm padding dọc tổng thể
-            padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+            padding:
+                const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
             child: SizedBox(
               width: cardWidth,
               child: Card(
@@ -159,7 +184,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                         SizedBox(height: 8), // ✅ Giảm khoảng cách
-                        
+
                         // --- TIÊU ĐỀ ---
                         Text(
                           "Chào mừng trở lại!",
@@ -176,8 +201,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         SizedBox(height: 16), // ✅ Giữ khoảng cách vừa phải
 
                         // --- INPUT FIELDS ---
-                        _buildTextField("Email hoặc Số điện thoại", Icons.email, false,
-                            (value) => email = value!,
+                        _buildTextField("Email hoặc Số điện thoại", Icons.email,
+                            false, (value) => email = value!,
                             controller: _emailController),
                         SizedBox(height: 12), // ✅ Giảm khoảng cách
                         _buildTextField("Mật khẩu", Icons.lock, true,
@@ -288,14 +313,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         SizedBox(height: 12), // ✅ Giảm khoảng cách
 
                         // --- NÚT ĐĂNG NHẬP MẠNG XÃ HỘI ---
-                        kIsWeb
-                            ? SizedBox(
-                                width: double.infinity,
-                                height: 40, // Match design height
-                                child: (GoogleSignInPlatform.instance as web.GoogleSignInPlugin).renderButton(),
-                              )
-                            : _buildSocialButton(
-                                "Đăng nhập với Google", googleLogoPath, _handleGoogleSignIn),
+                        // kIsWeb
+                        //     ? SizedBox(
+                        //         width: double.infinity,
+                        //         height: 40, // Match design height
+                        //         child: (GoogleSignInPlatform.instance
+                        //                 as web.GoogleSignInPlugin)
+                        //             .renderButton(),
+                        //       )
+                        //     : _buildSocialButton("Đăng nhập với Google",
+                        //         googleLogoPath, _handleGoogleSignIn),
                         SizedBox(height: 16), // ✅ Giảm khoảng cách
 
                         // --- CHƯA CÓ TÀI KHOẢN ---
@@ -310,7 +337,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 context.go('/auth/register');
                               },
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 0),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
@@ -387,18 +415,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ref.read(authProvider.notifier).login(email, password).then((errorMsg) {
           if (!mounted) return;
           if (errorMsg == null) {
-
             final role = ref.read(authProvider).role.value;
-            if (role == 'admin') context.go('/admin');
-            else if (role == 'patient') context.go('/home');
-            else if (role == 'doctor') context.go('/doctor');
-            else if (role == 'receptionist') context.go('/receptionist/dashboard');
-            else if (role == 'cashier') context.go('/cashier/dashboard');
-            else if (role == 'pharmacy') context.go('/pharmacy/dashboard');
-            else context.go('/home');
-
-          
-           
+            if (role == 'admin')
+              context.go('/admin');
+            else if (role == 'patient')
+              context.go('/home');
+            else if (role == 'doctor')
+              context.go('/doctor');
+            else if (role == 'receptionist')
+              context.go('/receptionist/dashboard');
+            else if (role == 'cashier')
+              context.go('/cashier/dashboard');
+            else if (role == 'pharmacy')
+              context.go('/pharmacy/dashboard');
+            else
+              context.go('/home');
           } else {
             ScaffoldMessenger.of(context)
                 .showSnackBar(SnackBar(content: Text(errorMsg)));
@@ -416,12 +447,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       controller: controller,
       decoration: InputDecoration(
         isDense: true, // Làm form gọn lại
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         labelText: label,
         labelStyle: const TextStyle(fontSize: 14),
         prefixIcon: Icon(icon, color: Colors.blue.shade700, size: 20),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10)), 
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         filled: true,
         fillColor: Colors.white,
         suffixIcon: isPassword
@@ -447,14 +478,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   /// ✅ Widget tạo nút đăng nhập Google & Facebook (Đã tối ưu)
-  Widget _buildSocialButton(String text, String logoPath, [VoidCallback? onPressed]) {
+  Widget _buildSocialButton(String text, String logoPath,
+      [VoidCallback? onPressed]) {
     return SizedBox(
       width: double.infinity,
       height: 45, // ✅ Giảm chiều cao nút
       child: ElevatedButton(
-        onPressed: onPressed ?? () {
-          print('$text clicked');
-        },
+        onPressed: onPressed ??
+            () {
+              print('$text clicked');
+            },
         style: ElevatedButton.styleFrom(
           foregroundColor: Colors.black,
           backgroundColor: Colors.white,

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrescriptionModel, IPrescription } from '../models/prescription';
-
+import  MedicalRecord from '../models/medicalRecord';
 export const createPrescription = async (req: Request, res: Response): Promise<void | any> => {
   let statusCode = 201;
   let responseData: any = null;
@@ -200,4 +200,19 @@ export const updatePrescriptionStatus = async (req: Request, res: Response): Pro
   }
 
   return res.status(statusCode).json(responseData);
+};
+export const getPrescriptionByAppointment = async (req: Request, res: Response) => {
+  try {
+const searchId = req.params.id.toString(); 
+const prescription = await PrescriptionModel.findOne({ appointmentId: searchId });
+
+    if (!prescription) {
+     res.status(404).json({ message: "Không tìm thấy đơn thuốc cho cuộc hẹn này." });
+     return;
+    }
+
+    res.status(200).json(prescription);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error });
+  }
 };

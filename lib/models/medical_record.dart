@@ -127,17 +127,10 @@ class MedicalRecord {
   /// integrity layer alongside blockchain anchoring. Maps to `ipfsHash`.
   final String? ipfsHash;
 
-  // ── Ethereum Blockchain Anchor ────────────────────────────────────────────
-
-  /// The Ethereum transaction hash returned after the Smart Contract call
   /// that anchored [pdfHash] on-chain.
-  ///
-  /// This is the "Tx_Hash" referenced in the ERD's Blockchain anchor notation.
-  /// Can be verified on a blockchain explorer (e.g., Etherscan on Sepolia testnet).
+
   /// Maps to `blockchainTx`.
   final String? blockchainTx;
-
-  /// The name of the Ethereum network used (e.g., 'sepolia', 'private').
   /// Maps to `blockchainNetwork`.
   final String? blockchainNetwork;
 
@@ -148,28 +141,19 @@ class MedicalRecord {
   /// Internal index within the anchoring transaction. Maps to `blockchainIndex`.
   final int? blockchainIndex;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // AUDIT & METADATA
-  // ══════════════════════════════════════════════════════════════════════════
-
-  /// Audit trail of all users who accessed this record.
   /// Maps to `accessLogs[]` in the backend schema.
   final List<AccessLogEntry> accessLogs;
 
   /// Timestamp when this record was first created in MongoDB.
   final DateTime? createdAt;
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // CONSTRUCTOR
-  // ══════════════════════════════════════════════════════════════════════════
-
   /// Creates a [MedicalRecord] with all required clinical and blockchain fields.
   const MedicalRecord({
     required this.id,
+    required this.appointmentId,
     required this.patientId,
     required this.doctorId,
     required this.patientName,
-    this.appointmentId,
     required this.visitDate,
     required this.symptoms,
     required this.diagnosis,
@@ -213,7 +197,7 @@ class MedicalRecord {
       patientId: json['patientId']?.toString() ?? '',
       doctorId: json['doctorId']?.toString() ?? '',
       patientName: json['patientName']?.toString() ?? '',
-      appointmentId: json['appointmentId']?.toString(),
+      appointmentId: json['appointmentId']?.toString() ?? '',
       visitDate: json['visitDate'] != null
           ? DateTime.tryParse(json['visitDate'].toString()) ?? DateTime.now()
           : DateTime.now(),
@@ -242,7 +226,7 @@ class MedicalRecord {
         'patientId': patientId,
         'doctorId': doctorId,
         'patientName': patientName,
-        if (appointmentId != null) 'appointmentId': appointmentId,
+        'appointmentId': appointmentId,
         'visitDate': visitDate.toIso8601String(),
         'symptoms': symptoms,
         'diagnosis': diagnosis,
@@ -254,10 +238,10 @@ class MedicalRecord {
   /// Useful for state updates in UI layers.
   MedicalRecord copyWith({
     String? id,
+    String? appointmentId,
     String? patientId,
     String? doctorId,
     String? patientName,
-    String? appointmentId,
     DateTime? visitDate,
     String? symptoms,
     String? diagnosis,
@@ -275,10 +259,11 @@ class MedicalRecord {
   }) {
     return MedicalRecord(
       id: id ?? this.id,
+       appointmentId: appointmentId ?? this.appointmentId,
       patientId: patientId ?? this.patientId,
       doctorId: doctorId ?? this.doctorId,
       patientName: patientName ?? this.patientName,
-      appointmentId: appointmentId ?? this.appointmentId,
+     
       visitDate: visitDate ?? this.visitDate,
       symptoms: symptoms ?? this.symptoms,
       diagnosis: diagnosis ?? this.diagnosis,

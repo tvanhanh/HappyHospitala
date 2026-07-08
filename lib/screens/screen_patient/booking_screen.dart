@@ -1,14 +1,4 @@
-/// Patient Appointment Booking Screen — fully refactored with Riverpod.
-///
-/// Refactoring summary:
-/// - [Booking-1] All async state (doctor detail, form, submission) managed by
-///   Riverpod providers: [doctorDetailProvider] and [bookingProvider].
-///   Legacy setState calls have been removed.
-/// - [Booking-2] [BUG-10 FIX] TimeSlot uses a single [DateTime] (ERD-compliant)
-///   instead of separate date + time strings.
-/// - [Booking-3] Emits [SocketEvents.newAppointment] on success via [SocketService].
-/// - [Booking-4] UI upgraded: time slot grid with styled chips, success dialog,
-///   image upload status indicator, proper error snackbar.
+
 library;
 
 import 'package:flutter/material.dart';
@@ -65,12 +55,6 @@ String _formatEmergencyContactString(String raw) {
   return cleaned;
 }
 
-/// The appointment booking screen, refactored with Riverpod.
-///
-/// Accepts [doctorId] as a required path parameter from the GoRouter route:
-/// `/booking/:doctorId`
-///
-/// Uses [bookingProvider].family([doctorId]) for isolated state per booking.
 class BookingScreen extends ConsumerStatefulWidget {
   final String doctorId;
 

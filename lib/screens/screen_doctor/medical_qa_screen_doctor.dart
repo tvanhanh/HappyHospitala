@@ -67,7 +67,7 @@ class _MedicalQADoctorScreenState extends ConsumerState<MedicalQADoctorScreen> {
         body: Center(child: CircularProgressIndicator(color: _kPrimary)),
       );
     }
-  
+
     final postsAsync = ref.watch(qaPostsProvider);
     final authState = ref.watch(authProvider);
     final searchQuery = ref.watch(qaSearchQueryProvider);
@@ -312,7 +312,6 @@ class _MedicalQADoctorScreenState extends ConsumerState<MedicalQADoctorScreen> {
     );
   }
 }
-
 
 // ── ASK QUESTION BOTTOM SHEET FORM ──────────────────────────────────────────
 class _AskQuestionBottomSheet extends ConsumerStatefulWidget {
@@ -804,14 +803,31 @@ class _PostCardState extends ConsumerState<_PostCard> {
                       : null,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  widget.post.isAnonymous
-                      ? "Bệnh nhân ẩn danh"
-                      : (widget.post.patientName ?? "Bệnh nhân hệ thống"),
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: _kTextSecondary,
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: widget.post.isAnonymous
+                              ? "Bệnh nhân ẩn danh"
+                              : (widget.post.patientName ??
+                                  "Bệnh nhân hệ thống"),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: _kTextPrimary, // Tên người dùng màu đậm
+                          ),
+                        ),
+                        const TextSpan(
+                          text: " • Người hỏi", // Thêm role ở đây
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: _kTextSecondary, // Role màu xám nhạt hơn
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -834,6 +850,10 @@ class _PostCardState extends ConsumerState<_PostCard> {
               Column(
                 children: widget.post.comments.map((comment) {
                   final isCommentDoctor = comment.senderTitle == 'Bác sĩ';
+                  final bool canShowInfo =
+                      isCommentDoctor || !widget.post.isAnonymous;
+                  final String? displayAvatar =
+                      canShowInfo ? comment.senderAvatar : null;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
@@ -854,18 +874,30 @@ class _PostCardState extends ConsumerState<_PostCard> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(
-                                isCommentDoctor
-                                    ? Icons.verified_rounded
-                                    : Icons.person_outline_rounded,
-                                color:
-                                    isCommentDoctor ? Colors.blue : Colors.grey,
-                                size: 16,
+                              child: CircleAvatar(
+                                radius: 12,
+                                backgroundColor: _kPrimary.withOpacity(0.1),
+                                // Thêm dòng này để tải ảnh từ URL
+                                backgroundImage: displayAvatar != null
+                                    ? NetworkImage(displayAvatar)
+                                    : null,
+                                // Chỉ hiện Icon nếu displayAvatar bị null
+                                child: displayAvatar == null
+                                    ? Icon(
+                                        isCommentDoctor
+                                            ? Icons.verified_rounded
+                                            : Icons.person_outline_rounded,
+                                        color: isCommentDoctor
+                                            ? Colors.blue
+                                            : Colors.grey,
+                                        size: 16,
+                                      )
+                                    : null, // Xóa child (Icon) nếu đã có ảnh
                               ),
                             ),
                             const SizedBox(width: 6),

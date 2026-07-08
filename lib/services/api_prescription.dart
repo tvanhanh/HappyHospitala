@@ -6,14 +6,13 @@ import 'config.dart';
 // 🟢 IMPORT CÁC MODEL CẦN THIẾT
 import '../models/medicine_model.dart';
 // Hãy đảm bảo đường dẫn và tên file bên dưới khớp với file Model đơn thuốc của bạn:
-import '../models/prescription_model.dart'; 
+import '../models/prescription_model.dart';
 
 class ApiPrescription {
-  
   // Hàm lấy token bảo mật từ bộ nhớ thiết bị
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token'); 
+    return prefs.getString('token');
   }
 
   // ================= API: TẠO ĐƠN THUỐC MỚI (BÁC SĨ) =================
@@ -22,30 +21,30 @@ class ApiPrescription {
     required String diagnosis,
     required String patientId,
     required String patientName,
-    String? patientPhone,    
-    String? birthDate,     
-    String? gender,          
+    String? patientPhone,
+    String? birthDate,
+    String? gender,
     String? healthInsurance,
     required List<Map<String, dynamic>> medicines,
     List<Map<String, dynamic>>? services,
-    String? doctorId,    
+    String? doctorId,
     String? doctorName,
   }) async {
     try {
       final token = await _getToken();
-      
+
       final Map<String, dynamic> bodyData = {
         "appointmentId": appointmentId,
         "diagnosis": diagnosis,
         "patientId": patientId,
         "patientName": patientName,
-        "patientPhone": patientPhone,    
-        "birthDate": birthDate,         
+        "patientPhone": patientPhone,
+        "birthDate": birthDate,
         "gender": gender,
-        "healthInsurance": healthInsurance, 
+        "healthInsurance": healthInsurance,
         "medicines": medicines,
         "services": services ?? [],
-        "doctorId": doctorId,      
+        "doctorId": doctorId,
         "doctorName": doctorName,
       };
 
@@ -61,7 +60,8 @@ class ApiPrescription {
       if (res.statusCode == 201 || res.statusCode == 200) {
         return true;
       } else {
-        print("Lỗi Server (createPrescription): ${res.statusCode} - ${res.body}");
+        print(
+            "Lỗi Server (createPrescription): ${res.statusCode} - ${res.body}");
         return false;
       }
     } catch (e) {
@@ -69,6 +69,7 @@ class ApiPrescription {
       return false;
     }
   }
+
   static Future<List<PrescriptionModel>> getPendingPrescriptions() async {
     try {
       final token = await _getToken();
@@ -81,8 +82,9 @@ class ApiPrescription {
       );
 
       if (res.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(utf8.decode(res.bodyBytes));
-        final List<dynamic> data = body['data'] ?? []; 
+        final Map<String, dynamic> body =
+            jsonDecode(utf8.decode(res.bodyBytes));
+        final List<dynamic> data = body['data'] ?? [];
         return data.map((item) => PrescriptionModel.fromJson(item)).toList();
       } else {
         print("Lỗi Server (getPendingPrescriptions): ${res.statusCode}");
@@ -92,6 +94,7 @@ class ApiPrescription {
     }
     return [];
   }
+
   static Future<List<PrescriptionModel>> getCompletedPrescriptions() async {
     try {
       final token = await _getToken();
@@ -104,8 +107,9 @@ class ApiPrescription {
       );
 
       if (res.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(utf8.decode(res.bodyBytes));
-        final List<dynamic> data = body['data'] ?? []; 
+        final Map<String, dynamic> body =
+            jsonDecode(utf8.decode(res.bodyBytes));
+        final List<dynamic> data = body['data'] ?? [];
         return data.map((item) => PrescriptionModel.fromJson(item)).toList();
       } else {
         print("Lỗi Server (getCompletedPrescriptions): ${res.statusCode}");
@@ -115,12 +119,15 @@ class ApiPrescription {
     }
     return [];
   }
-  static Future<bool> updatePrescriptionStatus(String prescriptionId, String status) async {
+
+  static Future<bool> updatePrescriptionStatus(
+      String prescriptionId, String status) async {
     try {
       final token = await _getToken();
 
       final res = await http.put(
-        Uri.parse("$baseUrl/api/auth/update_status_prescriptions/$prescriptionId/status"),
+        Uri.parse(
+            "$baseUrl/api/auth/update_status_prescriptions/$prescriptionId/status"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -131,14 +138,54 @@ class ApiPrescription {
       );
 
       if (res.statusCode == 200 || res.statusCode == 204) {
-        return true; 
+        return true;
       } else {
-        print("Lỗi Server (updatePrescriptionStatus): ${res.statusCode} - ${res.body}");
+        print(
+            "Lỗi Server (updatePrescriptionStatus): ${res.statusCode} - ${res.body}");
         return false;
       }
     } catch (e) {
       print(" Lỗi kết nối API updatePrescriptionStatus: $e");
       return false;
+    }
+  }
+
+// Lưu ý: Thay đổi kiểu trả về thành Future<Map<String, dynamic>?> (có dấu chấm hỏi)
+  static Future<Map<String, dynamic>?> getPrescriptionByAppointment(
+      String appointmentId) async {
+    print("🚀 [API] Bắt đầu gọi API đơn thuốc với ID: $appointmentId");
+
+    try {
+      final token = await _getToken(); // Đảm bảo bạn đã có hàm _getToken()
+
+      final response = await http.get(
+        Uri.parse(
+            "$baseUrl/api/auth/get_prescription_by_appointment/$appointmentId"),
+        headers: {
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      print("🔍 [API - Đơn thuốc] Status Code: ${response.statusCode}");
+      print("🔍 [API - Đơn thuốc] Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        // Có đơn thuốc -> Trả về data
+        final decodedData = json.decode(response.body);
+        // Tùy vào cách backend trả về, nếu backend bọc trong { data: {...} } thì bạn phải return decodedData['data'];
+        return decodedData;
+      } else if (response.statusCode == 404 || response.statusCode == 400) {
+        // Backend không tìm thấy đơn thuốc -> Trả về null an toàn
+        print("⚠️ [API] Lịch hẹn này chưa có đơn thuốc.");
+        return null;
+      } else {
+        // Các lỗi khác (500 Server error, 401 Unauthorized...)
+        print("❌ [API] Lỗi từ Backend: ${response.body}");
+        return null; // Vẫn trả về null để UI không bị sập
+      }
+    } catch (e) {
+      print("❌ [API] Lỗi sập nguồn hoặc mạng: $e");
+      return null;
     }
   }
 }
